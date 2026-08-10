@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Almacén GT02</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f4f8;color:#333;font-size:14px}
+.hdr{background:#1F3864;color:#fff;padding:12px 14px}
+.hdr h1{font-size:16px}.hdr span{font-size:11px;color:#A8C8E8}
+.tabs{display:flex;background:#2E75B6}
+.menu-item{padding:11px 8px;font-size:14px;font-weight:bold;color:#1F3864;cursor:pointer;border-radius:6px}
+.menu-item:active{background:#EBF3FB}
+.tab{flex:1;padding:11px 4px;text-align:center;color:#A8C8E8;font-size:12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.on{color:#fff;border-bottom-color:#F4B942;font-weight:bold}
+.scr{display:none;padding:10px}.scr.on{display:block}
+.hscr{display:none}.hscr.on{display:block}
+.card{background:#fff;border-radius:8px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.ctit{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #EBF3FB}
+input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:6px;font-size:13px;margin-bottom:7px;outline:none;background:#fff}
+.btn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;margin-bottom:7px}
+.b-blue{background:#2E75B6;color:#fff}.b-ok{background:#375623;color:#fff}
+.b-danger{background:#C00000;color:#fff}.b-warn{background:#F4B942;color:#333}
+.b-sec{background:#E5E5E5;color:#333}
+.b-sm{padding:5px 10px;font-size:11px;width:auto;margin:2px;border:none;border-radius:5px;cursor:pointer;font-weight:bold}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:bold}
+.bh{background:#D6E4F0;color:#1F3864}.bi{background:#E2EFDA;color:#375623}.bm{background:#FFF2CC;color:#7B5800}
+.tw-card{background:#EBF3FB;border:2px solid #2E75B6;border-radius:8px;padding:10px;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.tw-nom{font-size:14px;font-weight:bold;color:#1F3864;flex:1}
+.tw-cod{font-size:11px;color:#666}
+.tipo-sel{display:flex;gap:5px;margin-bottom:8px}
+.tipo-btn{flex:1;padding:8px 4px;border:2px solid #BDD7EE;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;text-align:center;font-weight:bold;color:#888}
+.tipo-btn.on-h{border-color:#1F3864;background:#EBF3FB;color:#1F3864}
+.tipo-btn.on-i{border-color:#375623;background:#E2EFDA;color:#375623}
+.tipo-btn.on-m{border-color:#7B5800;background:#FFF2CC;color:#7B5800}
+.sug{background:#fff;border:1px solid #BDD7EE;border-radius:6px;max-height:190px;overflow-y:auto;margin-top:-5px;margin-bottom:8px;display:none;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;z-index:10}
+.sug-item{padding:9px 11px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+.sug-item:active{background:#EBF3FB}
+.sug-nom{font-size:13px;font-weight:bold}.sug-cod{font-size:10px;color:#888;margin-top:2px}
+.items-resumen{font-size:11px;color:#555;padding:4px 0 8px;display:flex;gap:4px;flex-wrap:wrap}
+.item-row{display:flex;align-items:flex-start;gap:7px;padding:9px;background:#f8f9fa;border-radius:7px;margin-bottom:6px;border-left:3px solid #2E75B6}
+.item-row.r-Insumo{border-left-color:#375623}
+.item-row.r-Material{border-left-color:#7B5800}
+.item-info{flex:1;min-width:0}
+.item-cod{font-size:10px;color:#888;margin-bottom:2px}
+.item-desc{font-size:13px;font-weight:bold;color:#1F3864;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-sub{margin-top:5px}
+.item-sub input{font-size:11px;padding:5px 7px;margin-bottom:3px}
+.qty-row{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.qty-row input{width:60px;padding:5px;text-align:center;margin-bottom:0;font-size:12px}
+.qty-unit{font-size:11px;color:#666}
+.msg-ok{background:#E2EFDA;color:#375623;padding:9px;border-radius:6px;text-align:center;font-weight:bold;margin-bottom:9px;font-size:13px}
+.msg-err{background:#FCE4D6;color:#C00000;padding:9px;border-radius:6px;text-align:center;margin-bottom:9px;font-size:13px}
+.loading{text-align:center;padding:18px;color:#888;font-size:13px}
+.pa-card{border:2px solid #F4B942;border-radius:8px;padding:11px;margin-bottom:9px;background:#FFFDE7}
+.dev-item{background:#fff;border:1px solid #ddd;border-radius:6px;padding:9px;margin-bottom:7px}
+.dev-item-title{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:5px}
+.hist-filtros{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.hist-filtros input{flex:1;min-width:120px;margin-bottom:0}
+.hist-filtros select{width:130px;margin-bottom:0}
+.hist-filtros .btn{width:auto;padding:9px 14px;margin-bottom:0;font-size:12px}
+.fr-row{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.fr-btn{flex:1;padding:7px 4px;border:2px solid #ddd;border-radius:7px;background:#fff;font-size:11px;font-weight:bold;cursor:pointer;text-align:center;color:#888;min-width:70px}
+.fr-btn.on{border-color:#F4B942;background:#FFF9E6;color:#856404}
+.hist-row{background:#fff;border-radius:7px;padding:10px;margin-bottom:7px;border-left:4px solid #ddd;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.hist-row.abierto{border-left-color:#F4B942}
+.hist-row.cerrado{border-left-color:#375623}
+.hist-est{font-size:10px;font-weight:bold;padding:2px 7px;border-radius:10px}
+.hist-est.abierto{background:#FFF3CD;color:#856404}
+.hist-est.cerrado{background:#E2EFDA;color:#375623}
+.qr-wrap{display:none;margin-bottom:9px;position:relative;border-radius:10px;overflow:hidden;background:#000;max-height:250px}
+.qr-wrap video{width:100%;display:block;max-height:250px;object-fit:cover}
+.qr-guide{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:55%;aspect-ratio:1;pointer-events:none}
+.qr-guide::before,.qr-guide::after,.qr-guide span::before,.qr-guide span::after{content:'';position:absolute;width:20px;height:20px;border-color:#F4B942;border-style:solid}
+.qr-guide::before{top:0;left:0;border-width:3px 0 0 3px}
+.qr-guide::after{top:0;right:0;border-width:3px 3px 0 0}
+.qr-guide span::before{bottom:0;left:0;border-width:0 0 3px 3px}
+.qr-guide span::after{bottom:0;right:0;border-width:0 3px 3px 0}
+.qr-lbl{position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#fff;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.qr-flash{position:absolute;inset:0;background:rgba(55,86,35,.5);opacity:0;pointer-events:none;transition:opacity .1s}
+.qr-flash.show{opacity:1}
+.empty{text-align:center;padding:20px;color:#aaa}
+.empty .ei{font-size:30px;margin-bottom:5px}
+.empty p{font-size:12px}
+.rep-sec{margin-bottom:14px}
+.rep-tit{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.rep-tabla{width:100%;border-collapse:collapse;font-size:11px}
+.rep-tabla th{background:#EBF3FB;color:#1F3864;padding:6px 5px;text-align:left;border-bottom:2px solid #BDD7EE}
+.rep-tabla td{padding:6px 5px;border-bottom:1px solid #f0f0f0}
+.rep-meta{font-size:10px;color:#888;margin-bottom:10px}
+
+/* Login */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#1F3864}
+.login-box{background:#fff;border-radius:14px;padding:26px 22px;width:100%;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.login-box h2{color:#1F3864;font-size:18px;margin:0 0 4px;text-align:center}
+.login-box p{color:#888;font-size:12px;text-align:center;margin:0 0 18px}
+.login-box input{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-bottom:10px}
+.login-box button{width:100%;padding:12px;background:#1F3864;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold}
+.login-err{background:#FCE4E4;color:#8a1f1f;border:1px solid #E67373;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:10px;display:none}
+
+/* Sesión activa */
+#sesionBar{background:#EBF3FB;border-bottom:1px solid #BDD7EE;padding:8px 14px;font-size:12px;color:#1F3864;display:flex;justify-content:space-between;align-items:center}
+#sesionBar button{background:none;border:none;color:#1F3864;text-decoration:underline;font-size:11px;padding:0}
+</style>
+</head>
+<body>
+
+<!-- PANTALLA DE LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🔒 Almacén GT02</h2>
+    <p>Izabal · SOLTECING</p>
+    <div class="login-err" id="loginErr">Usuario o PIN incorrecto</div>
+    <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+    <input type="password" id="loginPin" placeholder="PIN" autocomplete="current-password" inputmode="numeric">
+    <button onclick="intentarLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- CONTENIDO DE LA APP (oculto hasta iniciar sesión) -->
+<div id="appContent" style="display:none">
+<div id="sesionBar">
+  <span>👤 Sesión activa: <b id="sesionNombre"></b> <span style="color:#8ba7c7">· v<span id="verApp"></span></span></span>
+  <span style="display:flex;gap:10px;align-items:center">
+    <button onclick="toggleMenuMas()" style="font-size:16px;background:none;text-decoration:none;padding:2px 6px">☰</button>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+  </span>
+</div>
+<!-- Menú "más" — para utilidades administrativas que no ameritan pestaña propia -->
+<div id="menuMas" style="display:none;background:#fff;border-bottom:1px solid #ddd;padding:8px 14px">
+  <div class="menu-item" onclick="abrirHorometro()">⏱ Horómetro de maquinaria</div>
+</div>
+<div class="hdr"><h1>🏗 Almacén GT02</h1><span>Izabal · SOLTECING</span></div>
+<div class="tabs">
+  <div class="tab on"  onclick="goTab(0)">📤 Préstamo</div>
+  <div class="tab"     onclick="goTab(1)">📥 Devolución</div>
+  <div class="tab"     onclick="goTab(2)">📋 Historial</div>
+  <div class="tab"     onclick="goTab(3)">📊 Reportes</div>
+  <div class="tab"     onclick="goTab(4)">📦 Inventario</div>
+</div>
+
+<!-- PRÉSTAMO -->
+<div id="s0" class="scr on">
+  <div class="card">
+    <div class="ctit">👤 Paso 1 — Identificar trabajador</div>
+    <button class="btn b-blue" id="btnQR0" onclick="toggleQR(0)">📷 Escanear QR del trabajador</button>
+    <div class="qr-wrap" id="qw0">
+      <video id="qv0" autoplay playsinline muted></video>
+      <div class="qr-guide"><span></span></div>
+      <div class="qr-lbl">Centra el QR en el recuadro</div>
+      <div class="qr-flash" id="qf0"></div>
+    </div>
+    <input type="text" id="bt" placeholder="O escribe nombre o número (ej: 001)" oninput="buscaTW(this.value,0)">
+    <div class="sug" id="st"></div>
+    <div id="tw" style="display:none"></div>
+  </div>
+  <div class="card" id="ci" style="display:none">
+    <div class="ctit">📦 Paso 2 — Agregar ítems al préstamo</div>
+    <div class="tipo-sel">
+      <div class="tipo-btn on-h" id="tbh" onclick="setTipo('Herramienta')">🔨 Herramienta</div>
+      <div class="tipo-btn"      id="tbi" onclick="setTipo('Insumo')">🧰 Insumo</div>
+      <div class="tipo-btn"      id="tbm" onclick="setTipo('Material')">🔩 Material</div>
+    </div>
+    <input type="text" id="bi" placeholder="Buscar herramienta..." oninput="buscaItem(this.value)">
+    <div class="sug" id="si"></div>
+    <div id="li"><div class="empty"><div class="ei">📋</div><p>Agrega herramientas, insumos o materiales</p></div></div>
+    <button class="btn b-ok" id="bguard" style="display:none;position:sticky;bottom:10px;z-index:5;box-shadow:0 2px 10px rgba(0,0,0,.25)" onclick="guardar()">✅ Registrar préstamo completo</button>
+  </div>
+  <div id="rp"></div>
+</div>
+
+<!-- DEVOLUCIÓN -->
+<div id="s1" class="scr">
+  <div class="card">
+    <div class="ctit">👤 Identificar trabajador</div>
+    <button class="btn b-blue" id="btnQR1" onclick="toggleQR(1)">📷 Escanear QR del trabajador</button>
+    <div class="qr-wrap" id="qw1">
+      <video id="qv1" autoplay playsinline muted></video>
+      <div class="qr-guide"><span></span></div>
+      <div class="qr-lbl">Centra el QR en el recuadro</div>
+      <div class="qr-flash" id="qf1"></div>
+    </div>
+    <input type="text" id="btd" placeholder="O escribe nombre o número (ej: 001)" oninput="buscaTW(this.value,1)">
+    <div class="sug" id="std"></div>
+  </div>
+  <div id="pa"></div>
+  <div id="rd"></div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="s2" class="scr">
+  <div class="card">
+    <div class="ctit">🔍 Filtrar registros</div>
+    <div class="fr-row">
+      <button class="fr-btn" id="fr0" onclick="filtroRapido('hoy')">📅 Hoy</button>
+      <button class="fr-btn" id="fr1" onclick="filtroRapido('semana')">📆 Semana</button>
+      <button class="fr-btn" id="fr2" onclick="filtroRapido('abierto')">🟡 Abiertos</button>
+      <button class="fr-btn" id="fr3" onclick="filtroRapido('')">📋 Todos</button>
+    </div>
+    <div class="hist-filtros">
+      <input type="text" id="bh" placeholder="Nombre o código...">
+      <select id="sh"><option value="">Todos</option><option value="abierto">Abiertos</option><option value="cerrado">Cerrados</option></select>
+      <button class="btn b-blue" onclick="cargarHist()">🔄</button>
+    </div>
+  </div>
+  <div id="rh"><div class="empty"><div class="ei">📋</div><p>Usa el filtro para buscar</p></div></div>
+</div>
+
+<!-- REPORTES -->
+<div id="s3" class="scr">
+  <div class="card">
+    <div class="ctit">📊 Informe</div>
+    <div class="fr-row">
+      <button class="fr-btn" id="ri0" onclick="rangoRapido('hoy')">📅 Hoy</button>
+      <button class="fr-btn" id="ri1" onclick="rangoRapido('semana')">📆 Semana</button>
+      <button class="fr-btn" id="ri2" onclick="rangoRapido('mes')">🗓️ Mes</button>
+      <button class="fr-btn" id="ri3" onclick="rangoRapido('personalizado')">✏️ Elegir fechas</button>
+    </div>
+    <div id="rangoManual" style="display:none;margin-top:8px">
+      <input type="date" id="fechaDesde" style="margin-bottom:6px">
+      <input type="date" id="fechaHasta">
+    </div>
+    <div style="margin-top:8px">
+      <input type="text" id="riTrab" placeholder="Filtrar por trabajador (nombre o código, opcional)">
+      <select id="riTipo">
+        <option value="">Todos los tipos</option>
+        <option value="Herramienta">Solo Herramientas</option>
+        <option value="Insumo">Solo Insumos</option>
+        <option value="Material">Solo Materiales</option>
+      </select>
+    </div>
+    <button class="btn b-blue" onclick="generarInforme()">📊 Generar informe</button>
+  </div>
+  <div id="ri"></div>
+</div>
+
+<!-- INVENTARIO -->
+<div id="s4" class="scr">
+  <div class="card">
+    <div class="ctit">📦 Inventario</div>
+    <input type="text" id="invBuscar" placeholder="Buscar herramienta, insumo o material..." oninput="invFiltrar()">
+    <button class="btn b-ok" onclick="invNuevo()" style="width:100%">➕ Agregar ítem nuevo</button>
+  </div>
+  <div id="invLista"></div>
+  <div id="invForm"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MÓDULO HORÓMETRO — independiente de las 5 pestañas
+     principales, se abre/cierra desde el menú ☰. No usa el
+     sistema goTab() para no interferir con las pestañas de
+     Préstamo/Devolución/Historial/Reportes/Inventario.
+     ══════════════════════════════════════════════ -->
+<div id="horometroScreen" style="display:none;padding:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">⏱ Horómetro de maquinaria</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="cerrarHorometro()">← Volver</button>
+  </div>
+  <div class="tabs" style="margin-bottom:10px">
+    <div class="tab on" id="horTab0" onclick="horGoTab(0)">📝 Registrar</div>
+    <div class="tab"    id="horTab1" onclick="horGoTab(1)">📄 Corte semanal</div>
+    <div class="tab"    id="horTab2" onclick="horGoTab(2)">🛠 Mantenimiento</div>
+  </div>
+
+  <!-- Sub-pantalla: registrar lectura diaria -->
+  <div id="horScr0" class="hscr on">
+    <div class="card">
+      <select id="horMaquina" onchange="horMaquinaOFechaCambio()"><option value="">Selecciona la máquina...</option></select>
+      <input type="date" id="horFecha" onchange="horMaquinaOFechaCambio()">
+      <input type="text" id="horOperador" placeholder="Nombre del operador..." autocomplete="off" oninput="horBuscarOperador(this.value)">
+      <div id="horOperadorSug" class="sug"></div>
+      <input type="number" id="horInicio" placeholder="Horómetro de inicio" step="0.1">
+      <input type="number" id="horFin" placeholder="Horómetro de fin" step="0.1">
+      <div id="horPreview" style="font-size:12px;color:#1F3864;margin:6px 0;min-height:18px"></div>
+      <input type="text" id="horObs" placeholder="Observaciones (opcional)">
+      <div id="horMsg"></div>
+      <button class="btn b-ok" id="horBtnGuardar" style="width:100%" onclick="horGuardar()">💾 Registrar lectura</button>
+    </div>
+  </div>
+
+  <!-- Sub-pantalla: corte semanal + exportar PDF -->
+  <div id="horScr1" class="hscr">
+    <div class="card">
+      <select id="horMaquinaCorte"><option value="">Selecciona la máquina...</option></select>
+      <div class="fr-row">
+        <button class="fr-btn on" id="hc0" onclick="horRangoRapido('semana')">📆 Esta semana (lun-sáb)</button>
+        <button class="fr-btn" id="hc1" onclick="horRangoRapido('pasada')">⏮️ Semana pasada</button>
+        <button class="fr-btn" id="hc2" onclick="horRangoRapido('personalizado')">✏️ Elegir fechas</button>
+      </div>
+      <div id="horRangoManual" style="display:none;margin-top:8px">
+        <input type="date" id="horFechaDesde" style="margin-bottom:6px">
+        <input type="date" id="horFechaHasta">
+      </div>
+      <button class="btn b-blue" style="width:100%;margin-top:8px" onclick="horGenerarCorte()">📄 Generar corte</button>
+    </div>
+    <div id="horCorteResultado"></div>
+  </div>
+
+  <!-- Sub-pantalla: mantenimiento (buscar, navegar, editar, eliminar) -->
+  <div id="horScr2" class="hscr">
+    <div class="card">
+      <select id="horMantMaquina"><option value="">Selecciona la máquina...</option></select>
+      <input type="text" id="horMantBuscar" placeholder="Filtrar por fecha u operador (opcional)...">
+      <button class="btn b-blue" style="width:100%" onclick="horMantCargar()">🔍 Cargar registros</button>
+    </div>
+    <div id="horMantNav" style="display:none" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantPrimero()">⏮ Primero</button>
+        <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantAnterior()">◀ Anterior</button>
+        <span id="horMantPos" style="font-size:12px;color:#1F3864;font-weight:bold"></span>
+        <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantSiguiente()">Siguiente ▶</button>
+        <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantUltimo()">Último ⏭</button>
+      </div>
+      <div id="horMantFechaMaquina" style="font-size:13px;font-weight:bold;color:#1F3864;margin-bottom:8px"></div>
+      <input type="text" id="horMantOperador" placeholder="Operador">
+      <input type="number" id="horMantInicio" placeholder="Horómetro de inicio" step="0.1">
+      <input type="number" id="horMantFin" placeholder="Horómetro de fin" step="0.1">
+      <div id="horMantPreview" style="font-size:12px;color:#1F3864;margin:6px 0;min-height:18px"></div>
+      <input type="text" id="horMantObs" placeholder="Observaciones">
+      <div id="horMantMsg"></div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn b-ok" style="flex:1" onclick="horMantGuardar()">💾 Guardar cambios</button>
+        <button class="btn b-danger" style="flex:0" onclick="horMantEliminar()">🗑 Eliminar</button>
+      </div>
+    </div>
+    <div id="horMantVacio"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// ALMACÉN GT01 — Frontend (index.html)
+//
+// VERSIÓN ACTUAL: 2.0.0   (25/07/2026)
+// Debe coincidir siempre con la versión de Code.gs — son un solo
+// sistema, aunque vivan en dos archivos distintos.
+//
+// Ver el historial completo de versiones en el comentario de
+// encabezado de Code.gs (para no repetirlo dos veces).
+// ═══════════════════════════════════════════════════════════
+var APP_VERSION = "2.0.0-GT02";
+
+// ═══════════════════════════════════════════════════════════
+// ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
+// que leer todo. Buscá el título (Ctrl+F / Cmd+F) para saltar
+// directo a esa sección.
+//
+//  CONFIG               → claves de conexión (Sheets + Apps Script)
+//  LOGIN / SESIÓN        → pantalla de acceso y sesión activa
+//  TABS                  → cambio entre las 5 pestañas de la app
+//  PITIDO                → sonido al escanear un QR
+//  QR (toggleQR)          → prender/apagar la cámara del escáner
+//  BUSCAR TRABAJADOR      → autocompletado al escribir o escanear
+//  TIPO                   → elegir Herramienta/Insumo/Material
+//  BUSCAR ÍTEM            → autocompletado del catálogo
+//  addItem / renderItems  → agregar/quitar ítems al préstamo actual
+//  guardar()              → ⭐ registra el préstamo (envía a Code.gs)
+//  DEVOLUCIÓN (cargarPA)  → carga lo pendiente de un trabajador
+//  confirmarDev()         → ⭐ registra la devolución (envía a Code.gs)
+//  HISTORIAL (cargarHist) → lista y filtra préstamos pasados
+//  REPORTES               → informes por rango de fecha + PDF
+//  INVENTARIO             → buscar/editar/agregar catálogo
+//  esc()                  → limpia texto para usarlo en HTML sin romperlo
+//
+//  ⭐ = las dos funciones que de verdad escriben datos nuevos;
+//  todo lo demás en este archivo solo LEE de Google Sheets.
+// ═══════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════
+//  CONFIG — claves de conexión. Si algún día cambia la hoja de
+//  cálculo o se vuelve a publicar el Apps Script con otra URL,
+//  es ÚNICAMENTE aquí donde hay que actualizarlo.
+// ══════════════════════════════════════════════
+// Google Sheets API — lectura pública sin login
+var SHEET_ID  = "https://docs.google.com/spreadsheets/d/1TY1w4xxibIOXGbax8-D2MM6B0CKT0Ex0N7wdwIG2I0w/edit?usp=sharing";
+var API_KEY   = "AIzaSyAM5ZDWXhcE_lmdwl6DY0xbnrbvQRjtzWE";
+var SHEETS_URL = "https://sheets.googleapis.com/v4/spreadsheets/" + SHEET_ID + "/values/";
+
+// Apps Script — escritura (guardar préstamos, devoluciones)
+// Deploy: Execute as Me + Anyone (anónimo)
+var GAS_URL = "https://script.google.com/macros/s/AKfycbyI0TK7uY6kbvbV7C8dFNnLjMDQuW7el-zfKqUzlYb2d38Vi2TeDZmdfxwUFERAHrjV/exec";
+
+// ── Estado global ──
+var TWK   = null;
+var ITEMS = [];
+var SESION = null;
+
+// ══════════════════════════════════════════════
+//  LOGIN / SESIÓN — cada quien usa su propio teléfono,
+//  así que la sesión se queda guardada en el dispositivo
+//  hasta que la persona la cierre manualmente.
+// ══════════════════════════════════════════════
+function iniciarApp(){
+  var guardada=null;
+  try{ guardada=JSON.parse(localStorage.getItem("gt02_sesion")||"null"); }catch(e){}
+  if(guardada && guardada.nombre){
+    SESION=guardada;
+    mostrarApp();
+  }
+}
+
+function intentarLogin(){
+  var usuario=document.getElementById("loginUser").value.trim();
+  var pin=document.getElementById("loginPin").value.trim();
+  var errBox=document.getElementById("loginErr");
+  errBox.style.display="none";
+  if(!usuario||!pin){
+    errBox.textContent="Escribe tu usuario y tu PIN.";
+    errBox.style.display="block";
+    return;
+  }
+  gasPost("login",{usuario:usuario,pin:pin}).then(function(r){
+    if(r && r.ok){
+      SESION={usuario:r.usuario,nombre:r.nombre};
+      localStorage.setItem("gt02_sesion",JSON.stringify(SESION));
+      mostrarApp();
+    } else {
+      errBox.textContent="Usuario o PIN incorrecto.";
+      errBox.style.display="block";
+    }
+  }).catch(function(){
+    errBox.textContent="No se pudo conectar. Verifica tu conexión e intenta de nuevo.";
+    errBox.style.display="block";
+  });
+}
+
+function mostrarApp(){
+  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("appContent").style.display="block";
+  document.getElementById("sesionNombre").textContent=SESION.nombre;
+  document.getElementById("verApp").textContent=APP_VERSION;
+}
+
+function cerrarSesion(){
+  localStorage.removeItem("gt02_sesion");
+  location.reload();
+}
+
+iniciarApp();
+var TIPO  = "Herramienta";
+var qrRdr = null;
+var qrMode= -1;
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function goTab(n) {
+  document.querySelectorAll(".tab").forEach(function(t,i){ t.classList.toggle("on",i===n); });
+  document.querySelectorAll(".scr").forEach(function(s,i){ s.classList.toggle("on",i===n); });
+  stopQR();
+  if(n===4 && INV_ITEMS.length===0) invCargar();
+}
+
+// ══════════════════════════════════════════════
+//  PITIDO
+// ══════════════════════════════════════════════
+function beep() {
+  try {
+    var a=new(window.AudioContext||window.webkitAudioContext)();
+    var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);
+    o.frequency.value=1200;g.gain.value=0.3;
+    o.start();setTimeout(function(){o.stop();},130);
+  } catch(e){}
+}
+
+// ══════════════════════════════════════════════
+//  QR SCANNER
+// ══════════════════════════════════════════════
+function toggleQR(mode) {
+  if (qrMode===mode){stopQR();return;}
+  if (qrMode!==-1) stopQR();
+  var wrap=document.getElementById("qw"+mode);
+  var vid =document.getElementById("qv"+mode);
+  var btn =document.getElementById("btnQR"+mode);
+  wrap.style.display="block";
+  btn.textContent="⏹ Cerrar cámara";
+  qrMode=mode;
+  var hints=new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.QR_CODE]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+  qrRdr=new ZXing.BrowserQRCodeReader(hints);
+  qrRdr.decodeFromVideoDevice(undefined,vid,function(result){
+    if(!result) return;
+    var val=result.getText().trim();
+    if(!val) return;
+    beep();
+    var fl=document.getElementById("qf"+mode);
+    if(fl){fl.classList.add("show");setTimeout(function(){fl.classList.remove("show");},300);}
+    var mg=mode;
+    stopQR();
+    if(mg===1){document.getElementById("btd").value=val;buscaTWDirecto(val,1);}
+    else{document.getElementById("bt").value=val;buscaTWDirecto(val,0);}
+  });
+}
+
+function stopQR(){
+  if(qrRdr){try{qrRdr.reset();}catch(e){}qrRdr=null;}
+  if(qrMode!==-1){
+    var w=document.getElementById("qw"+qrMode);
+    var v=document.getElementById("qv"+qrMode);
+    var b=document.getElementById("btnQR"+qrMode);
+    if(w)w.style.display="none";
+    if(v){try{v.srcObject=null;}catch(e){}}
+    if(b)b.textContent="📷 Escanear QR del trabajador";
+  }
+  qrMode=-1;
+}
+
+// ══════════════════════════════════════════════
+//  API — Google Sheets (lectura pública)
+// ══════════════════════════════════════════════
+function sheetsGet(range) {
+  var url = SHEETS_URL + encodeURIComponent(range) + "?key=" + API_KEY;
+  return fetch(url).then(function(r){ return r.json(); });
+}
+
+// ══════════════════════════════════════════════
+//  API — Apps Script (escritura via fetch CORS)
+// ══════════════════════════════════════════════
+function gasPost(action, data) {
+  data.action = action;
+  var payload = JSON.stringify(data, function(k,v){
+    if(v===null||v===undefined) return undefined;
+    return v;
+  });
+  var url = GAS_URL + "?action=" + action + "&payload=" + encodeURIComponent(payload);
+  return fetch(url, {method:"GET", redirect:"follow"})
+    .then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function(d){
+      if(d && d.error) throw new Error(d.error);
+      return d;
+    });
+}
+
+// ══════════════════════════════════════════════
+//  BUSCAR TRABAJADOR — usa Sheets API directamente
+// ══════════════════════════════════════════════
+function buscaTWDirecto(val, mode) {
+  sheetsGet("Personal_GT01!A2:H").then(function(resp){
+    var rows = resp.values || [];
+    var q = val.toString().trim().toLowerCase();
+    var qNum = q.replace(/^0+/,"").replace("gt01/recper-","");
+    var qDui = q.replace(/[^0-9]/g,""); // solo dígitos, para comparar DUI/DPI sin guiones ni espacios
+    var res = [];
+    for(var i=0;i<rows.length&&res.length<6;i++){
+      var cod = (rows[i][0]||"").toString().trim();
+      var nom = (rows[i][1]||"").toString().trim();
+      var car = (rows[i][2]||"").toString().trim();
+      var dui = (rows[i][7]||"").toString().trim();
+      var duiNum = dui.replace(/[^0-9]/g,"");
+      if(!cod) continue;
+      var codNum = cod.toLowerCase().replace("gt01/recper-","").replace(/^0+/,"");
+      var coincideDui = duiNum && qDui && duiNum===qDui;
+      if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0 || codNum===qNum || coincideDui){
+        res.push({codigo:cod, nombre:nom||cod, cargo:car, dui:dui});
+      }
+    }
+    if(!res.length) return;
+    if(res.length===1){
+      mode===0?selTWPre(res[0]):selTWDev(res[0]);
+      return;
+    }
+    mostrarSugTW(res, mode);
+  }).catch(function(){});
+}
+
+var tTW;
+function buscaTW(v, mode) {
+  clearTimeout(tTW);
+  var d=document.getElementById(mode===0?"st":"std");
+  if(!v||v.length<1){d.style.display="none";return;}
+  tTW=setTimeout(function(){ buscaTWDirecto(v, mode); }, 380);
+}
+
+function mostrarSugTW(data, mode) {
+  var d=document.getElementById(mode===0?"st":"std");
+  d.innerHTML=data.map(function(t){
+    var fn=mode===0
+      ?"selTWPre({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"'})"
+      :"selTWDev({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"'})";
+    return "<div class='sug-item' onclick=\""+fn+"\"><div class='sug-nom'>"+(t.nombre||t.codigo)+"</div><div class='sug-cod'>"+t.codigo+" · "+(t.cargo||"—")+"</div></div>";
+  }).join("");
+  d.style.display="block";
+}
+
+function selTWPre(t){
+  TWK=t;
+  document.getElementById("st").style.display="none";
+  document.getElementById("bt").value=t.nombre||t.codigo;
+  document.getElementById("tw").innerHTML=
+    "<div class='tw-card'><div style='flex:1'><div class='tw-nom'>👷 "+(t.nombre||t.codigo)+"</div>"+
+    "<div class='tw-cod'>"+t.codigo+" · "+(t.cargo||"—")+"</div></div>"+
+    "<button class='b-warn b-sm' onclick='resetTW()'>✕ Cambiar</button></div>";
+  document.getElementById("tw").style.display="block";
+  document.getElementById("ci").style.display="block";
+}
+
+function resetTW(){
+  if(ITEMS.length>0&&!confirm("¿Cambiar trabajador? Se perderán los ítems.")) return;
+  TWK=null;ITEMS=[];
+  document.getElementById("bt").value="";
+  document.getElementById("tw").style.display="none";
+  document.getElementById("ci").style.display="none";
+  document.getElementById("rp").innerHTML="";
+  renderItems();
+}
+
+function selTWDev(t){
+  document.getElementById("std").style.display="none";
+  document.getElementById("btd").value=t.nombre||t.codigo;
+  cargarPA(t.codigo,t.nombre||t.codigo);
+}
+
+// ══════════════════════════════════════════════
+//  TIPO — no resetea la lista
+// ══════════════════════════════════════════════
+function setTipo(tipo){
+  TIPO=tipo;
+  document.getElementById("tbh").className="tipo-btn"+(tipo==="Herramienta"?" on-h":"");
+  document.getElementById("tbi").className="tipo-btn"+(tipo==="Insumo"?" on-i":"");
+  document.getElementById("tbm").className="tipo-btn"+(tipo==="Material"?" on-m":"");
+  document.getElementById("bi").value="";
+  document.getElementById("si").style.display="none";
+  var ph={Herramienta:"Buscar herramienta...",Insumo:"Buscar insumo (cinta, precaución...)",Material:"Buscar material o pernería..."};
+  document.getElementById("bi").placeholder=ph[tipo];
+}
+
+// ══════════════════════════════════════════════
+//  BUSCAR ÍTEM — usa Sheets API directamente
+// ══════════════════════════════════════════════
+var tI;
+function buscaItem(v){
+  clearTimeout(tI);
+  var d=document.getElementById("si");
+  if(!v||v.length<1){d.style.display="none";return;}
+  tI=setTimeout(function(){
+    var q=v.toString().trim().toLowerCase();
+    var res=[];
+    var promises=[];
+
+    // Herramientas
+    if(TIPO==="Herramienta"){
+      promises.push(
+        sheetsGet("Catalogo_Herramientas!A2:B").then(function(resp){
+          var rows=resp.values||[];
+          for(var i=0;i<rows.length&&res.length<8;i++){
+            var cod=(rows[i][0]||"").toString().toLowerCase();
+            var desc=(rows[i][1]||"").toString().toLowerCase();
+            if(cod.indexOf(q)>=0||desc.indexOf(q)>=0){
+              res.push({codigo:rows[i][0],descripcion:rows[i][1],tipo:"Herramienta",unidad:"und"});
+            }
+          }
+        })
+      );
+    }
+
+    // Insumos y Materiales — misma hoja, tipo según botón seleccionado
+    if(TIPO==="Insumo"||TIPO==="Material"){
+      promises.push(
+        sheetsGet("Catalogo_Insumos!A2:D").then(function(resp){
+          var rows=resp.values||[];
+          for(var i=0;i<rows.length&&res.length<14;i++){
+            var cod=(rows[i][0]||"").toString().toLowerCase();
+            var desc=(rows[i][1]||"").toString().toLowerCase();
+            if(cod.indexOf(q)<0&&desc.indexOf(q)<0) continue;
+            res.push({
+              codigo:rows[i][0],
+              descripcion:rows[i][1],
+              tipo:TIPO,
+              unidad:(rows[i][3]||"und").toString()
+            });
+          }
+        })
+      );
+    }
+
+    Promise.all(promises).then(function(){
+      if(!res.length){d.style.display="none";return;}
+      d.innerHTML=res.map(function(it){
+        var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
+        return "<div class='sug-item' onclick='addItem(\""+esc(it.codigo)+"\",\""+esc(it.descripcion)+"\",\""+it.tipo+"\",\""+esc(it.unidad)+"\")'>" +
+          "<div class='sug-nom'>"+it.descripcion+"</div>" +
+          "<div class='sug-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div></div>";
+      }).join("");
+      d.style.display="block";
+    }).catch(function(){d.style.display="none";});
+  },380);
+}
+
+// ══════════════════════════════════════════════
+//  AGREGAR ÍTEM
+// ══════════════════════════════════════════════
+function addItem(cod,desc,tipo,unidad){
+  document.getElementById("si").style.display="none";
+  document.getElementById("bi").value="";
+  if(tipo==="Herramienta"&&ITEMS.some(function(i){return i.codigo===cod;})){
+    alert("Esa herramienta ya está en la lista.");return;
+  }
+  ITEMS.unshift({codigo:cod,descripcion:desc,tipo:tipo||TIPO,unidad:unidad||"und",cantidad:1,detalle:"",obs:""});
+  renderItems();
+}
+
+function remItem(i){ITEMS.splice(i,1);renderItems();}
+
+// ══════════════════════════════════════════════
+//  RENDER LISTA
+// ══════════════════════════════════════════════
+function renderItems(){
+  var d=document.getElementById("li");
+  if(!ITEMS.length){
+    d.innerHTML="<div class='empty'><div class='ei'>📋</div><p>Agrega herramientas, insumos o materiales</p></div>";
+    document.getElementById("bguard").style.display="none";return;
+  }
+  var cH=ITEMS.filter(function(i){return i.tipo==="Herramienta";}).length;
+  var cI=ITEMS.filter(function(i){return i.tipo==="Insumo";}).length;
+  var cM=ITEMS.filter(function(i){return i.tipo==="Material";}).length;
+  var res="";
+  if(cH) res+="<span class='badge bh'>"+cH+" herramienta"+(cH>1?"s":"")+"</span> ";
+  if(cI) res+="<span class='badge bi'>"+cI+" insumo"+(cI>1?"s":"")+"</span> ";
+  if(cM) res+="<span class='badge bm'>"+cM+" material"+(cM>1?"es":"")+"</span>";
+  var html="<div class='items-resumen'>"+res+"</div>";
+  ITEMS.forEach(function(it,i){
+    var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
+    html+="<div class='item-row r-"+it.tipo+"'>" +
+      "<div class='item-info'>" +
+      "<div class='item-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div>" +
+      "<div class='item-desc'>"+it.descripcion+"</div>" +
+      "<div class='item-sub'>" +
+      (it.tipo==="Herramienta"?"<input type='text' placeholder='Descripción: color, marca, serie...' value='"+esc(it.detalle)+"' onchange='ITEMS["+i+"].detalle=this.value'>":"") +
+      (it.tipo!=="Herramienta"?"<div class='qty-row'><input type='number' min='1' value='"+it.cantidad+"' onchange='ITEMS["+i+"].cantidad=parseInt(this.value)||1'><span class='qty-unit'>"+it.unidad+"</span></div>":"") +
+      "<input type='text' placeholder='Observación (opcional)' value='"+esc(it.obs)+"' onchange='ITEMS["+i+"].obs=this.value'>" +
+      "</div></div>" +
+      "<button class='b-danger b-sm' onclick='remItem("+i+")'>✕</button></div>";
+  });
+  d.innerHTML=html;
+  document.getElementById("bguard").style.display="block";
+}
+
+// ══════════════════════════════════════════════
+//  GUARDAR PRÉSTAMO — via Apps Script (escritura)
+//
+//  Esta es la función que se dispara al tocar "Registrar préstamo
+//  completo" en la pestaña Préstamo. Junta al trabajador (TWK) y
+//  todos los ítems agregados (ITEMS), y se los manda a Code.gs
+//  (acción "guardarPrestamo") para que escriba las filas nuevas
+//  en Prestamos_Herramientas y Prestamos_Detalle.
+//
+//  Blindajes que tiene: ENVIANDO_PRESTAMO evita el doble toque,
+//  y "idemKey" (una clave única por intento) evita que un reintento
+//  de red duplique el registro — ver el mismo mecanismo en Code.gs.
+// ══════════════════════════════════════════════
+var ENVIANDO_PRESTAMO=false; // evita doble registro por doble toque o reintento de red
+function guardar(){
+  if(ENVIANDO_PRESTAMO) return; // ya hay un guardado en curso, ignora el toque repetido
+  if(!TWK||!ITEMS.length){alert("Selecciona trabajador y agrega ítems.");return;}
+  ENVIANDO_PRESTAMO=true;
+  var btn=document.getElementById("bguard");
+  btn.textContent="⏳ Guardando...";btn.disabled=true;
+  // Clave única por intento — el backend la usa para detectar y bloquear duplicados
+  var idemKey=Date.now()+"-"+Math.random().toString(36).slice(2,10);
+  gasPost("guardarPrestamo",{
+    codigoTrabajador:TWK.codigo,
+    nombreTrabajador:TWK.nombre||TWK.codigo,
+    cargoTrabajador: TWK.cargo||"",
+    items:ITEMS,
+    idemKey:idemKey,
+    entregadoPor: (SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(r){
+    var hora=new Date().toLocaleTimeString("es-GT",{hour:"2-digit",minute:"2-digit"});
+    var cH=ITEMS.filter(function(i){return i.tipo==="Herramienta";}).length;
+    var cI=ITEMS.filter(function(i){return i.tipo==="Insumo";}).length;
+    var cM=ITEMS.filter(function(i){return i.tipo==="Material";}).length;
+    var det=[cH?cH+" herramienta"+(cH>1?"s":""):null,cI?cI+" insumo"+(cI>1?"s":""):null,cM?cM+" material"+(cM>1?"es":""):null].filter(Boolean).join(", ");
+    document.getElementById("rp").innerHTML="<div class='msg-ok'>✅ "+(r.idPrestamo||"")+" registrado — "+hora+"<br><small>"+(TWK.nombre||TWK.codigo)+" · "+det+"</small></div>";
+    TWK=null;ITEMS=[];
+    document.getElementById("bt").value="";
+    document.getElementById("tw").style.display="none";
+    document.getElementById("ci").style.display="none";
+    renderItems();
+    setTimeout(function(){document.getElementById("rp").innerHTML="";},6000);
+    btn.textContent="✅ Registrar préstamo completo";btn.disabled=false;
+    ENVIANDO_PRESTAMO=false;
+  }).catch(function(e){
+    document.getElementById("rp").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+    btn.textContent="✅ Registrar préstamo completo";btn.disabled=false;
+    ENVIANDO_PRESTAMO=false;
+  });
+}
+
+// ══════════════════════════════════════════════
+//  DEVOLUCIÓN
+//
+//  cargarPA(cod,nom) — lee de Sheets qué herramientas tiene
+//  pendientes ese trabajador ahora mismo, y las muestra en pantalla.
+//  Se vuelve a llamar automáticamente después de cada devolución,
+//  para que la lista quede actualizada sin vaciarse (ver el bug
+//  que corregimos: antes se limpiaba la pantalla en vez de refrescar).
+//
+//  confirmarDev(id,items) — ⭐ es la que REALMENTE registra la
+//  devolución: manda a Code.gs (acción "cerrarPrestamo") cuáles
+//  ítems se devuelven. Si el trabajador se queda con algunos
+//  (devolución parcial), el préstamo sigue "Abierto"; si devuelve
+//  todo, pasa a "Cerrado".
+// ══════════════════════════════════════════════
+// Trabajador actualmente mostrado en la pantalla de Devolución (para refrescar tras confirmar)
+var TWD_COD="";
+var TWD_NOM="";
+
+function cargarPA(cod,nom){
+  TWD_COD=cod;
+  TWD_NOM=nom;
+  document.getElementById("pa").innerHTML="<div class='loading'>🔄 Cargando préstamos...</div>";
+  // Leer ambas hojas en paralelo
+  Promise.all([
+    sheetsGet("Prestamos_Herramientas!A2:H"),
+    sheetsGet("Prestamos_Detalle!A2:I")
+  ]).then(function(results){
+    var dp=results[0].values||[];
+    var dd=results[1].values||[];
+    var prestamos=[];
+    for(var i=0;i<dp.length;i++){
+      var codRow=(dp[i][2]||"").toString().trim();
+      var est=(dp[i][7]||"").toString().toLowerCase().trim();
+      if(codRow!==cod.trim()) continue;
+      if(est!=="abierto") continue;
+      var id=(dp[i][0]||"").toString();
+      var items=[];
+      for(var j=0;j<dd.length;j++){
+        if((dd[j][1]||"").toString().trim()!==id) continue;
+        var tipoIt=(dd[j][5]||"Herramienta").toString().trim();
+        var estIt=(dd[j][4]||"").toString().toLowerCase().trim();
+        if(tipoIt!=="Herramienta") continue;
+        if(estIt!=="prestada") continue;
+        items.push({
+          idDetalle:(dd[j][0]||"").toString().trim(),
+          codigo:(dd[j][2]||"").toString(),
+          descripcion:(dd[j][3]||"").toString(),
+          detalle:(dd[j][6]||"").toString()
+        });
+      }
+      if(items.length>0){
+        prestamos.push({idPrestamo:id,fecha:(dp[i][1]||"").toString(),horaSalida:(dp[i][5]||"").toString(),items:items});
+      }
+    }
+    mostrarPA(prestamos,nom,cod);
+  }).catch(function(e){
+    document.getElementById("pa").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+function mostrarPA(data,nom,cod){
+  var d=document.getElementById("pa");
+  var etiqueta=(nom||cod)+(cod?" · "+cod:"");
+  if(!data.length){
+    d.innerHTML="<div class='empty'><div class='ei'>✅</div><p>"+etiqueta+" no tiene herramientas pendientes</p></div>";return;
+  }
+  d.innerHTML=data.map(function(p){
+    var filas=p.items.map(function(it){
+      return "<div class='dev-item'>" +
+        "<div class='dev-item-title'>🔨 "+it.descripcion+" <span class='badge bh'>"+it.codigo+"</span>" +
+        (it.detalle?"<span style='font-size:10px;color:#888;display:block'>"+it.detalle+"</span>":"")+"</div>" +
+        "<select id='est-"+it.idDetalle+"'>" +
+        "<option value='Bueno'>✅ Bueno</option>" +
+        "<option value='Con daño'>⚠️ Con daño</option>" +
+        "<option value='Perdida'>❌ Pérdida</option>" +
+        "<option value='Pendiente'>⏳ Pendiente</option>" +
+        "</select>" +
+        "<input type='text' id='obs-"+it.idDetalle+"' placeholder='Observación (opcional)' style='margin-bottom:0'>" +
+        "</div>";
+    }).join("");
+    return "<div class='pa-card'>" +
+      "<div style='display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:5px'><span>📄 "+p.idPrestamo+"</span><span>📅 "+p.fecha+(p.horaSalida?" · "+p.horaSalida:"")+"</span></div>" +
+      "<div style='font-size:14px;font-weight:bold;color:#1F3864;margin-bottom:8px'>👷 "+etiqueta+"</div>" +
+      filas+
+      "<button class='btn b-ok' style='margin-top:6px' onclick='confirmarDev(\""+p.idPrestamo+"\","+JSON.stringify(p.items).replace(/"/g,"&quot;")+")'>📥 Confirmar devolución</button>" +
+      "</div>";
+  }).join("");
+}
+
+function confirmarDev(id,items){
+  var dev=items.map(function(it){
+    return{
+      idDetalle:it.idDetalle,
+      estado:(document.getElementById("est-"+it.idDetalle)||{value:"Bueno"}).value,
+      obs:(document.getElementById("obs-"+it.idDetalle)||{value:""}).value
+    };
+  });
+  var aDevolver=dev.filter(function(d){return d.estado!=="Pendiente";});
+  if(!aDevolver.length){alert("Selecciona al menos una herramienta para devolver.");return;}
+  gasPost("cerrarPrestamo",{idPrestamo:id,items:aDevolver,recibidoPor:(SESION&&SESION.nombre)||"Almacenista"}).then(function(r){
+    var msg=r.pendientes?"✅ Devolución parcial — quedan herramientas pendientes":"✅ Préstamo cerrado — todas las herramientas devueltas";
+    document.getElementById("rd").innerHTML="<div class='msg-ok'>"+msg+"</div>";
+    setTimeout(function(){document.getElementById("rd").innerHTML="";},6000);
+    // Refresca la lista con el estado real y actualizado, en vez de vaciarla
+    if(TWD_COD) cargarPA(TWD_COD,TWD_NOM);
+  }).catch(function(e){
+    document.getElementById("rd").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+// ══════════════════════════════════════════════
+//  HISTORIAL — lee desde Sheets directamente
+// ══════════════════════════════════════════════
+var frActivo="";
+function filtroRapido(tipo){
+  frActivo=tipo;
+  ["fr0","fr1","fr2","fr3"].forEach(function(id,i){
+    document.getElementById(id).classList.toggle("on",["hoy","semana","abierto",""][i]===tipo);
+  });
+  document.getElementById("sh").value=(tipo==="abierto")?"abierto":"";
+  cargarHist();
+}
+
+function cargarHist(){
+  var q=document.getElementById("bh").value.toLowerCase().trim();
+  var est=document.getElementById("sh").value.toLowerCase();
+  document.getElementById("rh").innerHTML="<div class='loading'>🔄 Cargando...</div>";
+  Promise.all([
+    sheetsGet("Prestamos_Herramientas!A2:K"),
+    sheetsGet("Prestamos_Detalle!A2:I"),
+    sheetsGet("Personal_GT01!A2:C")
+  ]).then(function(results){
+    var dp=results[0].values||[];
+    var dd=results[1].values||[];
+    var dpers=results[2].values||[];
+    // Mapa código → nombre, de respaldo para registros viejos sin nombre guardado
+    var mapaNom={};
+    for(var p=0;p<dpers.length;p++){
+      var cP=(dpers[p][0]||"").toString().trim();
+      var nP=(dpers[p][1]||"").toString().trim();
+      if(cP&&nP) mapaNom[cP.toLowerCase()]=nP;
+    }
+    // Filtrar
+    var hoy=new Date();
+    var dd2=String(hoy.getDate()).padStart(2,"0");
+    var mm2=String(hoy.getMonth()+1).padStart(2,"0");
+    var fechaHoy=dd2+"/"+mm2+"/"+hoy.getFullYear();
+    var hace7=new Date(hoy.getTime()-7*24*60*60*1000);
+    var lista=[];
+    for(var i=dp.length-1;i>=0&&lista.length<30;i--){
+      var estRow=(dp[i][7]||"").toString().toLowerCase().trim();
+      var nom=(dp[i][3]||"").toString().toLowerCase();
+      var cod=(dp[i][2]||"").toString().toLowerCase();
+      var fecha=(dp[i][1]||"").toString();
+      if(est&&estRow!==est) continue;
+      if(q&&nom.indexOf(q)<0&&cod.indexOf(q)<0) continue;
+      if(frActivo==="hoy"&&fecha!==fechaHoy) continue;
+      if(frActivo==="semana"){
+        var parts=fecha.split("/");
+        if(parts.length===3){
+          var fP=new Date(parts[2],parts[1]-1,parts[0]);
+          if(fP<hace7) continue;
+        }
+      }
+      var id=(dp[i][0]||"").toString();
+      var items=[];
+      for(var j=0;j<dd.length;j++){
+        if((dd[j][1]||"").toString()===id){
+          items.push({codigo:(dd[j][2]||"").toString(),descripcion:(dd[j][3]||"").toString(),tipo:(dd[j][5]||"Herramienta").toString(),detalle:(dd[j][6]||"").toString(),cantidad:(dd[j][7]||"").toString(),obs:(dd[j][8]||"").toString()});
+        }
+      }
+      var nomGuardado=(dp[i][3]||"").toString().trim();
+      var codActual=(dp[i][2]||"").toString().trim();
+      var nomFinal=nomGuardado||mapaNom[codActual.toLowerCase()]||"";
+      lista.push({
+        idPrestamo:id,fecha:fecha,
+        nombreTrabajador:nomFinal,
+        codigoTrabajador:codActual,
+        estado:estRow,
+        horaSalida:(dp[i][5]||"").toString(),
+        horaDevolucion:(dp[i][6]||"").toString(),
+        recibidoPor:(dp[i][8]||"").toString(),
+        entregadoPor:(dp[i][10]||"").toString(),
+        items:items
+      });
+    }
+    if(!lista.length){
+      document.getElementById("rh").innerHTML="<div class='empty'><div class='ei'>🔍</div><p>Sin resultados</p></div>";return;
+    }
+    document.getElementById("rh").innerHTML=lista.map(function(p){
+      var cls=p.estado==="cerrado"?"cerrado":"abierto";
+      var badge=p.estado==="cerrado"
+        ?"<span class='hist-est cerrado'>🟢 Cerrado</span>"
+        :"<span class='hist-est abierto'>🟡 Abierto</span>";
+      var badges=p.items.slice(0,4).map(function(it){
+        var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
+        return "<span class='badge "+bc+"' style='margin:1px'>"+it.descripcion.substring(0,15)+"</span>";
+      }).join("")+(p.items.length>4?"<span style='color:#888;font-size:10px'> +"+( p.items.length-4)+" más</span>":"");
+      var detallesTxt=p.items.map(function(it){
+        var t=fmtDetalleItem(it);
+        var base=(it.codigo?("["+it.codigo+"] "):"")+it.descripcion;
+        return t?(base+": "+t):base;
+      }).join(" · ");
+      var btnDev=p.estado!=="cerrado"
+        ?"<div style='margin-top:7px'><button class='btn b-warn' style='padding:7px;font-size:11px;margin:0' onclick='irADev(\""+esc(p.codigoTrabajador)+"\",\""+esc(p.nombreTrabajador)+"\")'>📥 Procesar devolución</button></div>"
+        :"";
+      return "<div class='hist-row "+cls+"'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'><span style='font-size:11px;color:#888'>📄 "+p.idPrestamo+"</span>"+badge+"</div>" +
+        "<div style='font-size:13px;font-weight:bold;color:#1F3864'>👷 "+(p.nombreTrabajador||"(sin nombre)")+" <span style='font-weight:normal;color:#666'>· "+p.codigoTrabajador+"</span></div>" +
+        "<div style='font-size:11px;margin-top:4px'>"+badges+"</div>" +
+        (detallesTxt?"<div style='font-size:10px;color:#666;margin-top:2px;font-style:italic'>🔎 "+detallesTxt+"</div>":"")+
+        "<div style='font-size:10px;color:#888;margin-top:3px'>📅 "+p.fecha+(p.horaSalida?" · "+p.horaSalida:"")+(p.horaDevolucion?" → "+p.horaDevolucion:"")+"</div>" +
+        (p.entregadoPor?"<div style='font-size:10px;color:#888'>📤 Entregó: "+p.entregadoPor+"</div>":"")+
+        (p.recibidoPor?"<div style='font-size:10px;color:#888'>📥 Recibió: "+p.recibidoPor+"</div>":"")+
+        btnDev+"</div>";
+    }).join("");
+  }).catch(function(e){
+    document.getElementById("rh").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+// Arma el texto de detalle según el tipo de ítem: herramienta usa "detalle" (color/marca/serie),
+// insumo/material usa cantidad + unidad; las observaciones se agregan siempre que existan.
+function fmtDetalleItem(it){
+  var partes=[];
+  if(it.tipo==="Herramienta"){
+    if(it.detalle) partes.push(it.detalle);
+  } else {
+    if(it.cantidad) partes.push("Cant: "+it.cantidad+(it.unidad?" "+it.unidad:""));
+  }
+  if(it.obs) partes.push("Obs: "+it.obs);
+  return partes.join(" · ");
+}
+
+function irADev(codigo,nombre){
+  goTab(1);
+  document.getElementById("btd").value=nombre;
+  cargarPA(codigo,nombre);
+}
+
+// ══════════════════════════════════════════════
+//  REPORTES — informe diario (solo lectura, genera PDF local)
+// ══════════════════════════════════════════════
+var REPORTE_ACTUAL=null;
+
+function fmtItem(it){
+  var t=fmtDetalleItem(it);
+  var base=(it.codigo?("["+it.codigo+"] "):"")+it.descripcion;
+  return t ? (base+" ("+t+")") : base;
+}
+
+// Rango de fechas activo por defecto: hoy
+var RANGO_DESDE=null; // Date
+var RANGO_HASTA=null; // Date
+
+function fechaAInput(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+
+function rangoRapido(tipo){
+  ["ri0","ri1","ri2","ri3"].forEach(function(id,i){
+    document.getElementById(id).classList.toggle("on",["hoy","semana","mes","personalizado"][i]===tipo);
+  });
+  var hoy=new Date();
+  document.getElementById("rangoManual").style.display=(tipo==="personalizado")?"block":"none";
+  if(tipo==="hoy"){
+    RANGO_DESDE=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+    RANGO_HASTA=RANGO_DESDE;
+  } else if(tipo==="semana"){
+    var d=new Date(hoy);
+    d.setDate(d.getDate()-6);
+    RANGO_DESDE=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    RANGO_HASTA=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  } else if(tipo==="mes"){
+    RANGO_DESDE=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    RANGO_HASTA=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  } else {
+    // personalizado: se toma de los inputs al generar
+    RANGO_DESDE=null;RANGO_HASTA=null;
+    document.getElementById("fechaDesde").value=fechaAInput(hoy);
+    document.getElementById("fechaHasta").value=fechaAInput(hoy);
+  }
+}
+rangoRapido("hoy"); // por defecto al cargar la pantalla
+
+function parseFechaDMY(str){
+  var partes=(str||"").split("/");
+  if(partes.length!==3) return null;
+  var d=new Date(parseInt(partes[2],10),parseInt(partes[1],10)-1,parseInt(partes[0],10));
+  return isNaN(d.getTime())?null:d;
+}
+
+function generarInforme(){
+  var desde=RANGO_DESDE, hasta=RANGO_HASTA;
+  var elPersonalizado=document.getElementById("ri3").classList.contains("on");
+  if(elPersonalizado){
+    var vd=document.getElementById("fechaDesde").value;
+    var vh=document.getElementById("fechaHasta").value;
+    if(!vd||!vh){alert("Selecciona ambas fechas.");return;}
+    var pd=vd.split("-"),ph=vh.split("-");
+    desde=new Date(parseInt(pd[0]),parseInt(pd[1])-1,parseInt(pd[2]));
+    hasta=new Date(parseInt(ph[0]),parseInt(ph[1])-1,parseInt(ph[2]));
+  }
+  if(!desde||!hasta){alert("Selecciona un rango de fechas.");return;}
+  if(desde>hasta){alert("La fecha 'Desde' no puede ser mayor que 'Hasta'.");return;}
+
+  var filtroTrab=document.getElementById("riTrab").value.toLowerCase().trim();
+  var filtroTipo=document.getElementById("riTipo").value;
+
+  document.getElementById("ri").innerHTML="<div class='loading'>🔄 Generando informe...</div>";
+
+  Promise.all([
+    sheetsGet("Prestamos_Herramientas!A2:H"),
+    sheetsGet("Prestamos_Detalle!A2:I"),
+    sheetsGet("Personal_GT01!A2:C")
+  ]).then(function(results){
+    var dp=results[0].values||[];
+    var dd=results[1].values||[];
+    var dpers=results[2].values||[];
+
+    var mapaNom={};
+    for(var p=0;p<dpers.length;p++){
+      var cP=(dpers[p][0]||"").toString().trim();
+      var nP=(dpers[p][1]||"").toString().trim();
+      if(cP&&nP) mapaNom[cP.toLowerCase()]=nP;
+    }
+
+    function itemsDe(id){
+      var out=[];
+      for(var j=0;j<dd.length;j++){
+        if((dd[j][1]||"").toString()!==id) continue;
+        var tipoIt=(dd[j][5]||"Herramienta").toString();
+        if(filtroTipo&&tipoIt!==filtroTipo) continue;
+        out.push({codigo:(dd[j][2]||"").toString(),descripcion:(dd[j][3]||"").toString(),tipo:tipoIt,detalle:(dd[j][6]||"").toString(),cantidad:(dd[j][7]||"").toString(),obs:(dd[j][8]||"").toString()});
+      }
+      return out;
+    }
+
+    var movimientosPeriodo=[];
+    var enCampo=[];
+
+    for(var i=0;i<dp.length;i++){
+      var id=(dp[i][0]||"").toString();
+      if(!id) continue;
+      var fechaStr=(dp[i][1]||"").toString().trim();
+      var fechaObj=parseFechaDMY(fechaStr);
+      var codigo=(dp[i][2]||"").toString().trim();
+      var nomGuardado=(dp[i][3]||"").toString().trim();
+      var nombre=nomGuardado||mapaNom[codigo.toLowerCase()]||"";
+      var horaSalida=(dp[i][5]||"").toString();
+      var horaDevolucion=(dp[i][6]||"").toString();
+      var estado=(dp[i][7]||"").toString().toLowerCase().trim();
+
+      if(filtroTrab && nombre.toLowerCase().indexOf(filtroTrab)<0 && codigo.toLowerCase().indexOf(filtroTrab)<0) continue;
+
+      var items=itemsDe(id);
+      if(filtroTipo && !items.length) continue; // no tiene items de ese tipo, se descarta del reporte
+
+      if(fechaObj && fechaObj>=desde && fechaObj<=hasta){
+        movimientosPeriodo.push({idPrestamo:id,nombre:nombre,codigo:codigo,fecha:fechaStr,fechaObj:fechaObj,horaSalida:horaSalida,horaDevolucion:horaDevolucion,estado:estado,items:items});
+      }
+      if(estado==="abierto" && items.length){
+        enCampo.push({idPrestamo:id,nombre:nombre,codigo:codigo,fecha:fechaStr,fechaObj:fechaObj,horaSalida:horaSalida,items:items});
+      }
+    }
+
+    // Resumen por trabajador (lo que sigue en campo)
+    var resumenMap={};
+    enCampo.forEach(function(pr){
+      var key=pr.codigo||pr.nombre;
+      if(!resumenMap[key]) resumenMap[key]={nombre:pr.nombre,codigo:pr.codigo,cantidad:0};
+      resumenMap[key].cantidad+=pr.items.length;
+    });
+    var resumen=Object.keys(resumenMap).map(function(k){return resumenMap[k];})
+      .sort(function(a,b){return b.cantidad-a.cantidad;});
+
+    // ── Consolidado numérico ──
+    var totalMovimientos=movimientosPeriodo.length;
+    var conteoItem={};
+    var conteoTrab={};
+    movimientosPeriodo.forEach(function(pr){
+      var keyT=pr.codigo||pr.nombre;
+      conteoTrab[keyT]=(conteoTrab[keyT]||0)+pr.items.length;
+      pr.items.forEach(function(it){
+        conteoItem[it.descripcion]=(conteoItem[it.descripcion]||0)+1;
+      });
+    });
+    var itemsDistintos=Object.keys(conteoItem).length;
+    var itemTop=Object.keys(conteoItem).sort(function(a,b){return conteoItem[b]-conteoItem[a];})[0]||null;
+    var trabTopKey=Object.keys(conteoTrab).sort(function(a,b){return conteoTrab[b]-conteoTrab[a];})[0]||null;
+    var trabTopNom=null;
+    if(trabTopKey){
+      var found=movimientosPeriodo.find(function(pr){return (pr.codigo||pr.nombre)===trabTopKey;});
+      trabTopNom=found?(found.nombre||found.codigo):trabTopKey;
+    }
+    var hoyRef=new Date();
+    var atrasados=enCampo.filter(function(pr){
+      if(!pr.fechaObj) return false;
+      var dias=Math.floor((hoyRef-pr.fechaObj)/86400000);
+      return dias>=7;
+    }).length;
+
+    var consolidado={
+      totalMovimientos:totalMovimientos,
+      itemsDistintos:itemsDistintos,
+      itemTop:itemTop?(itemTop+" ("+conteoItem[itemTop]+")"):"—",
+      trabTop:trabTopNom?(trabTopNom+" ("+conteoTrab[trabTopKey]+")"):"—",
+      totalEnCampo:enCampo.reduce(function(s,pr){return s+pr.items.length;},0),
+      atrasados:atrasados
+    };
+
+    REPORTE_ACTUAL={desde:desde,hasta:hasta,movimientosPeriodo:movimientosPeriodo,enCampo:enCampo,resumen:resumen,consolidado:consolidado,filtroTrab:filtroTrab,filtroTipo:filtroTipo};
+    mostrarInforme(REPORTE_ACTUAL);
+  }).catch(function(e){
+    document.getElementById("ri").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+function fechaLegible(d){
+  return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+}
+
+function mostrarInforme(r){
+  var d=document.getElementById("ri");
+  var html="";
+  var rangoTxt=(r.desde.getTime()===r.hasta.getTime())?fechaLegible(r.desde):(fechaLegible(r.desde)+" al "+fechaLegible(r.hasta));
+
+  html+="<div class='card'><div class='rep-meta'>📅 Periodo: "+rangoTxt+" · generado el "+new Date().toLocaleString("es-GT")+"</div>";
+  html+="<button class='btn b-ok' onclick='descargarPDF()'>📄 Descargar PDF</button></div>";
+
+  // Consolidado numérico
+  var c=r.consolidado;
+  html+="<div class='card rep-sec'><div class='rep-tit'>📈 Consolidado del periodo</div>"+
+    "<table class='rep-tabla'>"+
+    "<tr><td>Total de movimientos registrados</td><td style='text-align:right;font-weight:bold'>"+c.totalMovimientos+"</td></tr>"+
+    "<tr><td>Ítems distintos que rotaron</td><td style='text-align:right;font-weight:bold'>"+c.itemsDistintos+"</td></tr>"+
+    "<tr><td>Ítem más solicitado</td><td style='text-align:right;font-weight:bold'>"+c.itemTop+"</td></tr>"+
+    "<tr><td>Trabajador con más préstamos</td><td style='text-align:right;font-weight:bold'>"+c.trabTop+"</td></tr>"+
+    "<tr><td>Total de ítems actualmente en campo</td><td style='text-align:right;font-weight:bold'>"+c.totalEnCampo+"</td></tr>"+
+    "<tr><td>Préstamos con 7+ días sin devolver ⚠️</td><td style='text-align:right;font-weight:bold;color:"+(c.atrasados>0?"#c0392b":"#333")+"'>"+c.atrasados+"</td></tr>"+
+    "</table></div>";
+
+  // Bloque 1: movimientos del periodo
+  html+="<div class='card rep-sec'><div class='rep-tit'>📦 Movimientos del periodo ("+r.movimientosPeriodo.length+")</div>";
+  if(!r.movimientosPeriodo.length){
+    html+="<div class='empty'><div class='ei'>📭</div><p>Sin movimientos en este periodo</p></div>";
+  } else {
+    html+="<table class='rep-tabla'><tr><th>Trabajador</th><th>Ítems</th><th>Fecha</th><th>Salida</th><th>Devolución</th></tr>"+
+      r.movimientosPeriodo.map(function(p){
+        var itemsTxt=p.items.map(fmtItem).join(", ")||"—";
+        return "<tr><td>"+(p.nombre||"(sin nombre)")+" · "+p.codigo+"</td><td>"+itemsTxt+"</td><td>"+p.fecha+"</td><td>"+(p.horaSalida||"—")+"</td><td>"+(p.horaDevolucion||"—")+"</td></tr>";
+      }).join("")+"</table>";
+  }
+  html+="</div>";
+
+  // Bloque 2: en campo (estado actual)
+  html+="<div class='card rep-sec'><div class='rep-tit'>🟡 Herramientas actualmente en campo ("+r.enCampo.length+")</div>";
+  if(!r.enCampo.length){
+    html+="<div class='empty'><div class='ei'>✅</div><p>No hay herramientas pendientes de devolución</p></div>";
+  } else {
+    html+="<table class='rep-tabla'><tr><th>Trabajador</th><th>Ítems</th><th>Desde</th></tr>"+
+      r.enCampo.map(function(p){
+        var itemsTxt=p.items.map(fmtItem).join(", ")||"—";
+        return "<tr><td>"+(p.nombre||"(sin nombre)")+" · "+p.codigo+"</td><td>"+itemsTxt+"</td><td>"+p.fecha+" "+(p.horaSalida||"")+"</td></tr>";
+      }).join("")+"</table>";
+  }
+  html+="</div>";
+
+  // Bloque 3: resumen por trabajador
+  html+="<div class='card rep-sec'><div class='rep-tit'>👷 Resumen por trabajador (con pendientes)</div>";
+  if(!r.resumen.length){
+    html+="<div class='empty'><div class='ei'>✅</div><p>Nadie tiene herramientas pendientes</p></div>";
+  } else {
+    html+="<table class='rep-tabla'><tr><th>Trabajador</th><th>Código</th><th>Cant.</th></tr>"+
+      r.resumen.map(function(x){
+        return "<tr><td>"+(x.nombre||"(sin nombre)")+"</td><td>"+x.codigo+"</td><td>"+x.cantidad+"</td></tr>";
+      }).join("")+"</table>";
+  }
+  html+="</div>";
+
+  d.innerHTML=html;
+}
+
+function descargarPDF(){
+  if(!REPORTE_ACTUAL){alert("Primero genera el informe.");return;}
+  if(!window.jspdf){alert("No se pudo cargar el generador de PDF. Verifica tu conexión e intenta de nuevo.");return;}
+  var r=REPORTE_ACTUAL;
+  var doc=new window.jspdf.jsPDF();
+  var ahora=new Date();
+  var fechaGen=ahora.getFullYear()+"-"+String(ahora.getMonth()+1).padStart(2,"0")+"-"+String(ahora.getDate()).padStart(2,"0");
+  var horaGen=String(ahora.getHours()).padStart(2,"0")+String(ahora.getMinutes()).padStart(2,"0");
+  var rangoTxt=(r.desde.getTime()===r.hasta.getTime())?fechaLegible(r.desde):(fechaLegible(r.desde)+" al "+fechaLegible(r.hasta));
+
+  doc.setFontSize(14);
+  doc.text("Informe — Almacen GT01 Coatepeque",14,15);
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text("Periodo: "+rangoTxt+"   ·   Generado: "+ahora.toLocaleString("es-GT"),14,21);
+
+  var c=r.consolidado;
+  var y=28;
+  doc.setFontSize(11);doc.setTextColor(20);
+  doc.text("Consolidado del periodo",14,y);
+  doc.autoTable({
+    startY:y+3,
+    head:[["Indicador","Valor"]],
+    body:[
+      ["Total de movimientos",String(c.totalMovimientos)],
+      ["Items distintos que rotaron",String(c.itemsDistintos)],
+      ["Item mas solicitado",c.itemTop],
+      ["Trabajador con mas prestamos",c.trabTop],
+      ["Total de items en campo",String(c.totalEnCampo)],
+      ["Prestamos con 7+ dias sin devolver",String(c.atrasados)]
+    ],
+    styles:{fontSize:8},headStyles:{fillColor:[31,56,100]},margin:{left:14,right:14}
+  });
+  y=doc.lastAutoTable.finalY+10;
+
+  doc.setFontSize(11);
+  doc.text("Movimientos del periodo ("+r.movimientosPeriodo.length+")",14,y);
+  doc.autoTable({
+    startY:y+3,
+    head:[["Trabajador","Codigo","Items","Fecha","Salida","Devolucion"]],
+    body:r.movimientosPeriodo.length? r.movimientosPeriodo.map(function(p){
+      return[p.nombre||"(sin nombre)",p.codigo,p.items.map(fmtItem).join(", ")||"-",p.fecha,p.horaSalida||"-",p.horaDevolucion||"-"];
+    }):[["Sin movimientos en este periodo","","","","",""]],
+    styles:{fontSize:8},headStyles:{fillColor:[31,56,100]},margin:{left:14,right:14}
+  });
+  y=doc.lastAutoTable.finalY+10;
+
+  if(y>250){doc.addPage();y=20;}
+  doc.setFontSize(11);
+  doc.text("Herramientas actualmente en campo ("+r.enCampo.length+")",14,y);
+  doc.autoTable({
+    startY:y+3,
+    head:[["Trabajador","Codigo","Items","Desde"]],
+    body:r.enCampo.length? r.enCampo.map(function(p){
+      return[p.nombre||"(sin nombre)",p.codigo,p.items.map(fmtItem).join(", ")||"-",p.fecha+" "+(p.horaSalida||"")];
+    }):[["Nada pendiente","","",""]],
+    styles:{fontSize:8},headStyles:{fillColor:[244,185,66],textColor:[50,40,0]},margin:{left:14,right:14}
+  });
+  y=doc.lastAutoTable.finalY+10;
+
+  if(y>250){doc.addPage();y=20;}
+  doc.setFontSize(11);
+  doc.text("Resumen por trabajador",14,y);
+  doc.autoTable({
+    startY:y+3,
+    head:[["Trabajador","Codigo","Cantidad"]],
+    body:r.resumen.length? r.resumen.map(function(x){
+      return[x.nombre||"(sin nombre)",x.codigo,String(x.cantidad)];
+    }):[["Nadie tiene pendientes","",""]],
+    styles:{fontSize:8},headStyles:{fillColor:[55,86,35]},margin:{left:14,right:14}
+  });
+
+  doc.save("Informe_GT01_"+fechaGen+"_"+horaGen+".pdf");
+}
+
+// ══════════════════════════════════════════════
+//  INVENTARIO — buscar, editar y agregar ítems del catálogo.
+//
+//  IMPORTANTE: estas columnas coinciden EXACTAMENTE con el Excel
+//  real de Joaquín (confirmado por captura, julio 2026):
+//
+//  Catalogo_Herramientas (14 columnas, A→N):
+//    A CodigoHerramienta  B Descripcion   C Categoria
+//    D Subcategoria       E Marca         F Especificaciones
+//    G CantidadTotal      H CantidadDisponible (en desuso, no se usa)
+//    I CantidadPrestada   (en desuso, no se usa)
+//    J Accesorios         K Contenedor    L Ubicacion
+//    M Estado             N Observaciones
+//
+//  Catalogo_Insumos (8 columnas, A→H):
+//    A CodigoInsumo   B DescripcionInsumo   C Categoria
+//    D Unidad         E StockActual         F StockMinimo
+//    G Ubicacion      H Observaciones
+//
+//  H e I de Herramientas (CantidadDisponible/CantidadPrestada) NO
+//  se leen ni se escriben desde aquí a propósito — quedaron con
+//  datos manuales inconsistentes. El tope de préstamos (pendiente,
+//  próxima etapa) se calculará en vivo contra CantidadTotal, no
+//  contra estos dos campos.
+// ══════════════════════════════════════════════
+
+var INV_ITEMS=[]; // lista combinada de ambos catálogos, cargada en memoria
+var INV_ESTADOS=["Bueno","Nuevo","Regular","Dañado","Pendiente de revisar","De baja","Otro"];
+
+// Carga ambos catálogos completos desde Sheets y arma una sola lista en memoria
+function invCargar(){
+  document.getElementById("invLista").innerHTML="<div class='loading'>🔄 Cargando inventario...</div>";
+  Promise.all([
+    sheetsGet("Catalogo_Herramientas!A2:N"),
+    sheetsGet("Catalogo_Insumos!A2:H"),
+    sheetsGet("Movimientos_Insumos!A2:M")
+  ]).then(function(results){
+    var h=results[0].values||[];
+    var ins=results[1].values||[];
+    var movs=results[2].values||[];
+    INV_ITEMS=[];
+
+    // Calcula el stock real de cada insumo sumando Entradas y restando
+    // Salidas de Movimientos_Insumos. Si un código no tiene NINGÚN
+    // movimiento todavía, queda como "null" — en ese caso se sigue
+    // mostrando el StockActual manual viejo, hasta que se le haga la
+    // carga inicial (ver botón "Registrar entrada").
+    var stockCalc={};
+    movs.forEach(function(m){
+      var cod=(m[3]||"").toString().trim();
+      if(!cod) return;
+      var tipo=(m[2]||"").toString().trim().toLowerCase();
+      var cant=Number(m[5])||0;
+      if(stockCalc[cod]===undefined) stockCalc[cod]=0;
+      stockCalc[cod] += (tipo==="entrada") ? cant : -cant;
+    });
+
+    // Herramientas — una fila = un ítem, tal como está en la hoja real
+    h.forEach(function(r){
+      if(!r[0]) return; // fila sin código, se ignora
+      INV_ITEMS.push({
+        tipo:"Herramienta",
+        codigo:(r[0]||"").toString(), descripcion:(r[1]||"").toString(),
+        categoria:(r[2]||"").toString(), subcategoria:(r[3]||"").toString(),
+        marca:(r[4]||"").toString(), especificaciones:(r[5]||"").toString(),
+        cantidadTotal:(r[6]!==undefined&&r[6]!==""?r[6]:""),
+        accesorios:(r[9]||"").toString(), contenedor:(r[10]||"").toString(),
+        ubicacion:(r[11]||"").toString(), estado:(r[12]||"Pendiente de revisar").toString(),
+        observaciones:(r[13]||"").toString()
+      });
+    });
+
+    // Insumos/Materiales — misma hoja para ambos; se usa Categoria solo para
+    // mostrar el badge visual correcto, no cambia cómo se guarda el dato.
+    ins.forEach(function(r){
+      if(!r[0]) return;
+      var cod=(r[0]||"").toString();
+      var cat=(r[2]||"").toString();
+      var esConsumible = cat.toLowerCase().indexOf("insumo")>=0 || cat.toLowerCase().indexOf("consumib")>=0;
+      INV_ITEMS.push({
+        tipo: esConsumible ? "Insumo" : "Material",
+        codigo:cod, descripcion:(r[1]||"").toString(),
+        categoria:cat, unidad:(r[3]||"und").toString(),
+        stockActual:(r[4]!==undefined&&r[4]!==""?r[4]:""),
+        stockMinimo:(r[5]!==undefined&&r[5]!==""?r[5]:""),
+        ubicacion:(r[6]||"").toString(), observaciones:(r[7]||"").toString(),
+        stockCalculado: stockCalc[cod]!==undefined ? stockCalc[cod] : null
+      });
+    });
+
+    invFiltrar();
+  }).catch(function(e){
+    document.getElementById("invLista").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+// Filtra la lista en memoria por lo escrito en el buscador (código o descripción)
+function invFiltrar(){
+  var q=document.getElementById("invBuscar").value.toLowerCase().trim();
+  var res=INV_ITEMS.filter(function(it){
+    return !q || it.codigo.toLowerCase().indexOf(q)>=0 || it.descripcion.toLowerCase().indexOf(q)>=0;
+  });
+  var d=document.getElementById("invLista");
+  if(!res.length){ d.innerHTML="<div class='empty'><div class='ei'>📦</div><p>Sin resultados</p></div>"; return; }
+
+  d.innerHTML=res.map(function(it){
+    var i=INV_ITEMS.indexOf(it);
+    var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
+    if(it.tipo==="Herramienta"){
+      var deBaja = it.estado==="De baja";
+      var cant = it.cantidadTotal===""? "sin cantidad definida" : it.cantidadTotal+" total";
+      return "<div class='card' style='padding:10px;margin-bottom:8px;"+(deBaja?"opacity:.55":"")+"'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:start'>"+
+        "<div><span class='badge "+bc+"'>"+it.tipo+"</span> <b>"+it.descripcion+"</b>"+
+        "<div style='font-size:11px;color:#888;margin-top:3px'>"+it.codigo+" · "+cant+(it.ubicacion?" · 📍 "+it.ubicacion:"")+"</div>"+
+        "<div style='font-size:11px;color:#888'>Estado: "+it.estado+(it.marca?" · "+it.marca:"")+"</div></div>"+
+        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px' onclick='invEditar("+i+")'>✏️ Editar</button>"+
+        "</div></div>";
+    } else {
+      // Si ya tiene movimientos registrados, se muestra el stock calculado
+      // (Entradas - Salidas), que es el número confiable. Si todavía no
+      // tiene ningún movimiento, se muestra el StockActual manual viejo,
+      // con un aviso de que está pendiente de iniciar el conteo real.
+      var tieneCalculo = it.stockCalculado!==null && it.stockCalculado!==undefined;
+      var stockMostrar = tieneCalculo ? it.stockCalculado : it.stockActual;
+      var etiquetaStock = tieneCalculo ? "Stock (calculado)" : "Stock (manual, sin movimientos aún)";
+      var bajoStock = stockMostrar!=="" && it.stockMinimo!=="" && Number(stockMostrar) < Number(it.stockMinimo);
+      return "<div class='card' style='padding:10px;margin-bottom:8px'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:start'>"+
+        "<div><span class='badge "+bc+"'>"+it.tipo+"</span> <b>"+it.descripcion+"</b>"+
+        "<div style='font-size:11px;color:#888;margin-top:3px'>"+it.codigo+" · "+etiquetaStock+": "+(stockMostrar===""?"—":stockMostrar)+" "+it.unidad+
+        (bajoStock?" <span style='color:#c0392b'>⚠️ bajo mínimo</span>":"")+(it.ubicacion?" · 📍 "+it.ubicacion:"")+"</div></div>"+
+        "<div style='display:flex;flex-direction:column;gap:4px'>"+
+        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px' onclick='invEditar("+i+")'>✏️ Editar</button>"+
+        "<button class='btn b-ok' style='padding:6px 10px;font-size:11px' onclick='invMostrarEntrada("+i+")'>📥 Entrada</button>"+
+        "</div></div></div>";
+    }
+  }).join("");
+}
+
+function invNuevo(){
+  invMostrarForm({
+    tipo:"Herramienta", codigo:"", descripcion:"", categoria:"", subcategoria:"", marca:"",
+    especificaciones:"", cantidadTotal:"", accesorios:"", contenedor:"", ubicacion:"",
+    estado:"Pendiente de revisar", observaciones:"", unidad:"und", stockActual:"", stockMinimo:""
+  }, false);
+}
+function invEditar(idx){ invMostrarForm(INV_ITEMS[idx], true); }
+
+// Arma el formulario de edición/creación, con campos distintos según el tipo
+function invMostrarForm(it, esEdicion){
+  var f=document.getElementById("invForm");
+  var esHerr = it.tipo==="Herramienta" || (!esEdicion && it.tipo==="Herramienta");
+
+  var camposHerramienta =
+    "<input type='text' id='ivCategoria' placeholder='Categoría' value=\""+esc(it.categoria||"")+"\">"+
+    "<input type='text' id='ivSubcategoria' placeholder='Subcategoría' value=\""+esc(it.subcategoria||"")+"\">"+
+    "<input type='text' id='ivMarca' placeholder='Marca' value=\""+esc(it.marca||"")+"\">"+
+    "<input type='text' id='ivEspecificaciones' placeholder='Especificaciones (ej. 20V, 1/2\")' value=\""+esc(it.especificaciones||"")+"\">"+
+    "<input type='number' id='ivCantidad' placeholder='Cantidad total' value=\""+esc((it.cantidadTotal!==undefined?it.cantidadTotal:"").toString())+"\">"+
+    "<input type='text' id='ivAccesorios' placeholder='Accesorios (ej. 1 cargador, 1 batería)' value=\""+esc(it.accesorios||"")+"\">"+
+    "<input type='text' id='ivContenedor' placeholder='Contenedor (Suelto, Caja, etc.)' value=\""+esc(it.contenedor||"")+"\">"+
+    "<select id='ivEstado'>"+INV_ESTADOS.map(function(e){return "<option value='"+e+"'"+(it.estado===e?" selected":"")+">"+e+"</option>";}).join("")+"</select>"+
+    "<input type='text' id='ivEstadoOtro' placeholder='Detalle del estado (si elegiste \"Otro\")' style='display:"+(it.estado==="Otro"?"block":"none")+"' value=\""+(it.estado==="Otro"?esc(it.observaciones||""):"")+"\">";
+
+  var camposInsumo =
+    "<input type='text' id='ivCategoriaIns' placeholder='Categoría (Insumo, Consumible...)' value=\""+esc(it.categoria||"")+"\">"+
+    "<input type='text' id='ivUnidad' placeholder='Unidad (und, rollo, saco...)' value=\""+esc(it.unidad||"und")+"\">"+
+    "<input type='number' id='ivStockActual' placeholder='Stock actual' value=\""+esc((it.stockActual!==undefined?it.stockActual:"").toString())+"\">"+
+    "<input type='number' id='ivStockMinimo' placeholder='Stock mínimo' value=\""+esc((it.stockMinimo!==undefined?it.stockMinimo:"").toString())+"\">";
+
+  f.innerHTML=
+    "<div class='card'>"+
+    "<div class='ctit'>"+(esEdicion?"✏️ Editar ítem":"➕ Nuevo ítem")+"</div>"+
+    "<select id='ivTipo' onchange='invToggleTipoCampos()' "+(esEdicion?"disabled":"")+">"+
+      "<option value='Herramienta'"+(it.tipo==="Herramienta"?" selected":"")+">Herramienta</option>"+
+      "<option value='Insumo'"+(it.tipo==="Insumo"?" selected":"")+">Insumo</option>"+
+      "<option value='Material'"+(it.tipo==="Material"?" selected":"")+">Material</option>"+
+    "</select>"+
+    "<input type='text' id='ivCodigo' placeholder='Código' value=\""+esc(it.codigo)+"\">"+
+    "<input type='text' id='ivDescripcion' placeholder='Descripción' value=\""+esc(it.descripcion)+"\">"+
+    "<div id='ivCamposHerramienta' style='display:"+(it.tipo==="Herramienta"?"block":"none")+"'>"+camposHerramienta+"</div>"+
+    "<div id='ivCamposInsumo' style='display:"+(it.tipo!=="Herramienta"?"block":"none")+"'>"+camposInsumo+"</div>"+
+    "<input type='text' id='ivUbicacion' placeholder='Ubicación en bodega' value=\""+esc(it.ubicacion||"")+"\">"+
+    "<input type='text' id='ivObservaciones' placeholder='Observaciones' value=\""+esc(it.tipo==="Herramienta"&&it.estado==="Otro"?"":(it.observaciones||""))+"\">"+
+    "<div id='ivMsg'></div>"+
+    "<div style='display:flex;gap:8px;margin-top:6px'>"+
+      "<button class='btn b-ok' style='flex:1' onclick='invGuardar("+(esEdicion?"\""+esc(it.codigo)+"\"":"null")+")'>💾 Guardar</button>"+
+      "<button class='btn b-sec' style='flex:0' onclick='document.getElementById(\"invForm\").innerHTML=\"\"'>Cancelar</button>"+
+    "</div></div>";
+
+  // Muestra/oculta el campo libre de "Otro" según el estado elegido
+  var selEstado=document.getElementById("ivEstado");
+  if(selEstado) selEstado.addEventListener("change",function(){
+    document.getElementById("ivEstadoOtro").style.display = (this.value==="Otro")?"block":"none";
+  });
+
+  f.scrollIntoView({behavior:"smooth"});
+}
+
+// Alterna qué grupo de campos se ve según el tipo elegido (solo al crear un ítem nuevo)
+function invToggleTipoCampos(){
+  var tipo=document.getElementById("ivTipo").value;
+  document.getElementById("ivCamposHerramienta").style.display = (tipo==="Herramienta")?"block":"none";
+  document.getElementById("ivCamposInsumo").style.display = (tipo==="Herramienta")?"none":"block";
+}
+
+// Junta los datos del formulario según el tipo, y los manda a guardar al backend
+function invGuardar(codigoOriginal){
+  var msg=document.getElementById("ivMsg");
+  msg.innerHTML="";
+  var tipo=document.getElementById("ivTipo").value;
+  var codigo=document.getElementById("ivCodigo").value.trim();
+  var descripcion=document.getElementById("ivDescripcion").value.trim();
+  var ubicacion=document.getElementById("ivUbicacion").value.trim();
+  var observacionesInput=document.getElementById("ivObservaciones").value.trim();
+
+  if(!codigo||!descripcion){
+    msg.innerHTML="<div class='msg-err'>Código y descripción son obligatorios.</div>";
+    return;
+  }
+
+  var data={ tipo:tipo, codigo:codigo, codigoOriginal:codigoOriginal||"", descripcion:descripcion, ubicacion:ubicacion };
+
+  if(tipo==="Herramienta"){
+    var estadoSel=document.getElementById("ivEstado").value;
+    var estadoOtro=document.getElementById("ivEstadoOtro")?document.getElementById("ivEstadoOtro").value.trim():"";
+    data.categoria=document.getElementById("ivCategoria").value.trim();
+    data.subcategoria=document.getElementById("ivSubcategoria").value.trim();
+    data.marca=document.getElementById("ivMarca").value.trim();
+    data.especificaciones=document.getElementById("ivEspecificaciones").value.trim();
+    data.cantidadTotal=document.getElementById("ivCantidad").value.trim();
+    data.accesorios=document.getElementById("ivAccesorios").value.trim();
+    data.contenedor=document.getElementById("ivContenedor").value.trim();
+    data.estado=estadoSel;
+    // Si el estado es "Otro", el detalle escrito se guarda en Observaciones junto a lo que ya había
+    data.observaciones = (estadoSel==="Otro" && estadoOtro) ? (estadoOtro+(observacionesInput?" · "+observacionesInput:"")) : observacionesInput;
+  } else {
+    data.categoria=document.getElementById("ivCategoriaIns").value.trim();
+    data.unidad=document.getElementById("ivUnidad").value.trim();
+    data.stockActual=document.getElementById("ivStockActual").value.trim();
+    data.stockMinimo=document.getElementById("ivStockMinimo").value.trim();
+    data.observaciones=observacionesInput;
+  }
+
+  gasPost("guardarItemCatalogo",data).then(function(r){
+    if(r.error){ msg.innerHTML="<div class='msg-err'>❌ "+r.error+"</div>"; return; }
+    document.getElementById("invForm").innerHTML="<div class='msg-ok'>✅ Guardado correctamente.</div>";
+    setTimeout(function(){document.getElementById("invForm").innerHTML="";},1500);
+    invCargar();
+  }).catch(function(e){
+    msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+
+
+// ── Registrar ENTRADA de stock (compra o carga inicial) ──
+// Se usa una por una, a propósito — cada entrada queda como su propio
+// registro en Movimientos_Insumos, con su motivo, para mantener un
+// historial honesto (ver conversación sobre la carga inicial de bridas).
+function invMostrarEntrada(idx){
+  var it=INV_ITEMS[idx];
+  var f=document.getElementById("invForm");
+  f.innerHTML=
+    "<div class='card'>"+
+    "<div class='ctit'>📥 Registrar entrada — "+esc(it.descripcion)+"</div>"+
+    "<select id='ieTipo'>"+
+      "<option value='Entrada'>Entrada (compra / stock inicial)</option>"+
+      "<option value='Salida'>Salida (ajuste manual)</option>"+
+    "</select>"+
+    "<input type='number' id='ieCantidad' placeholder='Cantidad'>"+
+    "<input type='text' id='ieMotivo' placeholder='Motivo (ej. Inventario inicial, Compra, Ajuste)'>"+
+    "<input type='text' id='ieFactura' placeholder='N° de factura (opcional)'>"+
+    "<input type='text' id='ieObs' placeholder='Observaciones (opcional)'>"+
+    "<div id='ieMsg'></div>"+
+    "<div style='display:flex;gap:8px;margin-top:6px'>"+
+      "<button class='btn b-ok' style='flex:1' onclick='invGuardarEntrada("+idx+")'>💾 Registrar</button>"+
+      "<button class='btn b-sec' style='flex:0' onclick='document.getElementById(\"invForm\").innerHTML=\"\"'>Cancelar</button>"+
+    "</div></div>";
+  f.scrollIntoView({behavior:"smooth"});
+}
+
+function invGuardarEntrada(idx){
+  var it=INV_ITEMS[idx];
+  var msg=document.getElementById("ieMsg");
+  msg.innerHTML="";
+  var cantidad=document.getElementById("ieCantidad").value.trim();
+  var motivo=document.getElementById("ieMotivo").value.trim();
+  if(!cantidad || Number(cantidad)<=0){
+    msg.innerHTML="<div class='msg-err'>La cantidad es obligatoria y debe ser mayor a 0.</div>";
+    return;
+  }
+  if(!motivo){
+    msg.innerHTML="<div class='msg-err'>El motivo es obligatorio (ej. \"Inventario inicial\", \"Compra\").</div>";
+    return;
+  }
+  var data={
+    codigoInsumo: it.codigo,
+    descripcionInsumo: it.descripcion,
+    cantidad: cantidad,
+    unidad: it.unidad,
+    tipoMovimiento: document.getElementById("ieTipo").value,
+    motivo: motivo,
+    numeroFactura: document.getElementById("ieFactura").value.trim(),
+    registradoPor: (SESION&&SESION.nombre)||"Almacenista",
+    observaciones: document.getElementById("ieObs").value.trim()
+  };
+  gasPost("registrarMovimientoInsumo",data).then(function(r){
+    if(r.error){ msg.innerHTML="<div class='msg-err'>❌ "+r.error+"</div>"; return; }
+    document.getElementById("invForm").innerHTML="<div class='msg-ok'>✅ Movimiento registrado ("+r.idMovimiento+").</div>";
+    setTimeout(function(){document.getElementById("invForm").innerHTML="";},1800);
+    invCargar();
+  }).catch(function(e){
+    msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+// ══════════════════════════════════════════════
+//  MÓDULO HORÓMETRO — independiente del resto de la app.
+//  Se abre desde el menú ☰, no desde las 5 pestañas principales.
+//
+//  toggleMenuMas()   → abre/cierra el menú hamburguesa
+//  abrirHorometro()  → oculta las pestañas normales, muestra este módulo
+//  cerrarHorometro() → vuelve a las pestañas normales (restaura por CSS)
+//  horGoTab(n)       → cambia entre "Registrar" y "Corte semanal"
+//  horGuardar()      → ⭐ registra una lectura (envía a Code.gs)
+//  horGenerarCorte() → arma la tabla semanal + botón de exportar PDF
+// ══════════════════════════════════════════════
+var HOR_MAQUINAS=[]; // catálogo de máquinas cargado de Maquinaria_GT01
+var HOR_CARGADO=false; // evita recargar catálogos cada vez que se abre
+
+function toggleMenuMas(){
+  var m=document.getElementById("menuMas");
+  m.style.display = (m.style.display==="block") ? "none" : "block";
+}
+
+function abrirHorometro(){
+  document.getElementById("menuMas").style.display="none";
+  document.querySelector(".tabs").style.display="none"; // oculta la barra de pestañas principal (no la del sub-menú interno)
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display="none"; });
+  document.getElementById("horometroScreen").style.display="block";
+  if(!HOR_CARGADO){ horCargarCatalogos(); HOR_CARGADO=true; }
+}
+function cerrarHorometro(){
+  document.getElementById("horometroScreen").style.display="none";
+  document.querySelector(".tabs").style.display="flex";
+  // Quita el "display:none" en línea que pusimos — la clase .scr/.scr.on
+  // (que goTab() nunca dejó de controlar) vuelve a mandar, sin tocar
+  // en qué pestaña estaba el usuario antes de entrar al módulo.
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display=""; });
+}
+
+function horGoTab(n){
+  document.getElementById("horTab0").classList.toggle("on", n===0);
+  document.getElementById("horTab1").classList.toggle("on", n===1);
+  document.getElementById("horTab2").classList.toggle("on", n===2);
+  document.getElementById("horScr0").classList.toggle("on", n===0);
+  document.getElementById("horScr1").classList.toggle("on", n===1);
+  document.getElementById("horScr2").classList.toggle("on", n===2);
+}
+
+// Carga el catálogo de máquinas (Maquinaria_GT01) para el selector del formulario.
+// Los operadores YA NO se cargan de Personal_GT01 (son personal externo, no
+// trabajadores de SOLTECING) — ver HOR_OPERADORES_PROVISIONAL más abajo.
+function horCargarCatalogos(){
+  sheetsGet("Maquinaria_GT01!A2:C").then(function(resp){
+    var maq=resp.values||[];
+
+    HOR_MAQUINAS = maq.filter(function(r){return r[0];}).map(function(r){
+      return { codigo:(r[0]||"").toString(), nombre:(r[1]||"").toString(), estado:(r[2]||"Activa").toString() };
+    });
+
+    var optsMaquina = "<option value=''>Selecciona la máquina...</option>" +
+      HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactiva";})
+        .map(function(m){return "<option value='"+esc(m.codigo)+"'>"+esc(m.nombre)+"</option>";}).join("");
+    document.getElementById("horMaquina").innerHTML = optsMaquina;
+    // El selector de Corte semanal y el de Mantenimiento agregan
+    // "Todas las máquinas" al inicio.
+    var optsConTodas = "<option value='TODAS'>— Todas las máquinas —</option>" + optsMaquina.replace("<option value=''>Selecciona la máquina...</option>","");
+    document.getElementById("horMaquinaCorte").innerHTML = optsConTodas;
+    document.getElementById("horMantMaquina").innerHTML = optsConTodas;
+
+    // Fecha de hoy por defecto
+    var hoy=new Date();
+    document.getElementById("horFecha").value = hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(hoy.getDate()).padStart(2,"0");
+  }).catch(function(e){
+    document.getElementById("horMsg").innerHTML="<div class='msg-err'>❌ No se pudo cargar el catálogo de máquinas.</div>";
+  });
+}
+
+// ── Operadores de maquinaria — lista PROVISIONAL, escrita directo aquí ──
+// Son personas externas a SOLTECING (no están en Personal_GT01), y todavía
+// no ameritan una hoja de Excel propia. Para agregar un operador nuevo,
+// simplemente sumá su nombre a este arreglo. El campo de texto también
+// acepta escribir un nombre que NO esté en esta lista (por si llega
+// alguien nuevo antes de actualizar el código) — no bloquea nada.
+var HOR_OPERADORES_PROVISIONAL = ["Anderson Reyes", "Marlon Alexander Orozco Felipe"];
+
+function horBuscarOperador(val){
+  var box=document.getElementById("horOperadorSug");
+  var q=val.toLowerCase().trim();
+  if(!q){ box.innerHTML=""; box.style.display="none"; return; }
+  var coincidencias=HOR_OPERADORES_PROVISIONAL.filter(function(n){
+    return n.toLowerCase().indexOf(q)>=0;
+  });
+  if(!coincidencias.length){ box.innerHTML=""; box.style.display="none"; return; }
+  box.innerHTML=coincidencias.map(function(n){
+    return "<div class='sug-item' onclick='horSelOperador(\""+esc(n)+"\")'><div class='sug-nom'>"+esc(n)+"</div></div>";
+  }).join("");
+  box.style.display="block";
+}
+function horSelOperador(nombre){
+  document.getElementById("horOperador").value=nombre;
+  document.getElementById("horOperadorSug").innerHTML="";
+  document.getElementById("horOperadorSug").style.display="none";
+}
+
+// ── Memoria del último operador por máquina (solo en este celular) ──
+// Se guarda en localStorage — no toca el Excel ni el backend. Sirve
+// porque, en la práctica, la misma persona suele operar la misma
+// máquina día tras día. Siempre se puede sobreescribir a mano.
+function horAutocompletarOperador(){
+  var maquinaCod=document.getElementById("horMaquina").value;
+  if(!maquinaCod) return;
+  var recordado=localStorage.getItem("gt02_ultimo_operador_"+maquinaCod);
+  if(recordado) document.getElementById("horOperador").value=recordado;
+}
+function horRecordarOperador(maquinaCod, nombreOperador){
+  if(!maquinaCod || !nombreOperador) return;
+  localStorage.setItem("gt02_ultimo_operador_"+maquinaCod, nombreOperador);
+}
+
+// ── Prevención de duplicados: una sola lectura por máquina por día ──
+// Se dispara al cambiar la máquina o la fecha. Si ya existe una lectura
+// guardada para esa combinación exacta, el formulario se precarga con
+// esos datos (modo edición) — no se puede crear un duplicado, solo
+// corregir el que ya existe. El backend (Code.gs) también lo verifica
+// de forma independiente, como respaldo final.
+var HOR_EDITANDO_ID = null;
+
+function horMaquinaOFechaCambio(){
+  horAutocompletarOperador();
+  horVerificarExistente();
+}
+
+function horVerificarExistente(){
+  var maquinaCod=document.getElementById("horMaquina").value;
+  var fechaVal=document.getElementById("horFecha").value; // yyyy-mm-dd
+  var btn=document.getElementById("horBtnGuardar");
+  var msg=document.getElementById("horMsg");
+
+  if(!maquinaCod || !fechaVal){
+    HOR_EDITANDO_ID=null;
+    if(btn) btn.textContent="💾 Registrar lectura";
+    return;
+  }
+  var partes=fechaVal.split("-");
+  var fechaFmt=partes[2]+"/"+partes[1]+"/"+partes[0]; // dd/mm/yyyy, como el resto de la app
+
+  sheetsGet("Horometro_Registros!A2:K").then(function(resp){
+    var rows=resp.values||[];
+    var existente=null;
+    for(var i=0;i<rows.length;i++){
+      if((rows[i][2]||"").toString().trim()===maquinaCod && (rows[i][1]||"").toString().trim()===fechaFmt){
+        existente=rows[i];
+        break;
+      }
+    }
+    if(existente){
+      HOR_EDITANDO_ID=existente[0];
+      document.getElementById("horInicio").value=existente[4];
+      document.getElementById("horFin").value=existente[5];
+      document.getElementById("horOperador").value=(existente[8]||"").toString();
+      document.getElementById("horObs").value=(existente[10]||"").toString();
+      if(btn) btn.textContent="✏️ Actualizar lectura";
+      msg.innerHTML="<div class='aviso'>ℹ️ Ya existe una lectura para esta máquina en esta fecha — se cargaron sus datos, podés corregirlos.</div>";
+      horActualizarPreview();
+    } else {
+      HOR_EDITANDO_ID=null;
+      if(btn) btn.textContent="💾 Registrar lectura";
+      msg.innerHTML="";
+    }
+  }).catch(function(){});
+}
+
+// Vista previa en vivo: se recalcula cada vez que cambian los horómetros,
+// para que Joaquín vea "horas trabajadas" vs. "horas a pagar" ANTES de guardar
+// (la misma regla del mínimo de 5 horas que aplica Code.gs al guardar).
+// Sirve para los dos formularios que tienen horómetro inicio/fin:
+// "Registrar" (ids horInicio/horFin/horPreview) y "Mantenimiento"
+// (ids horMantInicio/horMantFin/horMantPreview).
+function horActualizarPreview(prefijo){
+  prefijo = prefijo || "hor";
+  var ini=parseFloat(document.getElementById(prefijo+"Inicio").value);
+  var fin=parseFloat(document.getElementById(prefijo+"Fin").value);
+  var box=document.getElementById(prefijo+"Preview");
+  if(isNaN(ini)||isNaN(fin)){ box.textContent=""; return; }
+  if(fin<ini){ box.innerHTML="<span style='color:#c0392b'>⚠️ El horómetro de fin no puede ser menor al de inicio</span>"; return; }
+  var trabajadas=Math.round((fin-ini)*100)/100;
+  var aPagar = trabajadas<5 ? 5 : trabajadas;
+  var nota = trabajadas<5 ? " (se ajusta al mínimo de 5)" : "";
+  box.innerHTML="Horas trabajadas: <b>"+trabajadas+"</b> — Horas a pagar: <b>"+aPagar+"</b>"+nota;
+}
+document.addEventListener("input", function(e){
+  if(e.target && (e.target.id==="horInicio" || e.target.id==="horFin")) horActualizarPreview("hor");
+  if(e.target && (e.target.id==="horMantInicio" || e.target.id==="horMantFin")) horActualizarPreview("horMant");
+});
+
+function horGuardar(){
+  var msg=document.getElementById("horMsg");
+  msg.innerHTML="";
+  var maquinaCod=document.getElementById("horMaquina").value;
+  var maquinaObj=HOR_MAQUINAS.find(function(m){return m.codigo===maquinaCod;});
+  var fechaVal=document.getElementById("horFecha").value; // yyyy-mm-dd
+  var operador=document.getElementById("horOperador").value;
+  var ini=document.getElementById("horInicio").value;
+  var fin=document.getElementById("horFin").value;
+  var obs=document.getElementById("horObs").value.trim();
+
+  if(!maquinaCod||!fechaVal||!operador||!ini||!fin){
+    msg.innerHTML="<div class='msg-err'>Todos los campos son obligatorios, salvo observaciones.</div>";
+    return;
+  }
+  var partes=fechaVal.split("-");
+  var fechaFmt=partes[2]+"/"+partes[1]+"/"+partes[0]; // dd/mm/yyyy, como el resto de la app
+
+  gasPost("guardarLecturaHorometro",{
+    codigoMaquina: maquinaCod,
+    nombreMaquina: maquinaObj?maquinaObj.nombre:"",
+    fecha: fechaFmt,
+    operador: operador,
+    horometroInicio: ini,
+    horometroFin: fin,
+    observaciones: obs,
+    registradoPor: (SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(r){
+    if(r.error){ msg.innerHTML="<div class='msg-err'>❌ "+r.error+"</div>"; return; }
+    horRecordarOperador(maquinaCod, operador);
+    var accion = r.editado ? "Actualizado" : "Registrado";
+    msg.innerHTML="<div class='msg-ok'>✅ "+accion+" — "+r.horasTrabajadas+" h trabajadas, "+r.horasAPagar+" h a pagar.</div>";
+    document.getElementById("horInicio").value="";
+    document.getElementById("horFin").value="";
+    document.getElementById("horObs").value="";
+    document.getElementById("horPreview").textContent="";
+    HOR_EDITANDO_ID=null;
+    document.getElementById("horBtnGuardar").textContent="💾 Registrar lectura";
+  }).catch(function(e){
+    msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+// ── Corte semanal (lunes a sábado) ──
+var HOR_RANGO_DESDE=null, HOR_RANGO_HASTA=null;
+function horRangoRapido(tipo){
+  document.getElementById("hc0").classList.toggle("on", tipo==="semana");
+  document.getElementById("hc1").classList.toggle("on", tipo==="pasada");
+  document.getElementById("hc2").classList.toggle("on", tipo==="personalizado");
+  document.getElementById("horRangoManual").style.display = (tipo==="personalizado") ? "block" : "none";
+
+  var hoy=new Date();
+  if(tipo==="personalizado"){
+    // El rango real se toma de los inputs al momento de generar el corte
+    document.getElementById("horFechaDesde").value = fechaAInput(hoy);
+    document.getElementById("horFechaHasta").value = fechaAInput(hoy);
+    return;
+  }
+  var diaSemana=hoy.getDay(); // 0=domingo, 1=lunes...
+  // Retrocede hasta el lunes de la semana actual
+  var diasDesdeLunes = (diaSemana===0) ? 6 : diaSemana-1;
+  var lunes=new Date(hoy); lunes.setDate(hoy.getDate()-diasDesdeLunes);
+  var sabado=new Date(lunes); sabado.setDate(lunes.getDate()+5);
+  if(tipo==="pasada"){
+    lunes.setDate(lunes.getDate()-7);
+    sabado.setDate(sabado.getDate()-7);
+  }
+  HOR_RANGO_DESDE=lunes; HOR_RANGO_HASTA=sabado;
+}
+horRangoRapido("semana"); // rango por defecto
+
+function horGenerarCorte(){
+  var maquinaCod=document.getElementById("horMaquinaCorte").value;
+  var d=document.getElementById("horCorteResultado");
+  if(!maquinaCod){ d.innerHTML="<div class='msg-err'>Selecciona una máquina (o \"Todas las máquinas\").</div>"; return; }
+
+  // Si el rango es personalizado, se toma de los inputs de fecha en este momento
+  var esPersonalizado=document.getElementById("hc2").classList.contains("on");
+  if(esPersonalizado){
+    var vd=document.getElementById("horFechaDesde").value;
+    var vh=document.getElementById("horFechaHasta").value;
+    if(!vd||!vh){ d.innerHTML="<div class='msg-err'>Selecciona ambas fechas.</div>"; return; }
+    var pd=vd.split("-"), ph=vh.split("-");
+    HOR_RANGO_DESDE=new Date(parseInt(pd[0]),parseInt(pd[1])-1,parseInt(pd[2]));
+    HOR_RANGO_HASTA=new Date(parseInt(ph[0]),parseInt(ph[1])-1,parseInt(ph[2]));
+  }
+  if(HOR_RANGO_DESDE>HOR_RANGO_HASTA){ d.innerHTML="<div class='msg-err'>La fecha 'Desde' no puede ser mayor que 'Hasta'.</div>"; return; }
+
+  d.innerHTML="<div class='loading'>🔄 Generando corte...</div>";
+
+  sheetsGet("Horometro_Registros!A2:K").then(function(resp){
+    var rows=resp.values||[];
+    var todasMaquinas = (maquinaCod==="TODAS");
+
+    // Arma un arreglo de registros por cada máquina que corresponda mostrar.
+    // Si es "Todas", se agrupa una tabla por máquina; si es una sola, es un solo grupo.
+    var maquinasAMostrar = todasMaquinas
+      ? HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactiva";})
+      : HOR_MAQUINAS.filter(function(m){return m.codigo===maquinaCod;});
+
+    var grupos = maquinasAMostrar.map(function(m){
+      var registros = rows.filter(function(r){
+        if(!r[0]||r[2]!==m.codigo) return false;
+        var fp=parseFechaDMY((r[1]||"").toString());
+        return fp && fp>=HOR_RANGO_DESDE && fp<=HOR_RANGO_HASTA;
+      }).map(function(r){
+        return { fecha:(r[1]||"").toString(), inicio:r[4], fin:r[5], trabajadas:r[6], aPagar:r[7], operador:(r[8]||"").toString() };
+      });
+      var totalPagar = registros.reduce(function(s,r){return s+(Number(r.aPagar)||0);},0);
+      return { maquina:m.nombre, registros:registros, totalPagar:totalPagar };
+    });
+
+    var rangoTxt = fechaLegible(HOR_RANGO_DESDE)+" al "+fechaLegible(HOR_RANGO_HASTA);
+    var html="<div class='card'><div class='rep-meta'>📅 "+rangoTxt+(todasMaquinas?" · Todas las máquinas":" · "+grupos[0].maquina)+"</div>";
+
+    grupos.forEach(function(g){
+      html+="<div class='rep-sec'><div class='rep-tit'>🚜 "+g.maquina+"</div>";
+      if(!g.registros.length){
+        html+="<div class='empty'><div class='ei'>📭</div><p>Sin registros en este rango</p></div>";
+      } else {
+        html+="<table class='rep-tabla'><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Trabajadas</th><th>A pagar</th><th>Operador</th></tr>"+
+          g.registros.map(function(r){
+            return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td><td>"+r.operador+"</td></tr>";
+          }).join("")+
+          "<tr style='font-weight:bold;background:#EBF3FB'><td colspan='4'>Total a pagar</td><td>"+g.totalPagar+"</td><td></td></tr>"+
+          "</table>";
+      }
+      html+="</div>";
+    });
+
+    html+="<button class='btn b-ok' style='width:100%;margin-top:10px' onclick='horDescargarPDF()'>📄 Descargar PDF</button></div>";
+    d.innerHTML=html;
+
+    HOR_CORTE_ACTUAL={grupos:grupos, rangoTxt:rangoTxt, todasMaquinas:todasMaquinas};
+  }).catch(function(e){
+    d.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+var HOR_CORTE_ACTUAL=null;
+function horDescargarPDF(){
+  if(!HOR_CORTE_ACTUAL || !window.jspdf){ alert("Genera el corte primero."); return; }
+  var c=HOR_CORTE_ACTUAL;
+  var doc=new window.jspdf.jsPDF();
+
+  doc.setFontSize(14);
+  doc.text(c.todasMaquinas ? "Corte de horómetro — Todas las máquinas" : "Corte de horómetro — "+c.grupos[0].maquina,14,15);
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text("Periodo: "+c.rangoTxt+"   ·   Generado: "+new Date().toLocaleString("es-GT"),14,21);
+
+  // Un PDF combinado: una tabla por máquina, una debajo de la otra.
+  // Si no cabe en la página, jsPDF-autotable salta de página automáticamente.
+  var y=28;
+  c.grupos.forEach(function(g,i){
+    if(i>0 && y>250){ doc.addPage(); y=20; }
+    doc.setFontSize(11);
+    doc.setTextColor(20,20,20);
+    doc.text(g.maquina,14,y);
+    doc.autoTable({
+      startY:y+3,
+      head:[["Fecha","Inicio","Fin","Trabajadas","A pagar","Operador"]],
+      body:g.registros.length? g.registros.map(function(r){
+        return[r.fecha,String(r.inicio),String(r.fin),String(r.trabajadas),String(r.aPagar),r.operador];
+      }):[["Sin registros en este periodo","","","","",""]],
+      foot:[["","","","Total a pagar",String(g.totalPagar),""]],
+      styles:{fontSize:9},headStyles:{fillColor:[31,56,100]},footStyles:{fillColor:[235,243,251],textColor:[20,20,20]},margin:{left:14,right:14}
+    });
+    y=doc.lastAutoTable.finalY+10;
+  });
+
+  var ahora=new Date();
+  var sufijo = c.todasMaquinas ? "Todas" : c.grupos[0].maquina.replace(/\s+/g,"_");
+  var nombreArchivo="Horometro_"+sufijo+"_"+ahora.getFullYear()+"-"+String(ahora.getMonth()+1).padStart(2,"0")+"-"+String(ahora.getDate()).padStart(2,"0")+"_"+String(ahora.getHours()).padStart(2,"0")+String(ahora.getMinutes()).padStart(2,"0")+".pdf";
+  doc.save(nombreArchivo);
+}
+
+// ══════════════════════════════════════════════
+//  MANTENIMIENTO DEL HORÓMETRO — buscar, navegar
+//  (primero/anterior/siguiente/último), editar y eliminar
+//  un registro puntual. Es la ÚNICA sección de la app con
+//  capacidad de eliminar — a propósito contenida solo aquí.
+// ══════════════════════════════════════════════
+var HOR_MANT_LISTA=[];
+var HOR_MANT_INDICE=0;
+
+function horMantCargar(){
+  var maquinaCod=document.getElementById("horMantMaquina").value;
+  var texto=document.getElementById("horMantBuscar").value.toLowerCase().trim();
+  var vacio=document.getElementById("horMantVacio");
+  var nav=document.getElementById("horMantNav");
+
+  if(!maquinaCod){
+    vacio.innerHTML="<div class='msg-err'>Selecciona una máquina (o \"Todas las máquinas\").</div>";
+    nav.style.display="none";
+    return;
+  }
+  vacio.innerHTML="<div class='loading'>🔄 Cargando registros...</div>";
+  nav.style.display="none";
+
+  sheetsGet("Horometro_Registros!A2:K").then(function(resp){
+    var rows=resp.values||[];
+    var lista=rows.filter(function(r){
+      if(!r[0]) return false;
+      if(maquinaCod!=="TODAS" && (r[2]||"").toString().trim()!==maquinaCod) return false;
+      if(texto){
+        var fecha=(r[1]||"").toString().toLowerCase();
+        var operador=(r[8]||"").toString().toLowerCase();
+        var maquina=(r[3]||"").toString().toLowerCase();
+        if(fecha.indexOf(texto)<0 && operador.indexOf(texto)<0 && maquina.indexOf(texto)<0) return false;
+      }
+      return true;
+    }).map(function(r){
+      return {
+        id:(r[0]||"").toString(), fecha:(r[1]||"").toString(), fechaObj:parseFechaDMY((r[1]||"").toString()),
+        codigoMaquina:(r[2]||"").toString(), nombreMaquina:(r[3]||"").toString(),
+        inicio:r[4], fin:r[5], trabajadas:r[6], aPagar:r[7],
+        operador:(r[8]||"").toString(), registradoPor:(r[9]||"").toString(), observaciones:(r[10]||"").toString()
+      };
+    });
+
+    // Orden cronológico: "Primero" = el más antiguo, "Último" = el más reciente
+    lista.sort(function(a,b){
+      if(!a.fechaObj||!b.fechaObj) return 0;
+      return a.fechaObj-b.fechaObj;
+    });
+
+    HOR_MANT_LISTA=lista;
+    if(!lista.length){
+      vacio.innerHTML="<div class='empty'><div class='ei'>📭</div><p>Sin registros que coincidan con la búsqueda</p></div>";
+      nav.style.display="none";
+      return;
+    }
+    vacio.innerHTML="";
+    nav.style.display="block";
+    HOR_MANT_INDICE=lista.length-1; // arranca mostrando el más reciente
+    horMantMostrarActual();
+  }).catch(function(e){
+    vacio.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+function horMantMostrarActual(){
+  var r=HOR_MANT_LISTA[HOR_MANT_INDICE];
+  if(!r) return;
+  document.getElementById("horMantPos").textContent="Registro "+(HOR_MANT_INDICE+1)+" de "+HOR_MANT_LISTA.length;
+  document.getElementById("horMantFechaMaquina").textContent="📅 "+r.fecha+" · 🚜 "+r.nombreMaquina;
+  document.getElementById("horMantOperador").value=r.operador;
+  document.getElementById("horMantInicio").value=r.inicio;
+  document.getElementById("horMantFin").value=r.fin;
+  document.getElementById("horMantObs").value=r.observaciones;
+  document.getElementById("horMantMsg").innerHTML="";
+  horActualizarPreview("horMant");
+}
+
+function horMantPrimero(){ HOR_MANT_INDICE=0; horMantMostrarActual(); }
+function horMantAnterior(){ if(HOR_MANT_INDICE>0){ HOR_MANT_INDICE--; horMantMostrarActual(); } }
+function horMantSiguiente(){ if(HOR_MANT_INDICE<HOR_MANT_LISTA.length-1){ HOR_MANT_INDICE++; horMantMostrarActual(); } }
+function horMantUltimo(){ HOR_MANT_INDICE=HOR_MANT_LISTA.length-1; horMantMostrarActual(); }
+
+function horMantGuardar(){
+  var r=HOR_MANT_LISTA[HOR_MANT_INDICE];
+  var msg=document.getElementById("horMantMsg");
+  msg.innerHTML="";
+  if(!r) return;
+
+  var operador=document.getElementById("horMantOperador").value.trim();
+  var ini=document.getElementById("horMantInicio").value;
+  var fin=document.getElementById("horMantFin").value;
+  var obs=document.getElementById("horMantObs").value.trim();
+
+  if(!operador||!ini||!fin){
+    msg.innerHTML="<div class='msg-err'>Operador, horómetro de inicio y de fin son obligatorios.</div>";
+    return;
+  }
+
+  // Se envía la MISMA máquina+fecha del registro actual — Code.gs va a
+  // encontrar que ya existe y va a ACTUALIZAR esa fila, no crear una nueva.
+  gasPost("guardarLecturaHorometro",{
+    codigoMaquina: r.codigoMaquina,
+    nombreMaquina: r.nombreMaquina,
+    fecha: r.fecha,
+    operador: operador,
+    horometroInicio: ini,
+    horometroFin: fin,
+    observaciones: obs,
+    registradoPor: (SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(res){
+    if(res.error){ msg.innerHTML="<div class='msg-err'>❌ "+res.error+"</div>"; return; }
+    // Actualiza el registro en memoria, sin recargar toda la lista
+    r.operador=operador; r.inicio=ini; r.fin=fin; r.observaciones=obs;
+    r.trabajadas=res.horasTrabajadas; r.aPagar=res.horasAPagar;
+    msg.innerHTML="<div class='msg-ok'>✅ Cambios guardados — "+res.horasTrabajadas+" h trabajadas, "+res.horasAPagar+" h a pagar.</div>";
+  }).catch(function(e){
+    msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+function horMantEliminar(){
+  var r=HOR_MANT_LISTA[HOR_MANT_INDICE];
+  if(!r) return;
+  if(!confirm("¿Eliminar el registro de "+r.nombreMaquina+" del "+r.fecha+"? Esta acción no se puede deshacer.")) return;
+
+  var msg=document.getElementById("horMantMsg");
+  gasPost("eliminarLecturaHorometro",{id:r.id}).then(function(res){
+    if(res.error){ msg.innerHTML="<div class='msg-err'>❌ "+res.error+"</div>"; return; }
+    HOR_MANT_LISTA.splice(HOR_MANT_INDICE,1);
+    if(!HOR_MANT_LISTA.length){
+      document.getElementById("horMantNav").style.display="none";
+      document.getElementById("horMantVacio").innerHTML="<div class='empty'><div class='ei'>📭</div><p>Sin registros — se eliminó el último de la búsqueda actual</p></div>";
+      return;
+    }
+    if(HOR_MANT_INDICE>=HOR_MANT_LISTA.length) HOR_MANT_INDICE=HOR_MANT_LISTA.length-1;
+    horMantMostrarActual();
+  }).catch(function(e){
+    msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
+  });
+}
+
+function esc(s){return(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;");}
+</script>
+</div><!-- /appContent -->
+</body>
+</html>
