@@ -7,44 +7,44 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#f0f4f8;color:#333;font-size:14px}
-.hdr{background:#1F3864;color:#fff;padding:12px 14px}
-.hdr h1{font-size:16px}.hdr span{font-size:11px;color:#A8C8E8}
-.tabs{display:flex;background:#2E75B6}
-.menu-item{padding:11px 8px;font-size:14px;font-weight:bold;color:#1F3864;cursor:pointer;border-radius:6px}
-.menu-item:active{background:#EBF3FB}
-.tab{flex:1;padding:11px 4px;text-align:center;color:#A8C8E8;font-size:12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.hdr{background:#1B4332;color:#fff;padding:12px 14px}
+.hdr h1{font-size:16px}.hdr span{font-size:11px;color:#95D5B2}
+.tabs{display:flex;background:#2D6A4F}
+.menu-item{padding:11px 8px;font-size:14px;font-weight:bold;color:#1B4332;cursor:pointer;border-radius:6px}
+.menu-item:active{background:#EBF7ED}
+.tab{flex:1;padding:11px 4px;text-align:center;color:#95D5B2;font-size:12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
 .tab.on{color:#fff;border-bottom-color:#F4B942;font-weight:bold}
 .scr{display:none;padding:10px}.scr.on{display:block}
 .hscr{display:none}.hscr.on{display:block}
 .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.ctit{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #EBF3FB}
-input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:6px;font-size:13px;margin-bottom:7px;outline:none;background:#fff}
+.ctit{font-size:12px;font-weight:bold;color:#1B4332;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #EBF7ED}
+input,select{width:100%;padding:9px 10px;border:1px solid #B7E4C7;border-radius:6px;font-size:13px;margin-bottom:7px;outline:none;background:#fff}
 .btn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;margin-bottom:7px}
-.b-blue{background:#2E75B6;color:#fff}.b-ok{background:#375623;color:#fff}
+.b-blue{background:#2D6A4F;color:#fff}.b-ok{background:#375623;color:#fff}
 .b-danger{background:#C00000;color:#fff}.b-warn{background:#F4B942;color:#333}
 .b-sec{background:#E5E5E5;color:#333}
 .b-sm{padding:5px 10px;font-size:11px;width:auto;margin:2px;border:none;border-radius:5px;cursor:pointer;font-weight:bold}
 .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:bold}
-.bh{background:#D6E4F0;color:#1F3864}.bi{background:#E2EFDA;color:#375623}.bm{background:#FFF2CC;color:#7B5800}
-.tw-card{background:#EBF3FB;border:2px solid #2E75B6;border-radius:8px;padding:10px;margin-bottom:9px;display:flex;align-items:center;gap:8px}
-.tw-nom{font-size:14px;font-weight:bold;color:#1F3864;flex:1}
+.bh{background:#D8F3DC;color:#1B4332}.bi{background:#E2EFDA;color:#375623}.bm{background:#FFF2CC;color:#7B5800}
+.tw-card{background:#EBF7ED;border:2px solid #2D6A4F;border-radius:8px;padding:10px;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.tw-nom{font-size:14px;font-weight:bold;color:#1B4332;flex:1}
 .tw-cod{font-size:11px;color:#666}
 .tipo-sel{display:flex;gap:5px;margin-bottom:8px}
-.tipo-btn{flex:1;padding:8px 4px;border:2px solid #BDD7EE;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;text-align:center;font-weight:bold;color:#888}
-.tipo-btn.on-h{border-color:#1F3864;background:#EBF3FB;color:#1F3864}
+.tipo-btn{flex:1;padding:8px 4px;border:2px solid #B7E4C7;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;text-align:center;font-weight:bold;color:#888}
+.tipo-btn.on-h{border-color:#1B4332;background:#EBF7ED;color:#1B4332}
 .tipo-btn.on-i{border-color:#375623;background:#E2EFDA;color:#375623}
 .tipo-btn.on-m{border-color:#7B5800;background:#FFF2CC;color:#7B5800}
-.sug{background:#fff;border:1px solid #BDD7EE;border-radius:6px;max-height:190px;overflow-y:auto;margin-top:-5px;margin-bottom:8px;display:none;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;z-index:10}
+.sug{background:#fff;border:1px solid #B7E4C7;border-radius:6px;max-height:190px;overflow-y:auto;margin-top:-5px;margin-bottom:8px;display:none;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;z-index:10}
 .sug-item{padding:9px 11px;border-bottom:1px solid #f0f0f0;cursor:pointer}
-.sug-item:active{background:#EBF3FB}
+.sug-item:active{background:#EBF7ED}
 .sug-nom{font-size:13px;font-weight:bold}.sug-cod{font-size:10px;color:#888;margin-top:2px}
 .items-resumen{font-size:11px;color:#555;padding:4px 0 8px;display:flex;gap:4px;flex-wrap:wrap}
-.item-row{display:flex;align-items:flex-start;gap:7px;padding:9px;background:#f8f9fa;border-radius:7px;margin-bottom:6px;border-left:3px solid #2E75B6}
+.item-row{display:flex;align-items:flex-start;gap:7px;padding:9px;background:#f8f9fa;border-radius:7px;margin-bottom:6px;border-left:3px solid #2D6A4F}
 .item-row.r-Insumo{border-left-color:#375623}
 .item-row.r-Material{border-left-color:#7B5800}
 .item-info{flex:1;min-width:0}
 .item-cod{font-size:10px;color:#888;margin-bottom:2px}
-.item-desc{font-size:13px;font-weight:bold;color:#1F3864;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-desc{font-size:13px;font-weight:bold;color:#1B4332;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item-sub{margin-top:5px}
 .item-sub input{font-size:11px;padding:5px 7px;margin-bottom:3px}
 .qty-row{display:flex;align-items:center;gap:5px;margin-bottom:3px}
@@ -55,7 +55,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:
 .loading{text-align:center;padding:18px;color:#888;font-size:13px}
 .pa-card{border:2px solid #F4B942;border-radius:8px;padding:11px;margin-bottom:9px;background:#FFFDE7}
 .dev-item{background:#fff;border:1px solid #ddd;border-radius:6px;padding:9px;margin-bottom:7px}
-.dev-item-title{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:5px}
+.dev-item-title{font-size:12px;font-weight:bold;color:#1B4332;margin-bottom:5px}
 .hist-filtros{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
 .hist-filtros input{flex:1;min-width:120px;margin-bottom:0}
 .hist-filtros select{width:130px;margin-bottom:0}
@@ -84,24 +84,24 @@ input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:
 .empty .ei{font-size:30px;margin-bottom:5px}
 .empty p{font-size:12px}
 .rep-sec{margin-bottom:14px}
-.rep-tit{font-size:12px;font-weight:bold;color:#1F3864;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.rep-tit{font-size:12px;font-weight:bold;color:#1B4332;margin-bottom:7px;display:flex;align-items:center;gap:5px}
 .rep-tabla{width:100%;border-collapse:collapse;font-size:11px}
-.rep-tabla th{background:#EBF3FB;color:#1F3864;padding:6px 5px;text-align:left;border-bottom:2px solid #BDD7EE}
+.rep-tabla th{background:#EBF7ED;color:#1B4332;padding:6px 5px;text-align:left;border-bottom:2px solid #B7E4C7}
 .rep-tabla td{padding:6px 5px;border-bottom:1px solid #f0f0f0}
 .rep-meta{font-size:10px;color:#888;margin-bottom:10px}
 
 /* Login */
-#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#1F3864}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#1B4332}
 .login-box{background:#fff;border-radius:14px;padding:26px 22px;width:100%;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,.25)}
-.login-box h2{color:#1F3864;font-size:18px;margin:0 0 4px;text-align:center}
+.login-box h2{color:#1B4332;font-size:18px;margin:0 0 4px;text-align:center}
 .login-box p{color:#888;font-size:12px;text-align:center;margin:0 0 18px}
 .login-box input{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;margin-bottom:10px}
-.login-box button{width:100%;padding:12px;background:#1F3864;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold}
+.login-box button{width:100%;padding:12px;background:#1B4332;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold}
 .login-err{background:#FCE4E4;color:#8a1f1f;border:1px solid #E67373;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:10px;display:none}
 
 /* Sesión activa */
-#sesionBar{background:#EBF3FB;border-bottom:1px solid #BDD7EE;padding:8px 14px;font-size:12px;color:#1F3864;display:flex;justify-content:space-between;align-items:center}
-#sesionBar button{background:none;border:none;color:#1F3864;text-decoration:underline;font-size:11px;padding:0}
+#sesionBar{background:#EBF7ED;border-bottom:1px solid #B7E4C7;padding:8px 14px;font-size:12px;color:#1B4332;display:flex;justify-content:space-between;align-items:center}
+#sesionBar button{background:none;border:none;color:#1B4332;text-decoration:underline;font-size:11px;padding:0}
 </style>
 </head>
 <body>
@@ -130,6 +130,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:
 <!-- Menú "más" — para utilidades administrativas que no ameritan pestaña propia -->
 <div id="menuMas" style="display:none;background:#fff;border-bottom:1px solid #ddd;padding:8px 14px">
   <div class="menu-item" onclick="abrirHorometro()">⏱ Horómetro de maquinaria</div>
+  <div id="menuAdmin" style="display:none">
+    <hr style="margin:6px 0;border-color:#eee">
+    <div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:bold">ADMINISTRACIÓN</div>
+    <div class="menu-item" onclick="abrirGestionUsuarios()">👥 Gestión de usuarios</div>
+    <div class="menu-item" onclick="abrirGestionTrabajadores()">👷 Gestión de trabajadores</div>
+    <div class="menu-item" onclick="abrirGestionMaquinas()">🚧 Gestión de máquinas</div>
+    <div class="menu-item" onclick="abrirConfigApariencia()">🎨 Apariencia del sistema</div>
+  </div>
 </div>
 <div class="hdr"><h1>🏗 Almacén GT02</h1><span>Izabal · SOLTECING</span></div>
 <div class="tabs">
@@ -272,7 +280,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:
       <div id="horOperadorSug" class="sug"></div>
       <input type="number" id="horInicio" placeholder="Horómetro de inicio" step="0.1">
       <input type="number" id="horFin" placeholder="Horómetro de fin" step="0.1">
-      <div id="horPreview" style="font-size:12px;color:#1F3864;margin:6px 0;min-height:18px"></div>
+      <div id="horPreview" style="font-size:12px;color:#1B4332;margin:6px 0;min-height:18px"></div>
       <input type="text" id="horObs" placeholder="Observaciones (opcional)">
       <div id="horMsg"></div>
       <button class="btn b-ok" id="horBtnGuardar" style="width:100%" onclick="horGuardar()">💾 Registrar lectura</button>
@@ -308,15 +316,15 @@ input,select{width:100%;padding:9px 10px;border:1px solid #BDD7EE;border-radius:
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantPrimero()">⏮ Primero</button>
         <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantAnterior()">◀ Anterior</button>
-        <span id="horMantPos" style="font-size:12px;color:#1F3864;font-weight:bold"></span>
+        <span id="horMantPos" style="font-size:12px;color:#1B4332;font-weight:bold"></span>
         <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantSiguiente()">Siguiente ▶</button>
         <button class="btn b-sec" style="padding:6px 10px;font-size:12px" onclick="horMantUltimo()">Último ⏭</button>
       </div>
-      <div id="horMantFechaMaquina" style="font-size:13px;font-weight:bold;color:#1F3864;margin-bottom:8px"></div>
+      <div id="horMantFechaMaquina" style="font-size:13px;font-weight:bold;color:#1B4332;margin-bottom:8px"></div>
       <input type="text" id="horMantOperador" placeholder="Operador">
       <input type="number" id="horMantInicio" placeholder="Horómetro de inicio" step="0.1">
       <input type="number" id="horMantFin" placeholder="Horómetro de fin" step="0.1">
-      <div id="horMantPreview" style="font-size:12px;color:#1F3864;margin:6px 0;min-height:18px"></div>
+      <div id="horMantPreview" style="font-size:12px;color:#1B4332;margin:6px 0;min-height:18px"></div>
       <input type="text" id="horMantObs" placeholder="Observaciones">
       <div id="horMantMsg"></div>
       <div style="display:flex;gap:8px;margin-top:6px">
@@ -416,7 +424,7 @@ function intentarLogin(){
   }
   gasPost("login",{usuario:usuario,pin:pin}).then(function(r){
     if(r && r.ok){
-      SESION={usuario:r.usuario,nombre:r.nombre};
+      SESION={usuario:r.usuario,nombre:r.nombre,rol:r.rol||"Operador"};
       localStorage.setItem("gt02_sesion",JSON.stringify(SESION));
       mostrarApp();
     } else {
@@ -434,6 +442,10 @@ function mostrarApp(){
   document.getElementById("appContent").style.display="block";
   document.getElementById("sesionNombre").textContent=SESION.nombre;
   document.getElementById("verApp").textContent=APP_VERSION;
+  // Mostrar opciones admin solo para Admin
+  var isAdmin = SESION.rol && SESION.rol.toLowerCase()==="admin";
+  var menuAdmin = document.getElementById("menuAdmin");
+  if(menuAdmin) menuAdmin.style.display = isAdmin ? "block" : "none";
 }
 
 function cerrarSesion(){
@@ -545,7 +557,7 @@ function gasPost(action, data) {
 //  BUSCAR TRABAJADOR — usa Sheets API directamente
 // ══════════════════════════════════════════════
 function buscaTWDirecto(val, mode) {
-  sheetsGet("Personal_GT01!A2:H").then(function(resp){
+  sheetsGet("Personal_GT02!A2:H").then(function(resp){
     var rows = resp.values || [];
     var q = val.toString().trim().toLowerCase();
     var qNum = q.replace(/^0+/,"").replace("gt01/recper-","");
@@ -879,7 +891,7 @@ function mostrarPA(data,nom,cod){
     }).join("");
     return "<div class='pa-card'>" +
       "<div style='display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:5px'><span>📄 "+p.idPrestamo+"</span><span>📅 "+p.fecha+(p.horaSalida?" · "+p.horaSalida:"")+"</span></div>" +
-      "<div style='font-size:14px;font-weight:bold;color:#1F3864;margin-bottom:8px'>👷 "+etiqueta+"</div>" +
+      "<div style='font-size:14px;font-weight:bold;color:#1B4332;margin-bottom:8px'>👷 "+etiqueta+"</div>" +
       filas+
       "<button class='btn b-ok' style='margin-top:6px' onclick='confirmarDev(\""+p.idPrestamo+"\","+JSON.stringify(p.items).replace(/"/g,"&quot;")+")'>📥 Confirmar devolución</button>" +
       "</div>";
@@ -927,7 +939,7 @@ function cargarHist(){
   Promise.all([
     sheetsGet("Prestamos_Herramientas!A2:K"),
     sheetsGet("Prestamos_Detalle!A2:I"),
-    sheetsGet("Personal_GT01!A2:C")
+    sheetsGet("Personal_GT02!A2:C")
   ]).then(function(results){
     var dp=results[0].values||[];
     var dd=results[1].values||[];
@@ -1005,7 +1017,7 @@ function cargarHist(){
         :"";
       return "<div class='hist-row "+cls+"'>" +
         "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'><span style='font-size:11px;color:#888'>📄 "+p.idPrestamo+"</span>"+badge+"</div>" +
-        "<div style='font-size:13px;font-weight:bold;color:#1F3864'>👷 "+(p.nombreTrabajador||"(sin nombre)")+" <span style='font-weight:normal;color:#666'>· "+p.codigoTrabajador+"</span></div>" +
+        "<div style='font-size:13px;font-weight:bold;color:#1B4332'>👷 "+(p.nombreTrabajador||"(sin nombre)")+" <span style='font-weight:normal;color:#666'>· "+p.codigoTrabajador+"</span></div>" +
         "<div style='font-size:11px;margin-top:4px'>"+badges+"</div>" +
         (detallesTxt?"<div style='font-size:10px;color:#666;margin-top:2px;font-style:italic'>🔎 "+detallesTxt+"</div>":"")+
         "<div style='font-size:10px;color:#888;margin-top:3px'>📅 "+p.fecha+(p.horaSalida?" · "+p.horaSalida:"")+(p.horaDevolucion?" → "+p.horaDevolucion:"")+"</div>" +
@@ -1111,7 +1123,7 @@ function generarInforme(){
   Promise.all([
     sheetsGet("Prestamos_Herramientas!A2:H"),
     sheetsGet("Prestamos_Detalle!A2:I"),
-    sheetsGet("Personal_GT01!A2:C")
+    sheetsGet("Personal_GT02!A2:C")
   ]).then(function(results){
     var dp=results[0].values||[];
     var dd=results[1].values||[];
@@ -1780,12 +1792,12 @@ function horSelOperador(nombre){
 function horAutocompletarOperador(){
   var maquinaCod=document.getElementById("horMaquina").value;
   if(!maquinaCod) return;
-  var recordado=localStorage.getItem("gt02_ultimo_operador_"+maquinaCod);
+  var recordado=localStorage.getItem("gt01_ultimo_operador_"+maquinaCod);
   if(recordado) document.getElementById("horOperador").value=recordado;
 }
 function horRecordarOperador(maquinaCod, nombreOperador){
   if(!maquinaCod || !nombreOperador) return;
-  localStorage.setItem("gt02_ultimo_operador_"+maquinaCod, nombreOperador);
+  localStorage.setItem("gt01_ultimo_operador_"+maquinaCod, nombreOperador);
 }
 
 // ── Prevención de duplicados: una sola lectura por máquina por día ──
@@ -1988,7 +2000,7 @@ function horGenerarCorte(){
           g.registros.map(function(r){
             return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td><td>"+r.operador+"</td></tr>";
           }).join("")+
-          "<tr style='font-weight:bold;background:#EBF3FB'><td colspan='4'>Total a pagar</td><td>"+g.totalPagar+"</td><td></td></tr>"+
+          "<tr style='font-weight:bold;background:#EBF7ED'><td colspan='4'>Total a pagar</td><td>"+g.totalPagar+"</td><td></td></tr>"+
           "</table>";
       }
       html+="</div>";
@@ -2184,6 +2196,368 @@ function horMantEliminar(){
 }
 
 function esc(s){return(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;");}
+
+// ══════════════════════════════════════════════
+// GESTIÓN DE USUARIOS (solo Admin)
+// ══════════════════════════════════════════════
+function abrirGestionUsuarios() {
+  toggleMenuMas();
+  // Ocultar pestañas y mostrar pantalla de gestión
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("gestionUsuariosScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  cargarUsuarios();
+}
+
+function cargarUsuarios() {
+  var div = document.getElementById("usuariosLista");
+  if(!div) return;
+  div.innerHTML = "<div class='loading'>🔄 Cargando usuarios...</div>";
+  sheetsGet("Usuarios_GT02!A2:E").then(function(r){
+    var rows = r.values || [];
+    if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👥</div><p>No hay usuarios registrados</p></div>"; return; }
+    div.innerHTML = rows.map(function(row,i){
+      var activo = (row[3]||"").toLowerCase()==="si";
+      var rol = row[4]||"Operador";
+      return "<div class='card' style='margin-bottom:8px'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:center'>" +
+        "<div><b>"+(row[1]||row[0])+"</b> <span class='badge "+(rol==="Admin"?"bh":"bi")+"'>"+rol+"</span></div>" +
+        "<span style='font-size:11px;color:"+(activo?"#375623":"#C00000")+"'>"+(activo?"✅ Activo":"❌ Inactivo")+"</span>" +
+        "</div>" +
+        "<div style='font-size:11px;color:#888;margin-top:3px'>@"+row[0]+"</div>" +
+        "<div style='margin-top:8px;display:flex;gap:6px'>" +
+        "<button class='btn b-blue b-sm' onclick='editarUsuarioForm(""+row[0]+"",""+( row[1]||"")+"""+",""+rol+"","+activo+")'>✏️ Editar</button>" +
+        "<button class='btn b-warn b-sm' onclick='resetPinForm(""+row[0]+"")'>🔑 Cambiar PIN</button>" +
+        "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoUsuario(""+row[0]+"","+activo+")'>"+( activo?"⏸ Desactivar":"▶ Activar")+"</button>" +
+        "</div></div>";
+    }).join("");
+  }).catch(function(e){ div.innerHTML="<div class='msg-err'>Error: "+e.message+"</div>"; });
+}
+
+function editarUsuarioForm(usuario, nombre, rol, activo) {
+  var formDiv = document.getElementById("usuarioFormContainer");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>✏️ Editar usuario: @"+usuario+"</div>" +
+    "<input type='text' id='euNombre' placeholder='Nombre completo' value='"+nombre+"'>" +
+    "<select id='euRol'><option value='Operador'"+(rol!=="Admin"?" selected":"")+" >Operador</option><option value='Admin'"+(rol==="Admin"?" selected":"")+">Admin</option></select>" +
+    "<div id='euMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarEdicionUsuario(""+usuario+"")'>💾 Guardar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarEdicionUsuario(usuario) {
+  var nombre = (document.getElementById("euNombre")||{value:""}).value.trim();
+  var rol    = (document.getElementById("euRol")||{value:"Operador"}).value;
+  var msg    = document.getElementById("euMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  gasPost("editarUsuario",{usuario:usuario,nombre:nombre,rol:rol}).then(function(r){
+    if(r&&r.ok){ cancelarFormUsuario(); cargarUsuarios(); }
+    else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function resetPinForm(usuario) {
+  var formDiv = document.getElementById("usuarioFormContainer");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>🔑 Cambiar PIN: @"+usuario+"</div>" +
+    "<input type='password' id='nuevoPin' placeholder='Nuevo PIN (solo números)' inputmode='numeric'>" +
+    "<input type='password' id='confirmarPin' placeholder='Confirmar PIN'>" +
+    "<div id='pinMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevoPin(""+usuario+"")'>💾 Cambiar PIN</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarNuevoPin(usuario) {
+  var pin1 = (document.getElementById("nuevoPin")||{value:""}).value.trim();
+  var pin2 = (document.getElementById("confirmarPin")||{value:""}).value.trim();
+  var msg  = document.getElementById("pinMsg");
+  if(!pin1||pin1.length<4){ if(msg)msg.innerHTML="<div class='msg-err'>El PIN debe tener al menos 4 dígitos</div>"; return; }
+  if(pin1!==pin2){ if(msg)msg.innerHTML="<div class='msg-err'>Los PIN no coinciden</div>"; return; }
+  gasPost("editarUsuario",{usuario:usuario,pin:pin1}).then(function(r){
+    if(r&&r.ok){ cancelarFormUsuario(); alert("PIN actualizado correctamente"); }
+    else{ if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function toggleActivoUsuario(usuario, estaActivo) {
+  if(!confirm((estaActivo?"¿Desactivar":"¿Activar")+" al usuario @"+usuario+"?")) return;
+  gasPost("editarUsuario",{usuario:usuario,activo:!estaActivo}).then(function(r){
+    if(r&&r.ok) cargarUsuarios();
+    else alert(r&&r.error||"Error");
+  }).catch(function(e){ alert(e.message); });
+}
+
+function cancelarFormUsuario() {
+  var f = document.getElementById("usuarioFormContainer");
+  if(f) f.innerHTML="";
+}
+
+function nuevoUsuarioForm() {
+  var formDiv = document.getElementById("usuarioFormContainer");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>➕ Nuevo usuario</div>" +
+    "<input type='text' id='nuUser' placeholder='Nombre de usuario (ej: juan)'>" +
+    "<input type='text' id='nuNombre' placeholder='Nombre completo'>" +
+    "<input type='password' id='nuPin' placeholder='PIN (solo números)' inputmode='numeric'>" +
+    "<select id='nuRol'><option value='Operador'>Operador</option><option value='Admin'>Admin</option></select>" +
+    "<div id='nuMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevoUsuario()'>💾 Crear usuario</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarNuevoUsuario() {
+  var usuario = (document.getElementById("nuUser")||{value:""}).value.trim();
+  var nombre  = (document.getElementById("nuNombre")||{value:""}).value.trim();
+  var pin     = (document.getElementById("nuPin")||{value:""}).value.trim();
+  var rol     = (document.getElementById("nuRol")||{value:"Operador"}).value;
+  var msg     = document.getElementById("nuMsg");
+  if(!usuario||!nombre||!pin){ if(msg)msg.innerHTML="<div class='msg-err'>Todos los campos son requeridos</div>"; return; }
+  if(pin.length<4){ if(msg)msg.innerHTML="<div class='msg-err'>PIN mínimo 4 dígitos</div>"; return; }
+  gasPost("agregarUsuario",{usuario:usuario,nombre:nombre,pin:pin,rol:rol,activo:true}).then(function(r){
+    if(r&&r.ok){ cancelarFormUsuario(); cargarUsuarios(); }
+    else{ if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+// ══════════════════════════════════════════════
+// GESTIÓN DE TRABAJADORES (solo Admin)
+// ══════════════════════════════════════════════
+function abrirGestionTrabajadores() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("gestionTrabajadoresScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  cargarTrabajadoresAdmin();
+}
+
+function cargarTrabajadoresAdmin() {
+  var div = document.getElementById("trabLista");
+  if(!div) return;
+  div.innerHTML = "<div class='loading'>🔄 Cargando...</div>";
+  sheetsGet("Personal_GT02!A2:I").then(function(r){
+    var rows = (r.values||[]).filter(function(row){ return row[0]; });
+    if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>No hay trabajadores</p></div>"; return; }
+    div.innerHTML = rows.slice(0,30).map(function(row){
+      var activo = (row[6]||"Activo").toString().toLowerCase()==="activo";
+      return "<div class='card' style='margin-bottom:7px;padding:10px'>" +
+        "<div style='display:flex;justify-content:space-between'>" +
+        "<b style='font-size:13px'>"+(row[1]||"[Sin nombre]")+"</b>" +
+        "<span style='font-size:11px;color:"+(activo?"#375623":"#888")+"'>"+(activo?"✅":"⏸")+"</span>" +
+        "</div>" +
+        "<div style='font-size:11px;color:#888;margin-top:2px'>"+row[0]+" · "+(row[2]||"—")+"</div>" +
+        "</div>";
+    }).join("") + (rows.length>30?"<div style='text-align:center;font-size:11px;color:#888;padding:8px'>Mostrando primeros 30 de "+rows.length+"</div>":"");
+  }).catch(function(e){ div.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function nuevoTrabajadorForm() {
+  var formDiv = document.getElementById("trabForm");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>➕ Agregar trabajador</div>" +
+    "<input type='text' id='ntNombre' placeholder='Nombre completo *'>" +
+    "<input type='text' id='ntCargo' placeholder='Cargo (ej: Técnico)'>" +
+    "<input type='text' id='ntTel' placeholder='Teléfono'>" +
+    "<input type='text' id='ntDui' placeholder='Número de DUI/DPI'>" +
+    "<div id='ntMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevoTrabajador()'>💾 Agregar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormTrab()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarNuevoTrabajador() {
+  var nombre = (document.getElementById("ntNombre")||{value:""}).value.trim();
+  var cargo  = (document.getElementById("ntCargo")||{value:""}).value.trim();
+  var tel    = (document.getElementById("ntTel")||{value:""}).value.trim();
+  var dui    = (document.getElementById("ntDui")||{value:""}).value.trim();
+  var msg    = document.getElementById("ntMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  gasPost("agregarTrabajador",{nombre:nombre,cargo:cargo,telefono:tel,dui:dui}).then(function(r){
+    if(r&&r.ok){
+      cancelarFormTrab();
+      if(msg)msg.innerHTML="<div class='msg-ok'>✅ Trabajador agregado: "+r.codigo+"</div>";
+      cargarTrabajadoresAdmin();
+    } else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function cancelarFormTrab() {
+  var f = document.getElementById("trabForm");
+  if(f) f.innerHTML="";
+}
+
+// ══════════════════════════════════════════════
+// GESTIÓN DE MÁQUINAS (solo Admin)
+// ══════════════════════════════════════════════
+function abrirGestionMaquinas() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("gestionMaquinasScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  cargarMaquinasAdmin();
+}
+
+function cargarMaquinasAdmin() {
+  var div = document.getElementById("maqLista");
+  if(!div) return;
+  div.innerHTML="<div class='loading'>🔄 Cargando...</div>";
+  sheetsGet("Maquinas_GT02!A2:F").then(function(r){
+    var rows=(r.values||[]).filter(function(row){return row[0];});
+    if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>🚧</div><p>No hay máquinas registradas</p></div>"; return; }
+    div.innerHTML=rows.map(function(row){
+      return "<div class='card' style='margin-bottom:7px;padding:10px'>" +
+        "<b>"+row[1]+"</b> <span class='badge bm'>"+row[2]+"</span>" +
+        "<div style='font-size:11px;color:#888;margin-top:3px'>"+row[0]+(row[3]?" · "+row[3]:"")+"</div>" +
+        "</div>";
+    }).join("");
+  }).catch(function(){
+    div.innerHTML="<div class='msg-err'>No se encontró la hoja Maquinas_GT02. Agrega la primera máquina para crearla.</div>";
+  });
+}
+
+function nuevaMaquinaForm() {
+  var formDiv = document.getElementById("maqForm");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>➕ Agregar máquina</div>" +
+    "<input type='text' id='nmNombre' placeholder='Nombre de la máquina *'>" +
+    "<select id='nmTipo'>" +
+    "<option value='Excavadora'>Excavadora</option>" +
+    "<option value='Telehandler'>Telehandler</option>" +
+    "<option value='Montacargas'>Montacargas</option>" +
+    "<option value='Compactadora'>Compactadora</option>" +
+    "<option value='Generador'>Generador</option>" +
+    "<option value='Otro'>Otro</option>" +
+    "</select>" +
+    "<input type='text' id='nmPlaca' placeholder='Placa o número de serie'>" +
+    "<input type='text' id='nmObs' placeholder='Observaciones (opcional)'>" +
+    "<div id='nmMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevaMaquina()'>💾 Agregar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormMaq()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarNuevaMaquina() {
+  var nombre = (document.getElementById("nmNombre")||{value:""}).value.trim();
+  var tipo   = (document.getElementById("nmTipo")||{value:"Excavadora"}).value;
+  var placa  = (document.getElementById("nmPlaca")||{value:""}).value.trim();
+  var obs    = (document.getElementById("nmObs")||{value:""}).value.trim();
+  var msg    = document.getElementById("nmMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  gasPost("agregarMaquina",{nombre:nombre,tipo:tipo,placa:placa,observaciones:obs}).then(function(r){
+    if(r&&r.ok){
+      cancelarFormMaq();
+      if(msg)msg.innerHTML="<div class='msg-ok'>✅ Máquina agregada: "+r.codigo+"</div>";
+      cargarMaquinasAdmin();
+      // Recargar selector de horómetro
+      horCargarMaquinas();
+    } else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function cancelarFormMaq() {
+  var f = document.getElementById("maqForm");
+  if(f) f.innerHTML="";
+}
+
+// ══════════════════════════════════════════════
+// CONFIGURACIÓN DE APARIENCIA (solo Admin)
+// ══════════════════════════════════════════════
+var PALETA = [
+  {nombre:"Verde GT02 (por defecto)", primario:"#1B4332", secundario:"#2D6A4F", claro:"#D8F3DC", xclaro:"#EBF7ED", borde:"#B7E4C7", pastel:"#95D5B2"},
+  {nombre:"Azul GT01",    primario:"#1F3864", secundario:"#2E75B6", claro:"#D6E4F0", xclaro:"#EBF3FB", borde:"#BDD7EE", pastel:"#A8C8E8"},
+  {nombre:"Rojo Energía", primario:"#7B0000", secundario:"#C00000", claro:"#FCE4D6", xclaro:"#FFF5F5", borde:"#F5BBBB", pastel:"#E88"},
+  {nombre:"Morado",       primario:"#4A0E8F", secundario:"#7B2FF7", claro:"#EDE0FF", xclaro:"#F5EDFF", borde:"#D4B8FF", pastel:"#C8A0F0"},
+  {nombre:"Naranja",      primario:"#7B3800", secundario:"#D96900", claro:"#FFE8CC", xclaro:"#FFF4E5", borde:"#FFD199", pastel:"#FFB84D"},
+  {nombre:"Gris Acero",   primario:"#2B2B2B", secundario:"#555555", claro:"#E5E5E5", xclaro:"#F5F5F5", borde:"#CCCCCC", pastel:"#AAAAAA"},
+];
+
+function abrirConfigApariencia() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("configAparienciaScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  renderPaleta();
+}
+
+function renderPaleta() {
+  var div = document.getElementById("paletaOpciones");
+  if(!div) return;
+  div.innerHTML = PALETA.map(function(p,i){
+    return "<div onclick='aplicarPaleta("+i+")' style='display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);cursor:pointer'>" +
+      "<div style='display:flex;gap:4px'>" +
+      "<div style='width:24px;height:24px;border-radius:50%;background:"+p.primario+"'></div>" +
+      "<div style='width:24px;height:24px;border-radius:50%;background:"+p.secundario+"'></div>" +
+      "<div style='width:24px;height:24px;border-radius:50%;background:"+p.claro+"'></div>" +
+      "</div>" +
+      "<span style='font-size:13px;font-weight:bold;color:#333'>"+p.nombre+"</span>" +
+      "</div>";
+  }).join("") +
+  "<div class='card' style='margin-top:12px'>" +
+  "<div class='ctit'>🎨 Color personalizado</div>" +
+  "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px'>" +
+  "<div><label style='font-size:11px;color:#666'>Color primario</label><br><input type='color' id='cpPrimario' value='#1B4332' style='width:100%;height:40px;padding:2px;margin-bottom:0'></div>" +
+  "<div><label style='font-size:11px;color:#666'>Color secundario</label><br><input type='color' id='cpSecundario' value='#2D6A4F' style='width:100%;height:40px;padding:2px;margin-bottom:0'></div>" +
+  "</div>" +
+  "<button class='btn b-ok' onclick='aplicarColorPersonalizado()'>✅ Aplicar colores personalizados</button>" +
+  "</div>";
+}
+
+function aplicarPaleta(idx) {
+  var p = PALETA[idx];
+  if(!p) return;
+  aplicarColores(p.primario, p.secundario, p.claro, p.xclaro, p.borde, p.pastel);
+  localStorage.setItem("gt02_paleta", JSON.stringify(p));
+  alert("✅ Apariencia cambiada: " + p.nombre);
+}
+
+function aplicarColorPersonalizado() {
+  var prim = (document.getElementById("cpPrimario")||{value:"#1B4332"}).value;
+  var secu = (document.getElementById("cpSecundario")||{value:"#2D6A4F"}).value;
+  // Generar variantes claras automáticamente
+  aplicarColores(prim, secu, secu+"33", secu+"15", secu+"55", secu+"88");
+  localStorage.setItem("gt02_paleta", JSON.stringify({primario:prim,secundario:secu,claro:secu+"33",xclaro:secu+"15",borde:secu+"55",pastel:secu+"88"}));
+  alert("✅ Colores personalizados aplicados");
+}
+
+function aplicarColores(prim, secu, claro, xclaro, borde, pastel) {
+  var root = document.documentElement;
+  root.style.setProperty("--c-prim",   prim);
+  root.style.setProperty("--c-secu",   secu);
+  root.style.setProperty("--c-claro",  claro);
+  root.style.setProperty("--c-xclaro", xclaro);
+  root.style.setProperty("--c-borde",  borde);
+  root.style.setProperty("--c-pastel", pastel);
+}
+
+function cargarPaletaGuardada() {
+  try {
+    var p = JSON.parse(localStorage.getItem("gt02_paleta")||"null");
+    if(p && p.primario) aplicarColores(p.primario,p.secundario,p.claro,p.xclaro,p.borde,p.pastel);
+  } catch(e){}
+}
+
+cargarPaletaGuardada();
+
 </script>
 </div><!-- /appContent -->
 </body>
