@@ -2228,7 +2228,7 @@ function cargarUsuarios() {
         "</div>" +
         "<div style='font-size:11px;color:#888;margin-top:3px'>@"+row[0]+"</div>" +
         "<div style='margin-top:8px;display:flex;gap:6px'>" +
-        "<button class='btn b-blue b-sm' onclick='editarUsuarioForm(""+row[0]+"",""+( row[1]||"")+"""+",""+rol+"","+activo+")'>✏️ Editar</button>" +
+        "<button class='btn b-blue b-sm' onclick='editarUsuarioForm(\"" + row[0] + "\",\"" + (row[1]||"") + "\",\"" + rol + "\"," + activo + ")'>✏️ Editar</button>" +
         "<button class='btn b-warn b-sm' onclick='resetPinForm(""+row[0]+"")'>🔑 Cambiar PIN</button>" +
         "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoUsuario(""+row[0]+"","+activo+")'>"+( activo?"⏸ Desactivar":"▶ Activar")+"</button>" +
         "</div></div>";
