@@ -2214,29 +2214,42 @@ function abrirGestionUsuarios() {
 function cargarUsuarios() {
   var div = document.getElementById("usuariosLista");
   if(!div) return;
-  div.innerHTML = "<div class='loading'>🔄 Cargando usuarios...</div>";
+  div.innerHTML = "<div class='loading'>Cargando usuarios...</div>";
   sheetsGet("Usuarios_GT02!A2:E").then(function(r){
     var rows = r.values || [];
-    if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👥</div><p>No hay usuarios registrados</p></div>"; return; }
-    div.innerHTML = rows.map(function(row,i){
-      var activo = (row[3]||"").toLowerCase()==="si";
-      var rol = row[4]||"Operador";
-      return "<div class='card' style='margin-bottom:8px'>" +
-        "<div style='display:flex;justify-content:space-between;align-items:center'>" +
-        "<div><b>"+(row[1]||row[0])+"</b> <span class='badge "+(rol==="Admin"?"bh":"bi")+"'>"+rol+"</span></div>" +
-        "<span style='font-size:11px;color:"+(activo?"#375623":"#C00000")+"'>"+(activo?"✅ Activo":"❌ Inactivo")+"</span>" +
-        "</div>" +
-        "<div style='font-size:11px;color:#888;margin-top:3px'>@"+row[0]+"</div>" +
-        "<div style='margin-top:8px;display:flex;gap:6px'>" +
-        "<button class='btn b-blue b-sm' onclick='editarUsuarioForm(\"" + row[0] + "\",\"" + (row[1]||"") + "\",\"" + rol + "\"," + activo + ")'>✏️ Editar</button>" +
-        "<button class='btn b-warn b-sm' onclick='resetPinForm(\""+row[0]+"")'>🔑 Cambiar PIN</button>" +
-        "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoUsuario(\""+row[0]+"","+activo+")'>"+( activo?"⏸ Desactivar":"▶ Activar")+"</button>" +
-        "</div></div>";
-    }).join("");
+    if(!rows.length){ div.innerHTML="<p style='text-align:center;color:#888;padding:20px'>No hay usuarios registrados</p>"; return; }
+    var html2 = "";
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(!row[0]) continue;
+      var activo=(row[3]||"").toLowerCase()==="si";
+      var rol=row[4]||"Operador";
+      var usuario=row[0]; var nombre=row[1]||row[0];
+      html2 += "<div class='card' style='margin-bottom:8px;padding:10px'>";
+      html2 += "<div style='display:flex;justify-content:space-between;align-items:center'>";
+      html2 += "<div><b>"+nombre+"</b> <span class='badge "+(rol==="Admin"?"bh":"bi")+"'>"+rol+"</span></div>";
+      html2 += "<span style='font-size:11px;color:"+(activo?"#375623":"#C00000")+"'>"+(activo?"Activo":"Inactivo")+"</span>";
+      html2 += "</div>";
+      html2 += "<div style='font-size:11px;color:#888;margin-top:2px'>@"+usuario+"</div>";
+      html2 += "<div style='margin-top:8px;display:flex;gap:6px;flex-wrap:wrap'>";
+      html2 += "<button class='btn b-blue b-sm' onclick='editarUsuarioForm(this)' data-u='"+usuario+"' data-n='"+nombre+"' data-r='"+rol+"' data-a='"+activo+"'>Editar</button>";
+      html2 += "<button class='btn b-warn b-sm' onclick='resetPinForm(this)' data-u='"+usuario+"'>Cambiar PIN</button>";
+      html2 += "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoUsuario(this)' data-u='"+usuario+"' data-a='"+activo+"'>"+(activo?"Desactivar":"Activar")+"</button>";
+      html2 += "</div></div>";
+    }
+    div.innerHTML = html2;
   }).catch(function(e){ div.innerHTML="<div class='msg-err'>Error: "+e.message+"</div>"; });
 }
 
-function editarUsuarioForm(usuario, nombre, rol, activo) {
+function editarUsuarioFormBtn(btn) {
+  editarUsuarioForm(btn.getAttribute("data-u"),btn.getAttribute("data-n"),btn.getAttribute("data-r"),btn.getAttribute("data-a")==="true");
+}
+
+function editarUsuarioForm(btn_or_usuario, nombre, rol, activo) {
+  var usuario = typeof btn_or_usuario === "string" ? btn_or_usuario : btn_or_usuario.getAttribute("data-u");
+  nombre = nombre || (typeof btn_or_usuario === "object" ? btn_or_usuario.getAttribute("data-n") : "");
+  rol = rol || (typeof btn_or_usuario === "object" ? btn_or_usuario.getAttribute("data-r") : "Operador");
+  activo = activo !== undefined ? activo : (typeof btn_or_usuario === "object" ? btn_or_usuario.getAttribute("data-a")==="true" : false);
   var formDiv = document.getElementById("usuarioFormContainer");
   if(!formDiv) return;
   formDiv.innerHTML =
@@ -2245,7 +2258,7 @@ function editarUsuarioForm(usuario, nombre, rol, activo) {
     "<select id='euRol'><option value='Operador'"+(rol!=="Admin"?" selected":"")+" >Operador</option><option value='Admin'"+(rol==="Admin"?" selected":"")+">Admin</option></select>" +
     "<div id='euMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
-    "<button class='btn b-ok' onclick='guardarEdicionUsuario(\""+usuario+"")'>💾 Guardar</button>" +
+    "<button class='btn b-ok' onclick='guardarEdicionUsuario(""+usuario+"")'>💾 Guardar</button>" +
     "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
     "</div></div>";
 }
@@ -2261,7 +2274,8 @@ function guardarEdicionUsuario(usuario) {
   }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
-function resetPinForm(usuario) {
+function resetPinForm(btn_or_usuario) {
+  var usuario = typeof btn_or_usuario === "string" ? btn_or_usuario : btn_or_usuario.getAttribute("data-u");
   var formDiv = document.getElementById("usuarioFormContainer");
   if(!formDiv) return;
   formDiv.innerHTML =
@@ -2270,7 +2284,7 @@ function resetPinForm(usuario) {
     "<input type='password' id='confirmarPin' placeholder='Confirmar PIN'>" +
     "<div id='pinMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
-    "<button class='btn b-ok' onclick='guardarNuevoPin(\""+usuario+"")'>💾 Cambiar PIN</button>" +
+    "<button class='btn b-ok' onclick='guardarNuevoPin(""+usuario+"")'>💾 Cambiar PIN</button>" +
     "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
     "</div></div>";
 }
@@ -2287,8 +2301,10 @@ function guardarNuevoPin(usuario) {
   }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
-function toggleActivoUsuario(usuario, estaActivo) {
-  if(!confirm((estaActivo?"¿Desactivar":"¿Activar")+" al usuario @"+usuario+"?")) return;
+function toggleActivoUsuario(btn_or_usuario, estaActivo) {
+  var usuario = typeof btn_or_usuario === "string" ? btn_or_usuario : btn_or_usuario.getAttribute("data-u");
+  estaActivo = estaActivo !== undefined ? estaActivo : btn_or_usuario.getAttribute("data-a")==="true";
+  if(!confirm((estaActivo?"Desactivar":"Activar")+" al usuario @"+usuario+"?")) return;
   gasPost("editarUsuario",{usuario:usuario,activo:!estaActivo}).then(function(r){
     if(r&&r.ok) cargarUsuarios();
     else alert(r&&r.error||"Error");
