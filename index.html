@@ -255,6 +255,51 @@ input,select{width:100%;padding:9px 10px;border:1px solid #B7E4C7;border-radius:
 </div>
 
 <!-- ══════════════════════════════════════════════
+     PANTALLAS DE ADMINISTRACIÓN — igual que el módulo del
+     horómetro, son independientes de las 5 pestañas principales
+     (van DESPUÉS de s4 para no correr los índices que usa
+     goTab()). Se abren/cierran desde el menú ☰ → ADMINISTRACIÓN
+     y se regresa con goTab(0), que ya las oculta automáticamente.
+     ══════════════════════════════════════════════ -->
+<div id="gestionUsuariosScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">👥 Gestión de usuarios</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevoUsuarioForm()">➕ Nuevo usuario</button>
+  <div id="usuarioFormContainer"></div>
+  <div id="usuariosLista"></div>
+</div>
+
+<div id="gestionTrabajadoresScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">👷 Gestión de trabajadores</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevoTrabajadorForm()">➕ Agregar trabajador</button>
+  <div id="trabForm"></div>
+  <div id="trabLista"></div>
+</div>
+
+<div id="gestionMaquinasScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">🚧 Gestión de máquinas</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevaMaquinaForm()">➕ Agregar máquina</button>
+  <div id="maqForm"></div>
+  <div id="maqLista"></div>
+</div>
+
+<div id="configAparienciaScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">🎨 Apariencia del sistema</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <div id="paletaOpciones"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
      MÓDULO HORÓMETRO — independiente de las 5 pestañas
      principales, se abre/cierra desde el menú ☰. No usa el
      sistema goTab() para no interferir con las pestañas de
