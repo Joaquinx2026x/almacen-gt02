@@ -2258,7 +2258,7 @@ function editarUsuarioForm(btn_or_usuario, nombre, rol, activo) {
     "<select id='euRol'><option value='Operador'"+(rol!=="Admin"?" selected":"")+" >Operador</option><option value='Admin'"+(rol==="Admin"?" selected":"")+">Admin</option></select>" +
     "<div id='euMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
-    "<button class='btn b-ok' onclick='guardarEdicionUsuario(""+usuario+"")'>💾 Guardar</button>" +
+    "<button class='btn b-ok' onclick='guardarEdicionUsuario(\""+usuario+"\")'>💾 Guardar</button>" +
     "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
     "</div></div>";
 }
@@ -2284,7 +2284,7 @@ function resetPinForm(btn_or_usuario) {
     "<input type='password' id='confirmarPin' placeholder='Confirmar PIN'>" +
     "<div id='pinMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
-    "<button class='btn b-ok' onclick='guardarNuevoPin(""+usuario+"")'>💾 Cambiar PIN</button>" +
+    "<button class='btn b-ok' onclick='guardarNuevoPin(\""+usuario+"\")'>💾 Cambiar PIN</button>" +
     "<button class='btn b-sec' onclick='cancelarFormUsuario()'>Cancelar</button>" +
     "</div></div>";
 }
