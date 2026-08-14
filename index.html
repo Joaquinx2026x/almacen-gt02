@@ -2413,12 +2413,17 @@ function cargarTrabajadoresAdmin() {
     if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>No hay trabajadores</p></div>"; return; }
     div.innerHTML = rows.slice(0,30).map(function(row){
       var activo = (row[6]||"Activo").toString().toLowerCase()==="activo";
+      var codigo=row[0], nombre=row[1]||"[Sin nombre]", cargo=row[2]||"", tel=row[4]||"", dui=row[7]||"";
       return "<div class='card' style='margin-bottom:7px;padding:10px'>" +
         "<div style='display:flex;justify-content:space-between'>" +
-        "<b style='font-size:13px'>"+(row[1]||"[Sin nombre]")+"</b>" +
+        "<b style='font-size:13px'>"+nombre+"</b>" +
         "<span style='font-size:11px;color:"+(activo?"#375623":"#888")+"'>"+(activo?"✅":"⏸")+"</span>" +
         "</div>" +
-        "<div style='font-size:11px;color:#888;margin-top:2px'>"+row[0]+" · "+(row[2]||"—")+"</div>" +
+        "<div style='font-size:11px;color:#888;margin-top:2px'>"+codigo+" · "+(cargo||"—")+"</div>" +
+        "<div style='margin-top:8px;display:flex;gap:6px;flex-wrap:wrap'>" +
+        "<button class='btn b-blue b-sm' onclick='editarTrabajadorForm(this)' data-c='"+codigo+"' data-n='"+nombre+"' data-cg='"+cargo+"' data-t='"+tel+"' data-d='"+dui+"'>Editar</button>" +
+        "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoTrabajador(this)' data-c='"+codigo+"' data-a='"+activo+"'>"+(activo?"Desactivar":"Activar")+"</button>" +
+        "</div>" +
         "</div>";
     }).join("") + (rows.length>30?"<div style='text-align:center;font-size:11px;color:#888;padding:8px'>Mostrando primeros 30 de "+rows.length+"</div>":"");
   }).catch(function(e){ div.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
@@ -2438,6 +2443,47 @@ function nuevoTrabajadorForm() {
     "<button class='btn b-ok' onclick='guardarNuevoTrabajador()'>💾 Agregar</button>" +
     "<button class='btn b-sec' onclick='cancelarFormTrab()'>Cancelar</button>" +
     "</div></div>";
+}
+
+function editarTrabajadorForm(btn) {
+  var codigo=btn.getAttribute("data-c"), nombre=btn.getAttribute("data-n"),
+      cargo=btn.getAttribute("data-cg"), tel=btn.getAttribute("data-t"), dui=btn.getAttribute("data-d");
+  var formDiv = document.getElementById("trabForm");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>✏️ Editar trabajador: "+codigo+"</div>" +
+    "<input type='text' id='etNombre' placeholder='Nombre completo' value='"+nombre+"'>" +
+    "<input type='text' id='etCargo' placeholder='Cargo' value='"+cargo+"'>" +
+    "<input type='text' id='etTel' placeholder='Teléfono' value='"+tel+"'>" +
+    "<input type='text' id='etDui' placeholder='Número de DUI/DPI' value='"+dui+"'>" +
+    "<div id='etMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarEdicionTrabajador(\""+codigo+"\")'>💾 Guardar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormTrab()'>Cancelar</button>" +
+    "</div></div>";
+  formDiv.scrollIntoView({behavior:"smooth"});
+}
+
+function guardarEdicionTrabajador(codigo) {
+  var nombre = (document.getElementById("etNombre")||{value:""}).value.trim();
+  var cargo  = (document.getElementById("etCargo")||{value:""}).value.trim();
+  var tel    = (document.getElementById("etTel")||{value:""}).value.trim();
+  var dui    = (document.getElementById("etDui")||{value:""}).value.trim();
+  var msg    = document.getElementById("etMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,telefono:tel,dui:dui}).then(function(r){
+    if(r&&r.ok){ cancelarFormTrab(); cargarTrabajadoresAdmin(); }
+    else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function toggleActivoTrabajador(btn) {
+  var codigo=btn.getAttribute("data-c"), estaActivo=btn.getAttribute("data-a")==="true";
+  if(!confirm((estaActivo?"Desactivar":"Activar")+" al trabajador "+codigo+"?")) return;
+  gasPost("editarTrabajador",{codigo:codigo,estado:estaActivo?"Inactivo":"Activo"}).then(function(r){
+    if(r&&r.ok) cargarTrabajadoresAdmin();
+    else alert(r&&r.error||"Error");
+  }).catch(function(e){ alert(e.message); });
 }
 
 function guardarNuevoTrabajador() {
