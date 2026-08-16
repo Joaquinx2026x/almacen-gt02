@@ -302,6 +302,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
       <button class="btn b-blue" style="flex:1" onclick="carnetEditarActual()">✏️ Editar este trabajador</button>
       <button class="btn b-sec" onclick="cerrarCarnetViewer()">Cerrar</button>
     </div>
+    <button class="btn b-ok" style="width:100%;margin-top:8px" onclick="cerrarCarnetViewer();abrirGeneradorQR();qrCambiarModo('carnet')">📄 Ir a generar carnets en PDF</button>
     <div id="carnetContador" style="text-align:center;font-size:11px;color:#888;margin-top:6px"></div>
   </div>
 
@@ -377,6 +378,15 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
       <button class="btn b-sec b-sm" onclick="qrSeleccionarTodosFiltrados(true)">☑️ Seleccionar todos (filtrados)</button>
       <button class="btn b-sec b-sm" onclick="qrSeleccionarTodosFiltrados(false)">◻️ Quitar selección</button>
+    </div>
+    <div style="border-top:1px solid #eee;padding-top:8px;margin-top:4px">
+      <div style="font-size:11px;color:#888;margin-bottom:5px">O selecciona por rango de correlativo (ej. del 001 al 020 — deja "hasta" vacío para elegir solo uno):</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" id="qrRangoDesde" placeholder="Desde (ej. 1)" style="margin:0" min="1">
+        <span style="color:#888">→</span>
+        <input type="number" id="qrRangoHasta" placeholder="Hasta (opcional)" style="margin:0" min="1">
+        <button class="btn b-blue b-sm" style="flex-shrink:0" onclick="qrSeleccionarPorRango()">Aplicar</button>
+      </div>
     </div>
     <div style="font-size:12px;color:#1B4332;font-weight:bold;margin:8px 0" id="qrContador">0 trabajadores seleccionados</div>
     <div style="max-height:320px;overflow-y:auto;border-top:1px solid #eee" id="qrLista"></div>
@@ -480,16 +490,16 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════
-// ALMACÉN GT01 — Frontend (index.html)
+// ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.0.0   (25/07/2026)
+// VERSIÓN ACTUAL: 2.1.1   (16/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.0.0-GT02";
+var APP_VERSION = "2.1.1-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -2669,7 +2679,11 @@ var CARNET_IDX = 0;
 
 function abrirCarnetViewer(){
   CARNET_LISTA = Object.keys(TRAB_CACHE).map(function(k){ return TRAB_CACHE[k]; })
-    .sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+    .sort(function(a,b){
+      var na = parseInt((a.codigo.match(/(\d+)$/)||[0,0])[1], 10) || 0;
+      var nb = parseInt((b.codigo.match(/(\d+)$/)||[0,0])[1], 10) || 0;
+      return na - nb;
+    });
   if(!CARNET_LISTA.length){ alert("No hay trabajadores cargados todavía."); return; }
   CARNET_IDX = 0;
   var v = document.getElementById("carnetViewer");
@@ -2898,7 +2912,7 @@ var qrSELECCIONADOS = {};
 var qrMUESTRA_URL = null;
 
 function abrirGeneradorQR() {
-  toggleMenuMas();
+  document.getElementById("menuMas").style.display="none";
   document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
   var div = document.getElementById("generadorQRScr");
   if(!div) return;
@@ -2955,6 +2969,23 @@ function qrSeleccionarTodosFiltrados(val){
     .forEach(function(t){ if(val) qrSELECCIONADOS[t.codigo]=true; else delete qrSELECCIONADOS[t.codigo]; });
   qrFiltrar(); qrActualizarContador();
 }
+function qrSeleccionarPorRango(){
+  var desdeEl = document.getElementById("qrRangoDesde");
+  var hastaEl = document.getElementById("qrRangoHasta");
+  var desde = parseInt(desdeEl.value, 10);
+  var hasta = hastaEl.value ? parseInt(hastaEl.value, 10) : desde;
+  if(!desde || isNaN(desde)){ alert("Escribe al menos el número 'Desde'."); return; }
+  if(hasta < desde){ alert("El 'Hasta' no puede ser menor que el 'Desde'."); return; }
+  var encontrados = 0;
+  qrTRABAJADORES.forEach(function(t){
+    var n = parseInt((t.codigo.match(/(\d+)$/)||[0,0])[1], 10);
+    if(n >= desde && n <= hasta && t.dui){ qrSELECCIONADOS[t.codigo] = true; encontrados++; }
+  });
+  qrFiltrar();
+  qrActualizarContador();
+  if(!encontrados) alert("No se encontró ningún trabajador con correlativo entre "+desde+" y "+hasta+" (o no tienen DUI cargado).");
+}
+
 function qrActualizarContador(){
   var n=Object.keys(qrSELECCIONADOS).length;
   var el=document.getElementById("qrContador");
@@ -3166,13 +3197,19 @@ function qrGenerarPDFCarnets(){
         doc.text("FOTO", x+cW/2, y+headH+1.5, {align:"center"});
       }
 
-      // Nombre y cargo
+      // Nombre y cargo — se achica la fuente si el nombre es muy largo,
+      // NUNCA se recorta el texto (nombres/apellidos siempre completos).
       doc.setTextColor(27,67,50);
       doc.setFont(undefined,"bold");
-      doc.setFontSize(9.5);
-      var nombreFit = t.nombre || "";
-      while(doc.getTextWidth(nombreFit) > cW-8 && nombreFit.length>3){ nombreFit = nombreFit.slice(0,-1); }
-      doc.text(nombreFit, x+cW/2, y+headH+fotoSize/2+7, {align:"center"});
+      var fNomCarnet = 9.5, minFNom = 5.5;
+      doc.setFontSize(fNomCarnet);
+      var nombreCompleto = t.nombre || "";
+      var maxWNombre = cW - 6;
+      while(doc.getTextWidth(nombreCompleto) > maxWNombre && fNomCarnet - 0.3 >= minFNom){
+        fNomCarnet -= 0.3;
+        doc.setFontSize(fNomCarnet);
+      }
+      doc.text(nombreCompleto, x+cW/2, y+headH+fotoSize/2+7, {align:"center"});
       doc.setFont(undefined,"normal");
       doc.setTextColor(136,136,136);
       doc.setFontSize(7);
