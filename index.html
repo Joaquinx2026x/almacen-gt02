@@ -281,6 +281,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <button class="btn b-ok" style="flex:1" onclick="nuevoTrabajadorForm()">➕ Agregar</button>
     <button class="btn b-sec" style="flex:1" onclick="abrirCarnetViewer()">🪪 Ver carnets</button>
   </div>
+  <input type="text" id="trabBuscar" placeholder="Buscar trabajador por nombre o código..." oninput="trabFiltrarLista()" style="margin-bottom:10px">
 
   <div id="carnetViewer" style="display:none;margin-bottom:14px">
     <div class="card" style="text-align:center;padding:0;overflow:hidden">
@@ -492,14 +493,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.1.2   (16/08/2026)
+// VERSIÓN ACTUAL: 2.1.3   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.1.2-GT02";
+var APP_VERSION = "2.1.3-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -737,6 +738,31 @@ function leerFotoComoBase64(file) {
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+}
+
+// procesarFotoConRecorte — recorta la foto en un cuadrado centrado (el
+// recuadro más grande posible desde el centro de la imagen) antes de
+// subirla. Así lo que se ve en la vista previa circular es EXACTAMENTE
+// lo que va a quedar guardado — no hay sorpresas de alineación después.
+function procesarFotoConRecorte(file) {
+  return new Promise(function(resolve, reject){
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function(){
+      var lado = Math.min(img.width, img.height);
+      var sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
+      var canvas = document.createElement("canvas");
+      var salida = 500;
+      canvas.width = salida; canvas.height = salida;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, sx, sy, lado, lado, 0, 0, salida, salida);
+      URL.revokeObjectURL(url);
+      var dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg", dataUrl: dataUrl });
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("No se pudo leer la imagen")); };
+    img.src = url;
   });
 }
 
@@ -1665,12 +1691,16 @@ function invFiltrar(){
     if(it.tipo==="Herramienta"){
       var deBaja = it.estado==="De baja";
       var cant = it.cantidadTotal===""? "sin cantidad definida" : it.cantidadTotal+" total";
+      var miniaturaH = it.fotoId
+        ? "<img src='"+urlFotoDrive(it.fotoId,80)+"' style='width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+        : "<div style='width:44px;height:44px;border-radius:8px;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0'>🔧</div>";
       return "<div class='card' style='padding:10px;margin-bottom:8px;"+(deBaja?"opacity:.55":"")+"'>"+
-        "<div style='display:flex;justify-content:space-between;align-items:start'>"+
+        "<div style='display:flex;justify-content:space-between;align-items:start;gap:8px'>"+
+        "<div style='display:flex;gap:8px;align-items:start'>"+miniaturaH+
         "<div><span class='badge "+bc+"'>"+it.tipo+"</span> <b>"+it.descripcion+"</b>"+
         "<div style='font-size:11px;color:#888;margin-top:3px'>"+it.codigo+" · "+cant+(it.ubicacion?" · 📍 "+it.ubicacion:"")+"</div>"+
-        "<div style='font-size:11px;color:#888'>Estado: "+it.estado+(it.marca?" · "+it.marca:"")+"</div></div>"+
-        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px' onclick='invEditar("+i+")'>✏️ Editar</button>"+
+        "<div style='font-size:11px;color:#888'>Estado: "+it.estado+(it.marca?" · "+it.marca:"")+"</div></div></div>"+
+        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px;flex-shrink:0' onclick='invEditar("+i+")'>✏️ Editar</button>"+
         "</div></div>";
     } else {
       // Si ya tiene movimientos registrados, se muestra el stock calculado
@@ -1778,25 +1808,44 @@ function invToggleTipoCampos(){
 }
 
 // Junta los datos del formulario según el tipo, y los manda a guardar al backend
+var PENDING_FOTO_HERR = null;
+
 function subirFotoHerramienta(codigo, inputEl) {
   var file = inputEl.files && inputEl.files[0];
   if(!file) return;
   var msg = document.getElementById("ivFotoMsg");
   var prev = document.getElementById("ivFotoPrev");
+  if(msg) msg.innerHTML = "🔄 Preparando foto...";
+  procesarFotoConRecorte(file).then(function(r){
+    PENDING_FOTO_HERR = r;
+    if(prev) prev.innerHTML = "<img src='"+r.dataUrl+"' style='width:100%;height:100%;object-fit:cover'>";
+    if(msg) msg.innerHTML =
+      "<div style='margin:4px 0 6px'>¿Se ve bien la herramienta?</div>"+
+      "<div style='display:flex;gap:6px'>"+
+      "<button type='button' class='btn b-ok b-sm' onclick='confirmarFotoHerramienta(\""+codigo.replace(/"/g,"&quot;")+"\")'>✅ Usar esta foto</button>"+
+      "<button type='button' class='btn b-sec b-sm' onclick=\"document.getElementById('ivFotoInput').click()\">🔄 Tomar otra</button>"+
+      "</div>";
+  }).catch(function(){
+    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ No se pudo procesar esa imagen, intenta con otra</span>";
+  });
+}
+
+function confirmarFotoHerramienta(codigo){
+  if(!PENDING_FOTO_HERR) return;
+  var msg = document.getElementById("ivFotoMsg");
   if(msg) msg.innerHTML = "🔄 Subiendo foto...";
-  leerFotoComoBase64(file).then(function(r){
-    return gasPostBody("subirFoto", {tipo:"herramienta", codigo:codigo, base64:r.base64, mimeType:r.mimeType});
-  }).then(function(res){
+  gasPostBody("subirFoto", {tipo:"herramienta", codigo:codigo, base64:PENDING_FOTO_HERR.base64, mimeType:PENDING_FOTO_HERR.mimeType}).then(function(res){
     if(res && res.ok){
       if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
-      if(prev) prev.innerHTML = "<img src='"+urlFotoDrive(res.fileId,120)+"' style='width:100%;height:100%;object-fit:cover'>";
       var item = INV_ITEMS.find(function(x){ return x.codigo===codigo; });
       if(item) item.fotoId = res.fileId;
     } else {
       if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
     }
+    PENDING_FOTO_HERR = null;
   }).catch(function(e){
     if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
+    PENDING_FOTO_HERR = null;
   });
 }
 
@@ -2584,12 +2633,15 @@ function abrirGestionTrabajadores() {
   cargarTrabajadoresAdmin();
 }
 
+var TRAB_ROWS_CACHE = [];
+
 function cargarTrabajadoresAdmin() {
   var div = document.getElementById("trabLista");
   if(!div) return;
   div.innerHTML = "<div class='loading'>🔄 Cargando...</div>";
   sheetsGet("Personal_GT02!A2:J").then(function(r){
     var rows = (r.values||[]).filter(function(row){ return row[0]; });
+    TRAB_ROWS_CACHE = rows;
     if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>No hay trabajadores</p></div>"; return; }
     TRAB_CACHE = {};
     rows.forEach(function(row){
@@ -2599,26 +2651,44 @@ function cargarTrabajadoresAdmin() {
         fotoId:row[9]||""
       };
     });
-    div.innerHTML = rows.slice(0,30).map(function(row){
-      var activo = (row[6]||"Activo").toString().toLowerCase()==="activo";
-      var codigo=row[0], nombre=row[1]||"[Sin nombre]", cargo=row[2]||"", fotoId=row[9]||"";
-      var miniatura = fotoId
-        ? "<img src='"+urlFotoDrive(fotoId,80)+"' style='width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
-        : "<div style='width:38px;height:38px;border-radius:8px;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0'>👤</div>";
-      return "<div class='card' style='margin-bottom:7px;padding:10px'>" +
-        "<div style='display:flex;gap:8px;justify-content:space-between'>" +
-        "<div style='display:flex;gap:8px;align-items:center'>"+miniatura+
-        "<div><b style='font-size:13px'>"+nombre+"</b>" +
-        "<div style='font-size:11px;color:#888;margin-top:2px'>"+codigo+" · "+(cargo||"—")+"</div></div></div>" +
-        "<span style='font-size:11px;color:"+(activo?"#375623":"#888")+"'>"+(activo?"✅":"⏸")+"</span>" +
-        "</div>" +
-        "<div style='margin-top:8px;display:flex;gap:6px;flex-wrap:wrap'>" +
-        "<button class='btn b-blue b-sm' onclick='editarTrabajadorForm(\""+esc(codigo)+"\")'>Editar</button>" +
-        "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoTrabajador(this)' data-c='"+codigo+"' data-a='"+activo+"'>"+(activo?"Desactivar":"Activar")+"</button>" +
-        "</div>" +
-        "</div>";
-    }).join("") + (rows.length>30?"<div style='text-align:center;font-size:11px;color:#888;padding:8px'>Mostrando primeros 30 de "+rows.length+"</div>":"");
+    trabRenderLista(rows);
   }).catch(function(e){ div.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function trabFiltrarLista(){
+  var q = (document.getElementById("trabBuscar")||{value:""}).value.toLowerCase().trim();
+  var filtradas = !q ? TRAB_ROWS_CACHE : TRAB_ROWS_CACHE.filter(function(row){
+    var nombre = (row[1]||"").toString().toLowerCase();
+    var codigo = (row[0]||"").toString().toLowerCase();
+    return nombre.indexOf(q)>=0 || codigo.indexOf(q)>=0;
+  });
+  trabRenderLista(filtradas, !!q);
+}
+
+function trabRenderLista(rows, esBusqueda){
+  var div = document.getElementById("trabLista");
+  if(!div) return;
+  if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>Sin resultados</p></div>"; return; }
+  var limite = esBusqueda ? rows.length : 30;
+  div.innerHTML = rows.slice(0,limite).map(function(row){
+    var activo = (row[6]||"Activo").toString().toLowerCase()==="activo";
+    var codigo=row[0], nombre=row[1]||"[Sin nombre]", cargo=row[2]||"", fotoId=row[9]||"";
+    var miniatura = fotoId
+      ? "<img src='"+urlFotoDrive(fotoId,80)+"' style='width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+      : "<div style='width:38px;height:38px;border-radius:8px;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0'>👤</div>";
+    return "<div class='card' style='margin-bottom:7px;padding:10px'>" +
+      "<div style='display:flex;gap:8px;justify-content:space-between'>" +
+      "<div style='display:flex;gap:8px;align-items:center'>"+miniatura+
+      "<div><b style='font-size:13px'>"+nombre+"</b>" +
+      "<div style='font-size:11px;color:#888;margin-top:2px'>"+codigo+" · "+(cargo||"—")+"</div></div></div>" +
+      "<span style='font-size:11px;color:"+(activo?"#375623":"#888")+"'>"+(activo?"✅":"⏸")+"</span>" +
+      "</div>" +
+      "<div style='margin-top:8px;display:flex;gap:6px;flex-wrap:wrap'>" +
+      "<button class='btn b-blue b-sm' onclick='editarTrabajadorForm(\""+esc(codigo)+"\")'>Editar</button>" +
+      "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoTrabajador(this)' data-c='"+codigo+"' data-a='"+activo+"'>"+(activo?"Desactivar":"Activar")+"</button>" +
+      "</div>" +
+      "</div>";
+  }).join("") + (!esBusqueda && rows.length>30?"<div style='text-align:center;font-size:11px;color:#888;padding:8px'>Mostrando primeros 30 de "+rows.length+" — usa el buscador para encontrar a alguien específico</div>":"");
 }
 
 function nuevoTrabajadorForm() {
@@ -2729,24 +2799,43 @@ function carnetEditarActual(){
   editarTrabajadorForm(t.codigo);
 }
 
+var PENDING_FOTO_TRAB = null;
+
 function subirFotoTrabajador(codigo, inputEl) {
   var file = inputEl.files && inputEl.files[0];
   if(!file) return;
   var msg = document.getElementById("etFotoMsg");
   var prev = document.getElementById("etFotoPrev");
+  if(msg) msg.innerHTML = "🔄 Preparando foto...";
+  procesarFotoConRecorte(file).then(function(r){
+    PENDING_FOTO_TRAB = r;
+    if(prev) prev.innerHTML = "<img src='"+r.dataUrl+"' style='width:100%;height:100%;object-fit:cover'>";
+    if(msg) msg.innerHTML =
+      "<div style='margin:4px 0 6px'>¿Se ve bien centrado el rostro?</div>"+
+      "<div style='display:flex;gap:6px'>"+
+      "<button type='button' class='btn b-ok b-sm' onclick='confirmarFotoTrabajador(\""+codigo.replace(/"/g,"&quot;")+"\")'>✅ Usar esta foto</button>"+
+      "<button type='button' class='btn b-sec b-sm' onclick=\"document.getElementById('etFotoInput').click()\">🔄 Tomar otra</button>"+
+      "</div>";
+  }).catch(function(){
+    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ No se pudo procesar esa imagen, intenta con otra</span>";
+  });
+}
+
+function confirmarFotoTrabajador(codigo){
+  if(!PENDING_FOTO_TRAB) return;
+  var msg = document.getElementById("etFotoMsg");
   if(msg) msg.innerHTML = "🔄 Subiendo foto...";
-  leerFotoComoBase64(file).then(function(r){
-    return gasPostBody("subirFoto", {tipo:"trabajador", codigo:codigo, base64:r.base64, mimeType:r.mimeType});
-  }).then(function(res){
+  gasPostBody("subirFoto", {tipo:"trabajador", codigo:codigo, base64:PENDING_FOTO_TRAB.base64, mimeType:PENDING_FOTO_TRAB.mimeType}).then(function(res){
     if(res && res.ok){
       if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
-      if(prev) prev.innerHTML = "<img src='"+urlFotoDrive(res.fileId,120)+"' style='width:100%;height:100%;object-fit:cover'>";
       if(TRAB_CACHE[codigo]) TRAB_CACHE[codigo].fotoId = res.fileId;
     } else {
       if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
     }
+    PENDING_FOTO_TRAB = null;
   }).catch(function(e){
     if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
+    PENDING_FOTO_TRAB = null;
   });
 }
 
@@ -2932,10 +3021,10 @@ function qrCargarTrabajadores(){
   var d = document.getElementById("qrLista");
   if(!d) return;
   d.innerHTML="<div style='padding:10px;font-size:12px;color:#888'>Cargando...</div>";
-  sheetsGet("Personal_GT02!A2:I").then(function(data){
+  sheetsGet("Personal_GT02!A2:J").then(function(data){
     var rows = data.values || [];
     qrTRABAJADORES = rows.map(function(row){
-      return {codigo:(row[0]||"").toString().trim(), nombre:(row[1]||"").toString().trim(), cargo:(row[2]||"").toString().trim(), dui:(row[7]||"").toString().trim()};
+      return {codigo:(row[0]||"").toString().trim(), nombre:(row[1]||"").toString().trim(), cargo:(row[2]||"").toString().trim(), dui:(row[7]||"").toString().trim(), fotoId:(row[9]||"").toString().trim()};
     }).filter(function(t){ return t.codigo; });
     qrFiltrar();
   }).catch(function(){
