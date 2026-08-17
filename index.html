@@ -492,14 +492,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.1.1   (16/08/2026)
+// VERSIÓN ACTUAL: 2.1.2   (16/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.1.1-GT02";
+var APP_VERSION = "2.1.2-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -2680,8 +2680,10 @@ var CARNET_IDX = 0;
 function abrirCarnetViewer(){
   CARNET_LISTA = Object.keys(TRAB_CACHE).map(function(k){ return TRAB_CACHE[k]; })
     .sort(function(a,b){
-      var na = parseInt((a.codigo.match(/(\d+)$/)||[0,0])[1], 10) || 0;
-      var nb = parseInt((b.codigo.match(/(\d+)$/)||[0,0])[1], 10) || 0;
+      var ma = (a.codigo||"").match(/\d+/g);
+      var mb = (b.codigo||"").match(/\d+/g);
+      var na = ma ? parseInt(ma[ma.length-1], 10) : 0;
+      var nb = mb ? parseInt(mb[mb.length-1], 10) : 0;
       return na - nb;
     });
   if(!CARNET_LISTA.length){ alert("No hay trabajadores cargados todavía."); return; }
@@ -2978,7 +2980,8 @@ function qrSeleccionarPorRango(){
   if(hasta < desde){ alert("El 'Hasta' no puede ser menor que el 'Desde'."); return; }
   var encontrados = 0;
   qrTRABAJADORES.forEach(function(t){
-    var n = parseInt((t.codigo.match(/(\d+)$/)||[0,0])[1], 10);
+    var mn = (t.codigo||"").match(/\d+/g);
+    var n = mn ? parseInt(mn[mn.length-1], 10) : NaN;
     if(n >= desde && n <= hasta && t.dui){ qrSELECCIONADOS[t.codigo] = true; encontrados++; }
   });
   qrFiltrar();
