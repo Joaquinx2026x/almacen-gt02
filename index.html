@@ -493,14 +493,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.1.3   (17/08/2026)
+// VERSIÓN ACTUAL: 2.2.0   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.1.3-GT02";
+var APP_VERSION = "2.2.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -741,29 +741,108 @@ function leerFotoComoBase64(file) {
   });
 }
 
-// procesarFotoConRecorte — recorta la foto en un cuadrado centrado (el
-// recuadro más grande posible desde el centro de la imagen) antes de
-// subirla. Así lo que se ve en la vista previa circular es EXACTAMENTE
-// lo que va a quedar guardado — no hay sorpresas de alineación después.
-function procesarFotoConRecorte(file) {
-  return new Promise(function(resolve, reject){
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function(){
-      var lado = Math.min(img.width, img.height);
-      var sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
-      var canvas = document.createElement("canvas");
+
+// abrirRecortadorFoto — recortador interactivo real: muestra la foto
+// completa dentro de un visor circular, el usuario arrastra con el
+// dedo para posicionarla y usa el control de zoom para acercar/alejar,
+// hasta que el rostro (o la herramienta) quede exactamente donde
+// quiere. Solo al confirmar se genera el recorte final — lo que se ve
+// en pantalla es EXACTAMENTE lo que se va a guardar.
+function abrirRecortadorFoto(file, onConfirm, titulo) {
+  var url = URL.createObjectURL(file);
+  var img = new Image();
+  img.onload = function(){
+    var VP = Math.min(300, window.innerWidth - 48);
+    var baseScale = Math.max(VP/img.naturalWidth, VP/img.naturalHeight);
+
+    var overlay = document.createElement("div");
+    overlay.id = "recortadorOverlay";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px";
+    overlay.innerHTML =
+      "<div style='color:#fff;font-size:14px;margin-bottom:12px;text-align:center;font-weight:bold'>"+(titulo||"Ajusta la foto dentro del círculo")+"</div>"+
+      "<div id='recorteViewport' style='position:relative;width:"+VP+"px;height:"+VP+"px;overflow:hidden;border-radius:16px;touch-action:none;background:#111'>"+
+        "<img id='recorteImg' draggable='false' style='position:absolute;left:0;top:0;transform-origin:0 0;user-select:none;-webkit-user-drag:none;pointer-events:none'>"+
+        "<div style='position:absolute;inset:0;pointer-events:none;border-radius:50%;box-shadow:0 0 0 2000px rgba(0,0,0,.6);border:3px solid #F4B942'></div>"+
+      "</div>"+
+      "<div style='width:"+VP+"px;margin-top:16px;display:flex;align-items:center;gap:10px'>"+
+        "<span style='color:#fff;font-size:15px'>🔍</span>"+
+        "<input type='range' id='recorteZoom' min='100' max='300' value='100' style='flex:1;margin:0'>"+
+      "</div>"+
+      "<div style='color:#ccc;font-size:11px;margin-top:6px'>Arrastra la foto con el dedo para moverla</div>"+
+      "<div style='display:flex;gap:10px;margin-top:16px'>"+
+        "<button type='button' class='btn b-sec' id='recorteCancelar' style='width:auto;padding:11px 18px'>Cancelar</button>"+
+        "<button type='button' class='btn b-ok' id='recorteConfirmar' style='width:auto;padding:11px 18px'>✅ Usar esta foto</button>"+
+      "</div>";
+    document.body.appendChild(overlay);
+
+    var imgEl = document.getElementById("recorteImg");
+    imgEl.src = url;
+    var state = {
+      scale: baseScale,
+      offsetX: (VP - img.naturalWidth*baseScale)/2,
+      offsetY: (VP - img.naturalHeight*baseScale)/2,
+      dragging:false, lastX:0, lastY:0
+    };
+
+    function aplicar(){
+      var minX = VP - img.naturalWidth*state.scale, maxX = 0;
+      var minY = VP - img.naturalHeight*state.scale, maxY = 0;
+      state.offsetX = Math.min(maxX, Math.max(minX, state.offsetX));
+      state.offsetY = Math.min(maxY, Math.max(minY, state.offsetY));
+      imgEl.style.width = (img.naturalWidth*state.scale)+"px";
+      imgEl.style.height = (img.naturalHeight*state.scale)+"px";
+      imgEl.style.transform = "translate("+state.offsetX+"px,"+state.offsetY+"px)";
+    }
+    aplicar();
+
+    var viewport = document.getElementById("recorteViewport");
+    viewport.addEventListener("pointerdown", function(e){
+      state.dragging = true; state.lastX = e.clientX; state.lastY = e.clientY;
+      try{ viewport.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    viewport.addEventListener("pointermove", function(e){
+      if(!state.dragging) return;
+      state.offsetX += e.clientX - state.lastX;
+      state.offsetY += e.clientY - state.lastY;
+      state.lastX = e.clientX; state.lastY = e.clientY;
+      aplicar();
+    });
+    ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+      viewport.addEventListener(ev, function(){ state.dragging=false; });
+    });
+
+    document.getElementById("recorteZoom").addEventListener("input", function(e){
+      var factor = parseInt(e.target.value,10)/100;
+      var cx = VP/2, cy = VP/2;
+      var natX = (cx - state.offsetX)/state.scale, natY = (cy - state.offsetY)/state.scale;
+      state.scale = baseScale*factor;
+      state.offsetX = cx - natX*state.scale;
+      state.offsetY = cy - natY*state.scale;
+      aplicar();
+    });
+
+    function cerrar(){
+      URL.revokeObjectURL(url);
+      if(overlay.parentNode) document.body.removeChild(overlay);
+    }
+
+    document.getElementById("recorteCancelar").addEventListener("click", cerrar);
+
+    document.getElementById("recorteConfirmar").addEventListener("click", function(){
       var salida = 500;
+      var canvas = document.createElement("canvas");
       canvas.width = salida; canvas.height = salida;
       var ctx = canvas.getContext("2d");
-      ctx.drawImage(img, sx, sy, lado, lado, 0, 0, salida, salida);
-      URL.revokeObjectURL(url);
+      var sx = -state.offsetX/state.scale, sy = -state.offsetY/state.scale;
+      var swh = VP/state.scale;
+      ctx.drawImage(img, sx, sy, swh, swh, 0, 0, salida, salida);
       var dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg", dataUrl: dataUrl });
-    };
-    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("No se pudo leer la imagen")); };
-    img.src = url;
-  });
+      cerrar();
+      onConfirm({ base64: dataUrl.split(",")[1], mimeType:"image/jpeg", dataUrl: dataUrl });
+    });
+  };
+  img.onerror = function(){ URL.revokeObjectURL(url); alert("No se pudo abrir esa imagen, intenta con otra."); };
+  img.src = url;
 }
 
 // ══════════════════════════════════════════════
@@ -1700,7 +1779,7 @@ function invFiltrar(){
         "<div><span class='badge "+bc+"'>"+it.tipo+"</span> <b>"+it.descripcion+"</b>"+
         "<div style='font-size:11px;color:#888;margin-top:3px'>"+it.codigo+" · "+cant+(it.ubicacion?" · 📍 "+it.ubicacion:"")+"</div>"+
         "<div style='font-size:11px;color:#888'>Estado: "+it.estado+(it.marca?" · "+it.marca:"")+"</div></div></div>"+
-        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px;flex-shrink:0' onclick='invEditar("+i+")'>✏️ Editar</button>"+
+        "<button class='btn b-blue b-sm' style='flex-shrink:0' onclick='invEditar("+i+")'>✏️ Editar</button>"+
         "</div></div>";
     } else {
       // Si ya tiene movimientos registrados, se muestra el stock calculado
@@ -1717,7 +1796,7 @@ function invFiltrar(){
         "<div style='font-size:11px;color:#888;margin-top:3px'>"+it.codigo+" · "+etiquetaStock+": "+(stockMostrar===""?"—":stockMostrar)+" "+it.unidad+
         (bajoStock?" <span style='color:#c0392b'>⚠️ bajo mínimo</span>":"")+(it.ubicacion?" · 📍 "+it.ubicacion:"")+"</div></div>"+
         "<div style='display:flex;flex-direction:column;gap:4px'>"+
-        "<button class='btn b-blue' style='padding:6px 10px;font-size:11px' onclick='invEditar("+i+")'>✏️ Editar</button>"+
+        "<button class='btn b-blue b-sm' style='flex-shrink:0' onclick='invEditar("+i+")'>✏️ Editar</button>"+
         "<button class='btn b-ok' style='padding:6px 10px;font-size:11px' onclick='invMostrarEntrada("+i+")'>📥 Entrada</button>"+
         "</div></div></div>";
     }
@@ -1808,45 +1887,26 @@ function invToggleTipoCampos(){
 }
 
 // Junta los datos del formulario según el tipo, y los manda a guardar al backend
-var PENDING_FOTO_HERR = null;
-
 function subirFotoHerramienta(codigo, inputEl) {
   var file = inputEl.files && inputEl.files[0];
   if(!file) return;
-  var msg = document.getElementById("ivFotoMsg");
-  var prev = document.getElementById("ivFotoPrev");
-  if(msg) msg.innerHTML = "🔄 Preparando foto...";
-  procesarFotoConRecorte(file).then(function(r){
-    PENDING_FOTO_HERR = r;
+  abrirRecortadorFoto(file, function(r){
+    var msg = document.getElementById("ivFotoMsg");
+    var prev = document.getElementById("ivFotoPrev");
     if(prev) prev.innerHTML = "<img src='"+r.dataUrl+"' style='width:100%;height:100%;object-fit:cover'>";
-    if(msg) msg.innerHTML =
-      "<div style='margin:4px 0 6px'>¿Se ve bien la herramienta?</div>"+
-      "<div style='display:flex;gap:6px'>"+
-      "<button type='button' class='btn b-ok b-sm' onclick='confirmarFotoHerramienta(\""+codigo.replace(/"/g,"&quot;")+"\")'>✅ Usar esta foto</button>"+
-      "<button type='button' class='btn b-sec b-sm' onclick=\"document.getElementById('ivFotoInput').click()\">🔄 Tomar otra</button>"+
-      "</div>";
-  }).catch(function(){
-    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ No se pudo procesar esa imagen, intenta con otra</span>";
-  });
-}
-
-function confirmarFotoHerramienta(codigo){
-  if(!PENDING_FOTO_HERR) return;
-  var msg = document.getElementById("ivFotoMsg");
-  if(msg) msg.innerHTML = "🔄 Subiendo foto...";
-  gasPostBody("subirFoto", {tipo:"herramienta", codigo:codigo, base64:PENDING_FOTO_HERR.base64, mimeType:PENDING_FOTO_HERR.mimeType}).then(function(res){
-    if(res && res.ok){
-      if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
-      var item = INV_ITEMS.find(function(x){ return x.codigo===codigo; });
-      if(item) item.fotoId = res.fileId;
-    } else {
-      if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
-    }
-    PENDING_FOTO_HERR = null;
-  }).catch(function(e){
-    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
-    PENDING_FOTO_HERR = null;
-  });
+    if(msg) msg.innerHTML = "🔄 Subiendo foto...";
+    gasPostBody("subirFoto", {tipo:"herramienta", codigo:codigo, base64:r.base64, mimeType:r.mimeType}).then(function(res){
+      if(res && res.ok){
+        if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
+        var item = INV_ITEMS.find(function(x){ return x.codigo===codigo; });
+        if(item) item.fotoId = res.fileId;
+      } else {
+        if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
+      }
+    }).catch(function(e){
+      if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
+    });
+  }, "Encuadra bien la herramienta dentro del círculo");
 }
 
 function invGuardar(codigoOriginal){
@@ -2721,7 +2781,7 @@ function editarTrabajadorForm(codigo) {
         (t.fotoId ? "<img src='"+urlFotoDrive(t.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>👤</span>") +
       "</div>" +
       "<div style='flex:1'>" +
-        "<input type='file' accept='image/*' capture='environment' id='etFotoInput' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
+        "<input type='file' accept='image/*' capture='user' id='etFotoInput' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
         "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('etFotoInput').click()\">📷 Tomar/subir foto</button>" +
         "<div id='etFotoMsg' style='font-size:11px;margin-top:3px'></div>" +
       "</div>" +
@@ -2799,44 +2859,25 @@ function carnetEditarActual(){
   editarTrabajadorForm(t.codigo);
 }
 
-var PENDING_FOTO_TRAB = null;
-
 function subirFotoTrabajador(codigo, inputEl) {
   var file = inputEl.files && inputEl.files[0];
   if(!file) return;
-  var msg = document.getElementById("etFotoMsg");
-  var prev = document.getElementById("etFotoPrev");
-  if(msg) msg.innerHTML = "🔄 Preparando foto...";
-  procesarFotoConRecorte(file).then(function(r){
-    PENDING_FOTO_TRAB = r;
+  abrirRecortadorFoto(file, function(r){
+    var msg = document.getElementById("etFotoMsg");
+    var prev = document.getElementById("etFotoPrev");
     if(prev) prev.innerHTML = "<img src='"+r.dataUrl+"' style='width:100%;height:100%;object-fit:cover'>";
-    if(msg) msg.innerHTML =
-      "<div style='margin:4px 0 6px'>¿Se ve bien centrado el rostro?</div>"+
-      "<div style='display:flex;gap:6px'>"+
-      "<button type='button' class='btn b-ok b-sm' onclick='confirmarFotoTrabajador(\""+codigo.replace(/"/g,"&quot;")+"\")'>✅ Usar esta foto</button>"+
-      "<button type='button' class='btn b-sec b-sm' onclick=\"document.getElementById('etFotoInput').click()\">🔄 Tomar otra</button>"+
-      "</div>";
-  }).catch(function(){
-    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ No se pudo procesar esa imagen, intenta con otra</span>";
-  });
-}
-
-function confirmarFotoTrabajador(codigo){
-  if(!PENDING_FOTO_TRAB) return;
-  var msg = document.getElementById("etFotoMsg");
-  if(msg) msg.innerHTML = "🔄 Subiendo foto...";
-  gasPostBody("subirFoto", {tipo:"trabajador", codigo:codigo, base64:PENDING_FOTO_TRAB.base64, mimeType:PENDING_FOTO_TRAB.mimeType}).then(function(res){
-    if(res && res.ok){
-      if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
-      if(TRAB_CACHE[codigo]) TRAB_CACHE[codigo].fotoId = res.fileId;
-    } else {
-      if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
-    }
-    PENDING_FOTO_TRAB = null;
-  }).catch(function(e){
-    if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
-    PENDING_FOTO_TRAB = null;
-  });
+    if(msg) msg.innerHTML = "🔄 Subiendo foto...";
+    gasPostBody("subirFoto", {tipo:"trabajador", codigo:codigo, base64:r.base64, mimeType:r.mimeType}).then(function(res){
+      if(res && res.ok){
+        if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
+        if(TRAB_CACHE[codigo]) TRAB_CACHE[codigo].fotoId = res.fileId;
+      } else {
+        if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+(res&&res.error||"Error al subir")+"</span>";
+      }
+    }).catch(function(e){
+      if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
+    });
+  }, "Centra el rostro dentro del círculo");
 }
 
 function guardarEdicionTrabajador(codigo) {
@@ -3203,6 +3244,28 @@ function qrActualizarPreview(){
 // qrGenerarPDFCarnets — genera el carnet completo (Opción 3 aprobada: foto
 // grande, encabezado verde, franja dorada con el correlativo) para cada
 // trabajador seleccionado en la misma lista que usa el generador de stickers.
+// mostrarVistaPreviaPDF — en vez de descargar el archivo directamente,
+// deja verlo primero (se abre en el visor de PDF del navegador/celular)
+// y solo se descarga de verdad cuando el usuario confirma que le
+// parece bien. Evita generar archivos "a ciegas".
+function mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, totalGenerados, etiqueta){
+  var blobUrl = doc.output("bloburl");
+  window["_pdfPendiente_"+nombreArchivo.replace(/[^a-zA-Z0-9]/g,"")] = {doc:doc, nombreArchivo:nombreArchivo};
+  var idSafe = nombreArchivo.replace(/[^a-zA-Z0-9]/g,"");
+  avisoBox.innerHTML =
+    "<div class='msg-ok'>✅ Listo — "+totalGenerados+" "+etiqueta+" generados. Revíselo antes de descargar:</div>"+
+    "<div style='display:flex;gap:8px;margin-top:8px'>"+
+    "<a href='"+blobUrl+"' target='_blank' class='btn b-sec' style='flex:1;text-align:center;text-decoration:none;display:block'>👁️ Ver vista previa</a>"+
+    "<button type='button' class='btn b-ok' style='flex:1' onclick='confirmarDescargaPDF(\""+idSafe+"\")'>⬇️ Descargar</button>"+
+    "</div>";
+}
+
+function confirmarDescargaPDF(idSafe){
+  var pendiente = window["_pdfPendiente_"+idSafe];
+  if(!pendiente) return;
+  pendiente.doc.save(pendiente.nombreArchivo);
+}
+
 function qrGenerarPDFCarnets(){
   var seleccionados=qrTRABAJADORES.filter(function(t){return qrSELECCIONADOS[t.codigo];});
   var avisoBox=document.getElementById("qrAvisoGen");
@@ -3226,8 +3289,7 @@ function qrGenerarPDFCarnets(){
     if(i>=seleccionados.length){
       var fg=new Date();
       var nombreArchivo="Carnets_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
-      doc.save(nombreArchivo);
-      avisoBox.innerHTML="<div class='msg-ok'>✅ Listo — "+seleccionados.length+" carnets generados en "+nombreArchivo+"</div>";
+      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "carnets");
       return;
     }
     var t=seleccionados[i];
@@ -3356,8 +3418,7 @@ function qrGenerarPDFLote(){
     if(i>=seleccionados.length){
       var fg=new Date();
       var nombreArchivo="QR_Trabajadores_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
-      doc.save(nombreArchivo);
-      avisoBox.innerHTML="<div class='msg-ok'>✅ Listo — "+seleccionados.length+" códigos generados en "+nombreArchivo+"</div>";
+      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "códigos");
       return;
     }
     var t=seleccionados[i];
