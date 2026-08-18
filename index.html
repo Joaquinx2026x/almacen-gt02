@@ -250,7 +250,36 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div class="ctit">📦 Inventario</div>
     <input type="text" id="invBuscar" placeholder="Buscar herramienta, insumo o material..." oninput="invFiltrar()">
     <button class="btn b-ok" onclick="invNuevo()" style="width:100%">➕ Agregar ítem nuevo</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn b-sec b-sm" style="flex:1" onclick="abrirExploradorInv()">🔍 Explorar uno por uno</button>
+      <button class="btn b-sec b-sm" style="flex:1" onclick="invExportarPDF()">📄 Exportar a PDF</button>
+    </div>
+    <div id="invExportAviso" style="margin-top:6px"></div>
   </div>
+
+  <div id="invExplorador" style="display:none;margin-bottom:14px">
+    <div class="card" style="text-align:center;padding:0;overflow:hidden">
+      <div style="background:#1B4332;padding:12px;display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#95D5B2;font-size:11px">Explorando (según el filtro activo)</span>
+        <button class="btn b-sec b-sm" style="width:auto;padding:4px 10px" onclick="cerrarExploradorInv()">✕ Cerrar</button>
+      </div>
+      <div id="invExpFoto" style="margin:16px auto 10px;width:110px;height:110px;border-radius:12px;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #2D6A4F"></div>
+      <div id="invExpTitulo" style="font-weight:bold;font-size:15px;padding:0 14px"></div>
+      <div id="invExpCodigo" style="font-size:11px;color:#888;margin-bottom:10px"></div>
+      <div id="invExpDetalle" style="text-align:left;font-size:12px;color:#5F5E5A;padding:0 16px 16px;line-height:1.7"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn b-sec" style="flex:1" onclick="invExplorarAnterior()">◀ Anterior</button>
+      <button class="btn b-sec" style="flex:1" onclick="invExplorarSiguiente()">Siguiente ▶</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn b-sec b-sm" style="flex:1" onclick="invExplorarPrimero()">⏮ Ir al primero</button>
+      <button class="btn b-sec b-sm" style="flex:1" onclick="invExplorarUltimo()">Ir al último ⏭</button>
+    </div>
+    <button class="btn b-blue" style="width:100%;margin-top:8px" onclick="invExplorarEditar()">✏️ Editar este ítem</button>
+    <div id="invExpContador" style="text-align:center;font-size:11px;color:#888;margin-top:6px"></div>
+  </div>
+
   <div id="invLista"></div>
   <div id="invForm"></div>
 </div>
@@ -298,6 +327,10 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn b-sec" style="flex:1" onclick="carnetAnterior()">◀ Anterior</button>
       <button class="btn b-sec" style="flex:1" onclick="carnetSiguiente()">Siguiente ▶</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn b-sec b-sm" style="flex:1" onclick="carnetPrimero()">⏮ Ir al primero</button>
+      <button class="btn b-sec b-sm" style="flex:1" onclick="carnetUltimo()">Ir al último ⏭</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="btn b-blue" style="flex:1" onclick="carnetEditarActual()">✏️ Editar este trabajador</button>
@@ -493,14 +526,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.2.0   (17/08/2026)
+// VERSIÓN ACTUAL: 2.3.0   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.2.0-GT02";
+var APP_VERSION = "2.3.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -1756,6 +1789,94 @@ function invCargar(){
 }
 
 // Filtra la lista en memoria por lo escrito en el buscador (código o descripción)
+var INV_EXPLORAR_LISTA = [];
+var INV_EXPLORAR_IDX = 0;
+
+function _invFiltrados(){
+  var q = document.getElementById("invBuscar").value.toLowerCase().trim();
+  return INV_ITEMS.filter(function(it){
+    return !q || it.codigo.toLowerCase().indexOf(q)>=0 || it.descripcion.toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function abrirExploradorInv(){
+  INV_EXPLORAR_LISTA = _invFiltrados();
+  if(!INV_EXPLORAR_LISTA.length){ alert("No hay ítems para explorar con ese filtro."); return; }
+  INV_EXPLORAR_IDX = 0;
+  var v = document.getElementById("invExplorador");
+  v.style.display="block";
+  invExplorarMostrar();
+  v.scrollIntoView({behavior:"smooth", block:"start"});
+}
+function cerrarExploradorInv(){
+  var v = document.getElementById("invExplorador");
+  if(v) v.style.display="none";
+}
+function invExplorarMostrar(){
+  var it = INV_EXPLORAR_LISTA[INV_EXPLORAR_IDX];
+  if(!it) return;
+  document.getElementById("invExpTitulo").textContent = it.descripcion || "(sin descripción)";
+  document.getElementById("invExpCodigo").textContent = it.codigo + " · " + it.tipo;
+  document.getElementById("invExpContador").textContent = (INV_EXPLORAR_IDX+1)+" de "+INV_EXPLORAR_LISTA.length;
+  var fotoDiv = document.getElementById("invExpFoto");
+  fotoDiv.innerHTML = it.fotoId
+    ? "<img src='"+urlFotoDrive(it.fotoId,220)+"' style='width:100%;height:100%;object-fit:cover'>"
+    : "<span style='font-size:34px'>🔧</span>";
+  var det = "";
+  if(it.categoria) det += "<div>📂 "+it.categoria+(it.subcategoria?" / "+it.subcategoria:"")+"</div>";
+  if(it.marca) det += "<div>🏷️ "+it.marca+"</div>";
+  det += "<div>🔢 Cantidad: "+(it.cantidadTotal!==""?it.cantidadTotal:"sin definir")+"</div>";
+  if(it.ubicacion) det += "<div>📍 "+it.ubicacion+"</div>";
+  det += "<div>Estado: "+it.estado+"</div>";
+  if(it.accesorios) det += "<div>Accesorios: "+it.accesorios+"</div>";
+  if(it.observaciones) det += "<div>📝 "+it.observaciones+"</div>";
+  document.getElementById("invExpDetalle").innerHTML = det;
+}
+function invExplorarSiguiente(){ INV_EXPLORAR_IDX=(INV_EXPLORAR_IDX+1)%INV_EXPLORAR_LISTA.length; invExplorarMostrar(); }
+function invExplorarAnterior(){ INV_EXPLORAR_IDX=(INV_EXPLORAR_IDX-1+INV_EXPLORAR_LISTA.length)%INV_EXPLORAR_LISTA.length; invExplorarMostrar(); }
+function invExplorarPrimero(){ INV_EXPLORAR_IDX=0; invExplorarMostrar(); }
+function invExplorarUltimo(){ INV_EXPLORAR_IDX=INV_EXPLORAR_LISTA.length-1; invExplorarMostrar(); }
+function invExplorarEditar(){
+  var it = INV_EXPLORAR_LISTA[INV_EXPLORAR_IDX];
+  if(!it) return;
+  cerrarExploradorInv();
+  var idx = INV_ITEMS.indexOf(it);
+  if(idx>=0) invEditar(idx);
+}
+
+// invExportarPDF — exporta a PDF los ítems que coincidan con el filtro
+// actual del buscador (o todos, si está vacío). Usa la misma vista
+// previa antes de descargar que ya tienen los stickers y carnets.
+function invExportarPDF(){
+  var res = _invFiltrados();
+  var avisoBox = document.getElementById("invExportAviso");
+  if(!res.length){ avisoBox.innerHTML="<div class='msg-err'>No hay ítems para exportar con ese filtro.</div>"; return; }
+  avisoBox.innerHTML="<div class='msg-ok'>🔄 Generando PDF de "+res.length+" ítems...</div>";
+
+  var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
+  var q = document.getElementById("invBuscar").value.trim();
+  doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+  doc.text("Inventario — Almacén GT02", 14, 15);
+  doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
+  doc.text("SOLTECING · Izabal, Guatemala"+(q?"  ·  Filtro: \""+q+"\"":"")+"  ·  "+res.length+" ítems", 14, 21);
+
+  var filas = res.map(function(it){
+    return [it.codigo, it.descripcion, it.tipo, it.categoria||"—", (it.cantidadTotal!==""?it.cantidadTotal:"—")+"", it.ubicacion||"—", it.estado||"—"];
+  });
+  doc.autoTable({
+    startY: 26,
+    head: [["Código","Descripción","Tipo","Categoría","Cant.","Ubicación","Estado"]],
+    body: filas,
+    styles: {fontSize:8, cellPadding:2},
+    headStyles: {fillColor:[27,67,50], textColor:255},
+    alternateRowStyles: {fillColor:[216,243,220]}
+  });
+
+  var fg=new Date();
+  var nombreArchivo="Inventario_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
+  mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, res.length, "ítems del inventario");
+}
+
 function invFiltrar(){
   var q=document.getElementById("invBuscar").value.toLowerCase().trim();
   var res=INV_ITEMS.filter(function(it){
@@ -2807,6 +2928,8 @@ function editarTrabajadorForm(codigo) {
 var CARNET_LISTA = [];
 var CARNET_IDX = 0;
 
+var QR_CACHE_CARNET = {};
+
 function abrirCarnetViewer(){
   CARNET_LISTA = Object.keys(TRAB_CACHE).map(function(k){ return TRAB_CACHE[k]; })
     .sort(function(a,b){
@@ -2840,18 +2963,26 @@ function carnetMostrar(){
     : "<span style='font-size:34px'>👤</span>";
   var qrDiv = document.getElementById("carnetQR");
   if(t.dui){
-    qrDiv.innerHTML="<div style='font-size:11px;color:#888'>Generando QR...</div>";
-    var duiFmt = qrFormatDui(t.dui);
-    qrGenerarQRDataURL(duiFmt,180).then(function(url){
-      if(CARNET_LISTA[CARNET_IDX]!==t) return; // el usuario ya avanzó a otro mientras cargaba
-      qrDiv.innerHTML = "<img src='"+url+"' style='width:110px;height:110px'>";
-    });
+    if(QR_CACHE_CARNET[t.codigo]){
+      // Ya se generó antes en esta sesión — se muestra al instante, sin parpadeo.
+      qrDiv.innerHTML = "<img src='"+QR_CACHE_CARNET[t.codigo]+"' style='width:110px;height:110px'>";
+    } else {
+      qrDiv.innerHTML="<div style='font-size:11px;color:#888'>Generando QR...</div>";
+      var duiFmt = qrFormatDui(t.dui);
+      qrGenerarQRDataURL(duiFmt,180).then(function(url){
+        QR_CACHE_CARNET[t.codigo] = url;
+        if(CARNET_LISTA[CARNET_IDX]!==t) return; // el usuario ya avanzó a otro mientras cargaba
+        qrDiv.innerHTML = "<img src='"+url+"' style='width:110px;height:110px'>";
+      });
+    }
   } else {
     qrDiv.innerHTML = "<div style='font-size:11px;color:#C00000;padding:0 10px'>⚠️ Sin DUI/DPI registrado — no se puede generar el QR</div>";
   }
 }
 function carnetSiguiente(){ CARNET_IDX=(CARNET_IDX+1)%CARNET_LISTA.length; carnetMostrar(); }
 function carnetAnterior(){ CARNET_IDX=(CARNET_IDX-1+CARNET_LISTA.length)%CARNET_LISTA.length; carnetMostrar(); }
+function carnetPrimero(){ CARNET_IDX=0; carnetMostrar(); }
+function carnetUltimo(){ CARNET_IDX=CARNET_LISTA.length-1; carnetMostrar(); }
 function carnetEditarActual(){
   var t = CARNET_LISTA[CARNET_IDX];
   if(!t) return;
