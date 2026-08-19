@@ -526,14 +526,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.4.0   (17/08/2026)
+// VERSIÓN ACTUAL: 2.4.1   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.4.0-GT02";
+var APP_VERSION = "2.4.1-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -1965,10 +1965,14 @@ function invMostrarForm(it, esEdicion){
         "<div id='ivFotoPrev' style='width:56px;height:56px;border-radius:10px;flex-shrink:0;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden'>" +
           (it.fotoId ? "<img src='"+urlFotoDrive(it.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>"+iconoVacio+"</span>") +
         "</div>" +
-        "<div style='flex:1'>" +
-          "<input type='file' accept='image/*' id='ivFotoInput' style='display:none' onchange='subirFotoHerramienta(\""+esc(it.codigo)+"\",this,\""+tipoBackend+"\")'>" +
-          "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('ivFotoInput').click()\">📷 Tomar o subir foto</button>" +
-          "<div id='ivFotoMsg' style='font-size:11px;margin-top:3px'></div>" +
+        "<div style='flex:1;display:flex;flex-direction:column;gap:5px'>" +
+          "<input type='file' accept='image/*' capture='environment' id='ivFotoInputCam' style='display:none' onchange='subirFotoHerramienta(\""+esc(it.codigo)+"\",this,\""+tipoBackend+"\")'>" +
+          "<input type='file' accept='image/*' id='ivFotoInputGal' style='display:none' onchange='subirFotoHerramienta(\""+esc(it.codigo)+"\",this,\""+tipoBackend+"\")'>" +
+          "<div style='display:flex;gap:5px'>" +
+            "<button type='button' class='btn b-sec b-sm' style='flex:1' onclick=\"document.getElementById('ivFotoInputCam').click()\">📷 Tomar foto</button>" +
+            "<button type='button' class='btn b-sec b-sm' style='flex:1' onclick=\"document.getElementById('ivFotoInputGal').click()\">🖼️ Galería</button>" +
+          "</div>" +
+          "<div id='ivFotoMsg' style='font-size:11px'></div>" +
         "</div>" +
       "</div>";
   }
@@ -2905,10 +2909,14 @@ function editarTrabajadorForm(codigo) {
       "<div id='etFotoPrev' style='width:56px;height:56px;border-radius:10px;flex-shrink:0;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden'>" +
         (t.fotoId ? "<img src='"+urlFotoDrive(t.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>👤</span>") +
       "</div>" +
-      "<div style='flex:1'>" +
-        "<input type='file' accept='image/*' id='etFotoInput' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
-        "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('etFotoInput').click()\">📷 Tomar o subir foto</button>" +
-        "<div id='etFotoMsg' style='font-size:11px;margin-top:3px'></div>" +
+      "<div style='flex:1;display:flex;flex-direction:column;gap:5px'>" +
+        "<input type='file' accept='image/*' capture='user' id='etFotoInputCam' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
+        "<input type='file' accept='image/*' id='etFotoInputGal' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
+        "<div style='display:flex;gap:5px'>" +
+          "<button type='button' class='btn b-sec b-sm' style='flex:1' onclick=\"document.getElementById('etFotoInputCam').click()\">📷 Tomar foto</button>" +
+          "<button type='button' class='btn b-sec b-sm' style='flex:1' onclick=\"document.getElementById('etFotoInputGal').click()\">🖼️ Galería</button>" +
+        "</div>" +
+        "<div id='etFotoMsg' style='font-size:11px'></div>" +
       "</div>" +
     "</div>" +
     "<input type='text' id='etNombre' placeholder='Nombre completo' value=\""+esc(t.nombre)+"\">" +
