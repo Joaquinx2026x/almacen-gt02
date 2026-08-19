@@ -526,14 +526,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.3.0   (17/08/2026)
+// VERSIÓN ACTUAL: 2.4.0   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.3.0-GT02";
+var APP_VERSION = "2.4.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -1726,7 +1726,7 @@ function invCargar(){
   document.getElementById("invLista").innerHTML="<div class='loading'>🔄 Cargando inventario...</div>";
   Promise.all([
     sheetsGet("Catalogo_Herramientas!A2:O"),
-    sheetsGet("Catalogo_Insumos!A2:H"),
+    sheetsGet("Catalogo_Insumos!A2:I"),
     sheetsGet("Movimientos_Insumos!A2:M")
   ]).then(function(results){
     var h=results[0].values||[];
@@ -1778,7 +1778,8 @@ function invCargar(){
         stockActual:(r[4]!==undefined&&r[4]!==""?r[4]:""),
         stockMinimo:(r[5]!==undefined&&r[5]!==""?r[5]:""),
         ubicacion:(r[6]||"").toString(), observaciones:(r[7]||"").toString(),
-        stockCalculado: stockCalc[cod]!==undefined ? stockCalc[cod] : null
+        stockCalculado: stockCalc[cod]!==undefined ? stockCalc[cod] : null,
+        fotoId:(r[8]||"").toString()
       });
     });
 
@@ -1956,15 +1957,17 @@ function invMostrarForm(it, esEdicion){
     "<input type='number' id='ivStockMinimo' placeholder='Stock mínimo' value=\""+esc((it.stockMinimo!==undefined?it.stockMinimo:"").toString())+"\">";
 
   var fotoHTML = "";
-  if (esEdicion && it.tipo==="Herramienta") {
+  if (esEdicion) {
+    var tipoBackend = it.tipo==="Herramienta" ? "herramienta" : "insumo";
+    var iconoVacio = it.tipo==="Herramienta" ? "🔧" : "📦";
     fotoHTML =
       "<div style='display:flex;gap:10px;align-items:center;margin-bottom:10px'>" +
         "<div id='ivFotoPrev' style='width:56px;height:56px;border-radius:10px;flex-shrink:0;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden'>" +
-          (it.fotoId ? "<img src='"+urlFotoDrive(it.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>🔧</span>") +
+          (it.fotoId ? "<img src='"+urlFotoDrive(it.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>"+iconoVacio+"</span>") +
         "</div>" +
         "<div style='flex:1'>" +
-          "<input type='file' accept='image/*' capture='environment' id='ivFotoInput' style='display:none' onchange='subirFotoHerramienta(\""+esc(it.codigo)+"\",this)'>" +
-          "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('ivFotoInput').click()\">📷 Tomar/subir foto</button>" +
+          "<input type='file' accept='image/*' id='ivFotoInput' style='display:none' onchange='subirFotoHerramienta(\""+esc(it.codigo)+"\",this,\""+tipoBackend+"\")'>" +
+          "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('ivFotoInput').click()\">📷 Tomar o subir foto</button>" +
           "<div id='ivFotoMsg' style='font-size:11px;margin-top:3px'></div>" +
         "</div>" +
       "</div>";
@@ -2008,15 +2011,16 @@ function invToggleTipoCampos(){
 }
 
 // Junta los datos del formulario según el tipo, y los manda a guardar al backend
-function subirFotoHerramienta(codigo, inputEl) {
+function subirFotoHerramienta(codigo, inputEl, tipoBackend) {
   var file = inputEl.files && inputEl.files[0];
   if(!file) return;
+  tipoBackend = tipoBackend || "herramienta";
   abrirRecortadorFoto(file, function(r){
     var msg = document.getElementById("ivFotoMsg");
     var prev = document.getElementById("ivFotoPrev");
     if(prev) prev.innerHTML = "<img src='"+r.dataUrl+"' style='width:100%;height:100%;object-fit:cover'>";
     if(msg) msg.innerHTML = "🔄 Subiendo foto...";
-    gasPostBody("subirFoto", {tipo:"herramienta", codigo:codigo, base64:r.base64, mimeType:r.mimeType}).then(function(res){
+    gasPostBody("subirFoto", {tipo:tipoBackend, codigo:codigo, base64:r.base64, mimeType:r.mimeType}).then(function(res){
       if(res && res.ok){
         if(msg) msg.innerHTML = "<span style='color:#375623'>✅ Foto guardada</span>";
         var item = INV_ITEMS.find(function(x){ return x.codigo===codigo; });
@@ -2027,7 +2031,7 @@ function subirFotoHerramienta(codigo, inputEl) {
     }).catch(function(e){
       if(msg) msg.innerHTML = "<span style='color:#C00000'>❌ "+e.message+"</span>";
     });
-  }, "Encuadra bien la herramienta dentro del círculo");
+  }, "Encuadra bien el ítem dentro del círculo");
 }
 
 function invGuardar(codigoOriginal){
@@ -2902,8 +2906,8 @@ function editarTrabajadorForm(codigo) {
         (t.fotoId ? "<img src='"+urlFotoDrive(t.fotoId,120)+"' style='width:100%;height:100%;object-fit:cover'>" : "<span style='font-size:22px'>👤</span>") +
       "</div>" +
       "<div style='flex:1'>" +
-        "<input type='file' accept='image/*' capture='user' id='etFotoInput' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
-        "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('etFotoInput').click()\">📷 Tomar/subir foto</button>" +
+        "<input type='file' accept='image/*' id='etFotoInput' style='display:none' onchange='subirFotoTrabajador(\""+esc(codigo)+"\",this)'>" +
+        "<button type='button' class='btn b-sec b-sm' style='width:100%' onclick=\"document.getElementById('etFotoInput').click()\">📷 Tomar o subir foto</button>" +
         "<div id='etFotoMsg' style='font-size:11px;margin-top:3px'></div>" +
       "</div>" +
     "</div>" +
@@ -2929,6 +2933,7 @@ var CARNET_LISTA = [];
 var CARNET_IDX = 0;
 
 var QR_CACHE_CARNET = {};
+var FOTO_CACHE_CARNET = {};
 
 function abrirCarnetViewer(){
   CARNET_LISTA = Object.keys(TRAB_CACHE).map(function(k){ return TRAB_CACHE[k]; })
@@ -2958,9 +2963,29 @@ function carnetMostrar(){
   document.getElementById("carnetCorrelativo").textContent = t.codigo.replace("GT02/RECPER-","");
   document.getElementById("carnetContador").textContent = (CARNET_IDX+1)+" de "+CARNET_LISTA.length;
   var fotoDiv = document.getElementById("carnetFoto");
-  fotoDiv.innerHTML = t.fotoId
-    ? "<img src='"+urlFotoDrive(t.fotoId,200)+"' style='width:100%;height:100%;object-fit:cover'>"
-    : "<span style='font-size:34px'>👤</span>";
+  if(!t.fotoId){
+    fotoDiv.innerHTML = "<span style='font-size:34px'>👤</span>";
+  } else if(FOTO_CACHE_CARNET[t.fotoId]){
+    // Ya se cargó antes en esta sesión — se muestra al instante, sin parpadeo.
+    fotoDiv.innerHTML = "<img src='"+urlFotoDrive(t.fotoId,200)+"' style='width:100%;height:100%;object-fit:cover'>";
+  } else {
+    // Precarga en segundo plano: la foto anterior se queda visible hasta
+    // que la nueva esté completamente lista, así nunca se ve un espacio
+    // en blanco ni un parpadeo mientras descarga.
+    var img = new Image();
+    img.onload = function(){
+      FOTO_CACHE_CARNET[t.fotoId] = true;
+      if(CARNET_LISTA[CARNET_IDX]!==t) return; // el usuario ya avanzó a otro mientras cargaba
+      fotoDiv.innerHTML = "";
+      img.style.width="100%"; img.style.height="100%"; img.style.objectFit="cover";
+      fotoDiv.appendChild(img);
+    };
+    img.onerror = function(){
+      if(CARNET_LISTA[CARNET_IDX]!==t) return;
+      fotoDiv.innerHTML = "<span style='font-size:34px'>👤</span>";
+    };
+    img.src = urlFotoDrive(t.fotoId,200);
+  }
   var qrDiv = document.getElementById("carnetQR");
   if(t.dui){
     if(QR_CACHE_CARNET[t.codigo]){
