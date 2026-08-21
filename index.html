@@ -526,14 +526,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.4.1   (17/08/2026)
+// VERSIÓN ACTUAL: 2.4.2   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.4.1-GT02";
+var APP_VERSION = "2.4.2-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -1024,7 +1024,7 @@ function buscaItem(v){
       if(!res.length){d.style.display="none";return;}
       d.innerHTML=res.map(function(it){
         var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
-        return "<div class='sug-item' onclick='addItem(\""+esc(it.codigo)+"\",\""+esc(it.descripcion)+"\",\""+it.tipo+"\",\""+esc(it.unidad)+"\")'>" +
+        return "<div class='sug-item' onclick='addItem(\""+escJS(it.codigo)+"\",\""+escJS(it.descripcion)+"\",\""+it.tipo+"\",\""+escJS(it.unidad)+"\")'>" +
           "<div class='sug-nom'>"+it.descripcion+"</div>" +
           "<div class='sug-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div></div>";
       }).join("");
@@ -1338,7 +1338,7 @@ function cargarHist(){
         return t?(base+": "+t):base;
       }).join(" · ");
       var btnDev=p.estado!=="cerrado"
-        ?"<div style='margin-top:7px'><button class='btn b-warn' style='padding:7px;font-size:11px;margin:0' onclick='irADev(\""+esc(p.codigoTrabajador)+"\",\""+esc(p.nombreTrabajador)+"\")'>📥 Procesar devolución</button></div>"
+        ?"<div style='margin-top:7px'><button class='btn b-warn' style='padding:7px;font-size:11px;margin:0' onclick='irADev(\""+escJS(p.codigoTrabajador)+"\",\""+escJS(p.nombreTrabajador)+"\")'>📥 Procesar devolución</button></div>"
         :"";
       return "<div class='hist-row "+cls+"'>" +
         "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'><span style='font-size:11px;color:#888'>📄 "+p.idPrestamo+"</span>"+badge+"</div>" +
@@ -1994,7 +1994,7 @@ function invMostrarForm(it, esEdicion){
     "<input type='text' id='ivObservaciones' placeholder='Observaciones' value=\""+esc(it.tipo==="Herramienta"&&it.estado==="Otro"?"":(it.observaciones||""))+"\">"+
     "<div id='ivMsg'></div>"+
     "<div style='display:flex;gap:8px;margin-top:6px'>"+
-      "<button class='btn b-ok' style='flex:1' onclick='invGuardar("+(esEdicion?"\""+esc(it.codigo)+"\"":"null")+")'>💾 Guardar</button>"+
+      "<button class='btn b-ok' style='flex:1' onclick='invGuardar("+(esEdicion?"\""+escJS(it.codigo)+"\"":"null")+")'>💾 Guardar</button>"+
       "<button class='btn b-sec' style='flex:0' onclick='document.getElementById(\"invForm\").innerHTML=\"\"'>Cancelar</button>"+
     "</div></div>";
 
@@ -2238,7 +2238,7 @@ function horBuscarOperador(val){
   });
   if(!coincidencias.length){ box.innerHTML=""; box.style.display="none"; return; }
   box.innerHTML=coincidencias.map(function(n){
-    return "<div class='sug-item' onclick='horSelOperador(\""+esc(n)+"\")'><div class='sug-nom'>"+esc(n)+"</div></div>";
+    return "<div class='sug-item' onclick='horSelOperador(\""+escJS(n)+"\")'><div class='sug-nom'>"+esc(n)+"</div></div>";
   }).join("");
   box.style.display="block";
 }
@@ -2660,6 +2660,20 @@ function horMantEliminar(){
 
 function esc(s){return(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;");}
 
+// escJS — para texto que se inserta como argumento de una función JS dentro
+// de un onclick='...'. A diferencia de esc() (pensada para atributos HTML
+// normales como value="..."), aquí el texto vive dentro de comillas dobles
+// de JavaScript, así que hay que proteger la comilla doble para JS (\")
+// Y el apóstrofe para que no rompa el atributo HTML de una sola comilla
+// (&#39;) — esc() sola no cubre ambos casos a la vez, por eso las medidas
+// con comillas de pulgada (3/4", 1/2") rompían el botón en silencio.
+function escJS(s){
+  return (s||"").toString()
+    .replace(/\\/g,"\\\\")
+    .replace(/"/g,'\\"')
+    .replace(/'/g,"&#39;");
+}
+
 // ══════════════════════════════════════════════
 // GESTIÓN DE USUARIOS (solo Admin)
 // ══════════════════════════════════════════════
@@ -2873,7 +2887,7 @@ function trabRenderLista(rows, esBusqueda){
       "<span style='font-size:11px;color:"+(activo?"#375623":"#888")+"'>"+(activo?"✅":"⏸")+"</span>" +
       "</div>" +
       "<div style='margin-top:8px;display:flex;gap:6px;flex-wrap:wrap'>" +
-      "<button class='btn b-blue b-sm' onclick='editarTrabajadorForm(\""+esc(codigo)+"\")'>Editar</button>" +
+      "<button class='btn b-blue b-sm' onclick='editarTrabajadorForm(\""+escJS(codigo)+"\")'>Editar</button>" +
       "<button class='btn "+(activo?"b-sec":"b-ok")+" b-sm' onclick='toggleActivoTrabajador(this)' data-c='"+codigo+"' data-a='"+activo+"'>"+(activo?"Desactivar":"Activar")+"</button>" +
       "</div>" +
       "</div>";
@@ -2931,7 +2945,7 @@ function editarTrabajadorForm(codigo) {
     "<input type='text' id='etObs' placeholder='Observaciones' value=\""+esc(t.observaciones)+"\">" +
     "<div id='etMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
-    "<button class='btn b-ok' onclick='guardarEdicionTrabajador(\""+esc(codigo)+"\")'>💾 Guardar</button>" +
+    "<button class='btn b-ok' onclick='guardarEdicionTrabajador(\""+escJS(codigo)+"\")'>💾 Guardar</button>" +
     "<button class='btn b-sec' onclick='cancelarFormTrab()'>Cancelar</button>" +
     "</div></div>";
   formDiv.scrollIntoView({behavior:"smooth"});
