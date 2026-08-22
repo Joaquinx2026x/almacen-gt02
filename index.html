@@ -551,6 +551,8 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 
     <div class="card">
       <div class="ctit">3. Detalle del armado</div>
+      <div style="font-size:12px;color:#888;margin-bottom:4px">Fecha en que se armó (puede registrar días atrás)</div>
+      <input type="date" id="apFecha">
       <input type="number" id="apCantidad" placeholder="Cantidad de pernos armados" min="1">
       <input type="text" id="apPieza" placeholder="Pieza / estructura (ej. Mesa 12, Fila 3)">
       <input type="text" id="apObs" placeholder="Observaciones (opcional)">
@@ -573,6 +575,15 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
       </div>
     </div>
     <div class="card">
+      <div class="ctit">Filtrar por tipo o por persona</div>
+      <select id="apFiltroTipo" onchange="apCalcularResumen()">
+        <option value="">Todos los tipos de perno</option>
+      </select>
+      <select id="apFiltroTrab" onchange="apCalcularResumen()">
+        <option value="">Todos los trabajadores</option>
+      </select>
+    </div>
+    <div class="card">
       <div class="ctit">Total por tipo de perno</div>
       <div id="apResumenTipo"></div>
     </div>
@@ -592,14 +603,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.5.0   (17/08/2026)
+// VERSIÓN ACTUAL: 2.5.1   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.5.0-GT02";
+var APP_VERSION = "2.5.1-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -2263,6 +2274,8 @@ function abrirArmadoPernos(){
   document.querySelector(".tabs").style.display="none";
   document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display="none"; });
   document.getElementById("armadoPernosScreen").style.display="block";
+  var fechaEl = document.getElementById("apFecha");
+  if(fechaEl && !fechaEl.value) fechaEl.value = new Date().toISOString().slice(0,10);
   apGoTab(0);
 }
 function cerrarArmadoPernos(){
@@ -2368,6 +2381,8 @@ function apRegistrar(){
   msg.innerHTML="";
   if(!AP_PERNO_SEL){ msg.innerHTML="<div class=\'msg-err\'>Selecciona el tipo de perno</div>"; return; }
   if(!AP_TRAB_SEL){ msg.innerHTML="<div class=\'msg-err\'>Selecciona el trabajador</div>"; return; }
+  var fecha = document.getElementById("apFecha").value;
+  if(!fecha){ msg.innerHTML="<div class=\'msg-err\'>Selecciona la fecha del armado</div>"; return; }
   var cantidad = document.getElementById("apCantidad").value;
   if(!cantidad || Number(cantidad)<=0){ msg.innerHTML="<div class=\'msg-err\'>Escribe una cantidad válida</div>"; return; }
   var pieza = document.getElementById("apPieza").value.trim();
@@ -2375,6 +2390,7 @@ function apRegistrar(){
 
   msg.innerHTML="<div class=\'msg-ok\'>🔄 Guardando...</div>";
   gasPost("registrarArmado",{
+    fecha: fecha,
     codigoPerno: AP_PERNO_SEL.codigo,
     descripcionPerno: AP_PERNO_SEL.descripcion,
     cantidad: cantidad,
@@ -2385,13 +2401,16 @@ function apRegistrar(){
     registradoPor: (SESION&&SESION.nombre)||"Almacenista"
   }).then(function(r){
     if(r && r.ok){
-      msg.innerHTML="<div class=\'msg-ok\'>✅ Armado registrado</div>";
+      msg.innerHTML="<div class=\'msg-ok\'>✅ Armado registrado ("+fecha+")</div>";
       apQuitarPerno(); apQuitarTrab();
       document.getElementById("apCantidad").value="";
       document.getElementById("apPieza").value="";
       document.getElementById("apObs").value="";
+      // La fecha NO se reinicia a propósito: si está registrando varios
+      // armados del mismo día atrasado, no tiene que volver a elegirla cada vez.
       AP_ARMADOS_CACHE = null; // para que el resumen se recargue con el dato nuevo
-      setTimeout(function(){ msg.innerHTML=""; },2000);
+      apPoblarFiltros();
+      setTimeout(function(){ msg.innerHTML=""; },2500);
     } else {
       msg.innerHTML="<div class=\'msg-err\'>"+(r&&r.error||"Error al guardar")+"</div>";
     }
@@ -2413,12 +2432,39 @@ function apCargarArmados(){
         codigoTrabajador: r[4]||"", nombreTrabajador: r[5]||""
       };
     }).filter(function(x){ return x.fecha; });
+    apPoblarFiltros();
     apCalcularResumen();
   }).catch(function(){
     document.getElementById("apResumenTipo").innerHTML="<div class=\'msg-err\'>No se pudo cargar (¿ya registró al menos un armado?)</div>";
     document.getElementById("apResumenTrab").innerHTML="";
   });
 }
+
+// apPoblarFiltros — llena los dos desplegables (tipo / trabajador) con los
+// valores que realmente existen en los registros, para poder aislar uno
+// solo en vez de ver siempre todo junto.
+function apPoblarFiltros(){
+  if(!AP_ARMADOS_CACHE) return;
+  var selTipo = document.getElementById("apFiltroTipo");
+  var selTrab = document.getElementById("apFiltroTrab");
+  var valorTipoActual = selTipo.value;
+  var valorTrabActual = selTrab.value;
+
+  var tipos = {}, trabs = {};
+  AP_ARMADOS_CACHE.forEach(function(x){
+    if(x.descripcionPerno) tipos[x.descripcionPerno]=true;
+    if(x.nombreTrabajador) trabs[x.nombreTrabajador]=true;
+  });
+
+  selTipo.innerHTML = "<option value=\'\'>Todos los tipos de perno</option>" +
+    Object.keys(tipos).sort().map(function(t){ return "<option value=\""+esc(t)+"\">"+t+"</option>"; }).join("");
+  selTrab.innerHTML = "<option value=\'\'>Todos los trabajadores</option>" +
+    Object.keys(trabs).sort().map(function(t){ return "<option value=\""+esc(t)+"\">"+t+"</option>"; }).join("");
+
+  if(tipos[valorTipoActual]) selTipo.value = valorTipoActual;
+  if(trabs[valorTrabActual]) selTrab.value = valorTrabActual;
+}
+
 function apRangoSemana(){
   var hoy = new Date();
   var diaSemana = (hoy.getDay()+6)%7; // lunes=0
@@ -2438,9 +2484,13 @@ function apCalcularResumen(){
   var hastaVal = document.getElementById("apHasta").value;
   var desde = desdeVal ? new Date(desdeVal+"T00:00:00") : null;
   var hasta = hastaVal ? new Date(hastaVal+"T23:59:59") : null;
+  var tipoSel = document.getElementById("apFiltroTipo").value;
+  var trabSel = document.getElementById("apFiltroTrab").value;
   var filtrados = AP_ARMADOS_CACHE.filter(function(x){
     if(desde && x.fecha < desde) return false;
     if(hasta && x.fecha > hasta) return false;
+    if(tipoSel && x.descripcionPerno !== tipoSel) return false;
+    if(trabSel && x.nombreTrabajador !== trabSel) return false;
     return true;
   });
 
