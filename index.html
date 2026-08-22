@@ -131,6 +131,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 <div id="menuMas" style="display:none;background:#fff;border-bottom:1px solid #ddd;padding:8px 14px">
   <div class="menu-item" onclick="abrirHorometro()">⏱ Horómetro de maquinaria</div>
   <div class="menu-item" onclick="abrirArmadoPernos()">🔩 Armado de pernos</div>
+  <div class="menu-item" onclick="abrirEPP()">🦺 Control de EPP</div>
   <div id="menuAdmin" style="display:none">
     <hr style="margin:6px 0;border-color:#eee">
     <div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:bold">ADMINISTRACIÓN</div>
@@ -594,6 +595,25 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     MÓDULO CONTROL DE EPP — independiente de las 5 pestañas
+     principales, mismo patrón que Horómetro y Armado de pernos.
+     ══════════════════════════════════════════════ -->
+<div id="eppScreen" style="display:none;padding:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">🦺 Control de EPP</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="cerrarEPP()">← Volver</button>
+  </div>
+
+  <div class="card">
+    <div class="ctit">Buscar trabajador</div>
+    <input type="text" id="eppBuscar" placeholder="Buscar por nombre o código..." oninput="eppBuscarTrabajadores()" autocomplete="off">
+    <div id="eppSugTrab" style="display:none;border:1px solid #eee;border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <div id="eppFormContainer"></div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -603,14 +623,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.5.1   (17/08/2026)
+// VERSIÓN ACTUAL: 2.6.0   (17/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.5.1-GT02";
+var APP_VERSION = "2.6.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -2516,6 +2536,200 @@ function apCalcularResumen(){
   }).join("") : "<div style=\'font-size:12px;color:#888\'>Sin registros en ese rango</div>";
   document.getElementById("apResumenTrab").innerHTML = htmlTrab;
 }
+
+// ══════════════════════════════════════════════
+//  MÓDULO CONTROL DE EPP — una sola hoja nueva (EPP_Trabajador),
+//  un registro por trabajador (se actualiza en el mismo lugar,
+//  no es un historial de movimientos como Armado de pernos).
+// ══════════════════════════════════════════════
+var EPP_TRAB_ACTUAL = null; // {codigo, nombre}
+
+function abrirEPP(){
+  document.getElementById("menuMas").style.display="none";
+  document.querySelector(".tabs").style.display="none";
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display="none"; });
+  document.getElementById("eppScreen").style.display="block";
+  document.getElementById("eppFormContainer").innerHTML="";
+  document.getElementById("eppBuscar").value="";
+  EPP_TRAB_ACTUAL = null;
+}
+function cerrarEPP(){
+  document.getElementById("eppScreen").style.display="none";
+  document.querySelector(".tabs").style.display="flex";
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display=""; });
+}
+
+var eppTBusca;
+function eppBuscarTrabajadores(){
+  clearTimeout(eppTBusca);
+  var v = document.getElementById("eppBuscar").value.trim();
+  var d = document.getElementById("eppSugTrab");
+  if(v.length<1){ d.style.display="none"; return; }
+  eppTBusca = setTimeout(function(){
+    sheetsGet("Personal_GT02!A2:G").then(function(resp){
+      var rows = resp.values || [];
+      var q = v.toLowerCase();
+      var res = [];
+      for(var i=0;i<rows.length && res.length<8;i++){
+        var cod=(rows[i][0]||"").toString().trim();
+        var nom=(rows[i][1]||"").toString().trim();
+        if(!cod) continue;
+        if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0){
+          res.push({codigo:cod, nombre:nom||cod});
+        }
+      }
+      if(!res.length){ d.style.display="none"; return; }
+      d.innerHTML = res.map(function(t){
+        return "<div class=\'sug-item\' onclick=\'eppSelTrab(\""+escJS(t.codigo)+"\",\""+escJS(t.nombre)+"\")\'>"+
+          "<div class=\'sug-nom\'>"+t.nombre+"</div><div class=\'sug-cod\'>"+t.codigo+"</div></div>";
+      }).join("");
+      d.style.display="block";
+    }).catch(function(){ d.style.display="none"; });
+  },300);
+}
+
+function eppSelTrab(codigo, nombre){
+  EPP_TRAB_ACTUAL = {codigo:codigo, nombre:nombre};
+  document.getElementById("eppSugTrab").style.display="none";
+  document.getElementById("eppBuscar").value = nombre;
+  var cont = document.getElementById("eppFormContainer");
+  cont.innerHTML = "<div class=\'card\'><div class=\'loading\'>🔄 Cargando EPP de "+nombre+"...</div></div>";
+
+  sheetsGet("EPP_Trabajador!A2:N").then(function(resp){
+    var rows = resp.values || [];
+    var fila = null;
+    for(var i=0;i<rows.length;i++){
+      if((rows[i][0]||"").toString().trim().toLowerCase() === codigo.toLowerCase()){ fila = rows[i]; break; }
+    }
+    var e = fila ? {
+      fechaIngreso: fila[2]||"", tallaCamisa: fila[3]||"", tallaZapato: fila[4]||"",
+      cascoEntregado: fila[5]||"", cascoDevuelto: fila[6]||"",
+      chalecoEntregado: fila[7]||"", chalecoDevuelto: fila[8]||"",
+      lentesEntregado: fila[9]||"", lentesDevuelto: fila[10]||"",
+      camisaEntregada: fila[11]||"", zapatoEntregado: fila[12]||"",
+      observaciones: fila[13]||""
+    } : {
+      fechaIngreso:"", tallaCamisa:"", tallaZapato:"",
+      cascoEntregado:"", cascoDevuelto:"", chalecoEntregado:"", chalecoDevuelto:"",
+      lentesEntregado:"", lentesDevuelto:"", camisaEntregada:"", zapatoEntregado:"",
+      observaciones:""
+    };
+    eppRenderForm(codigo, nombre, e);
+  }).catch(function(err){
+    cont.innerHTML = "<div class=\'card\'><div class=\'msg-err\'>"+err.message+"</div></div>";
+  });
+}
+
+function eppFilaEntregaDevolucion(id, etiqueta, fechaEntregado, fechaDevuelto){
+  return "<div style=\'padding:8px 0;border-bottom:1px solid #f2f2f2\'>"+
+    "<div style=\'font-weight:bold;font-size:13px;margin-bottom:4px\'>"+etiqueta+"</div>"+
+    "<div style=\'display:flex;gap:14px\'>"+
+      "<label style=\'display:flex;align-items:center;gap:6px;font-size:12px\'>"+
+        "<input type=\'checkbox\' id=\'"+id+"Entregado\' "+(fechaEntregado?"checked":"")+" onchange=\'eppToggle(\""+id+"Entregado\")\' style=\'width:17px;height:17px\'> Entregado"+
+      "</label>"+
+      "<label style=\'display:flex;align-items:center;gap:6px;font-size:12px\'>"+
+        "<input type=\'checkbox\' id=\'"+id+"Devuelto\' "+(fechaDevuelto?"checked":"")+" onchange=\'eppToggle(\""+id+"Devuelto\")\' style=\'width:17px;height:17px\'> Devuelto"+
+      "</label>"+
+    "</div>"+
+    "<div id=\'"+id+"EntregadoFecha\' style=\'font-size:10px;color:#888;margin-top:2px\'>"+(fechaEntregado?"Entregado: "+fechaEntregado:"")+"</div>"+
+    "<div id=\'"+id+"DevueltoFecha\' style=\'font-size:10px;color:#888\'>"+(fechaDevuelto?"Devuelto: "+fechaDevuelto:"")+"</div>"+
+  "</div>";
+}
+function eppFilaSoloEntrega(id, etiqueta, fechaEntregado){
+  return "<div style=\'padding:8px 0;border-bottom:1px solid #f2f2f2\'>"+
+    "<label style=\'display:flex;align-items:center;gap:8px;font-size:13px;font-weight:bold\'>"+
+      "<input type=\'checkbox\' id=\'"+id+"Entregado\' "+(fechaEntregado?"checked":"")+" onchange=\'eppToggle(\""+id+"Entregado\")\' style=\'width:17px;height:17px\'> "+etiqueta+" — Entregado(a)"+
+    "</label>"+
+    "<div style=\'font-size:10px;color:#888;margin-top:2px;margin-left:25px\' id=\'"+id+"EntregadoFecha\'>"+(fechaEntregado?"Entregado: "+fechaEntregado:"")+"</div>"+
+  "</div>";
+}
+function eppToggle(checkboxId){
+  var chk = document.getElementById(checkboxId);
+  var fechaDiv = document.getElementById(checkboxId+"Fecha");
+  if(!chk || !fechaDiv) return;
+  var etiqueta = checkboxId.indexOf("Devuelto")>=0 ? "Devuelto" : "Entregado";
+  if(chk.checked){
+    var hoy = new Date().toISOString().slice(0,10);
+    fechaDiv.textContent = etiqueta+": "+hoy;
+    fechaDiv.setAttribute("data-fecha", hoy);
+  } else {
+    fechaDiv.textContent = "";
+    fechaDiv.removeAttribute("data-fecha");
+  }
+}
+function eppLeerFecha(checkboxId){
+  var chk = document.getElementById(checkboxId);
+  var fechaDiv = document.getElementById(checkboxId+"Fecha");
+  if(!chk || !chk.checked) return "";
+  return (fechaDiv && fechaDiv.getAttribute("data-fecha")) || new Date().toISOString().slice(0,10);
+}
+
+function eppRenderForm(codigo, nombre, e){
+  var cont = document.getElementById("eppFormContainer");
+  cont.innerHTML =
+    "<div class=\'card\'>"+
+      "<div class=\'ctit\'>"+nombre+" · "+codigo+"</div>"+
+      "<div style=\'font-size:12px;color:#888;margin-bottom:4px\'>Fecha de ingreso al proyecto</div>"+
+      "<input type=\'date\' id=\'eppFechaIngreso\' value=\'"+esc(e.fechaIngreso)+"\'>"+
+      "<input type=\'text\' id=\'eppTallaCamisa\' placeholder=\'Talla de camisa\' value=\""+esc(e.tallaCamisa)+"\">"+
+      "<input type=\'text\' id=\'eppTallaZapato\' placeholder=\'Talla de zapato\' value=\""+esc(e.tallaZapato)+"\">"+
+    "</div>"+
+    "<div class=\'card\'>"+
+      "<div class=\'ctit\'>Equipo que se devuelve</div>"+
+      eppFilaEntregaDevolucion("eppCasco","⛑ Casco (se devuelve al final del proyecto)", e.cascoEntregado, e.cascoDevuelto)+
+      eppFilaEntregaDevolucion("eppChaleco","🦺 Chaleco reflectivo (se devuelve al entregar la camisa)", e.chalecoEntregado, e.chalecoDevuelto)+
+      eppFilaEntregaDevolucion("eppLentes","🥽 Lentes de seguridad (se devuelven al final del proyecto)", e.lentesEntregado, e.lentesDevuelto)+
+    "</div>"+
+    "<div class=\'card\'>"+
+      "<div class=\'ctit\'>Equipo que se queda con el trabajador</div>"+
+      eppFilaSoloEntrega("eppCamisa","👕 Camisa de uniforme", e.camisaEntregada)+
+      eppFilaSoloEntrega("eppZapato","👞 Zapato industrial", e.zapatoEntregado)+
+    "</div>"+
+    "<div class=\'card\'>"+
+      "<input type=\'text\' id=\'eppObs\' placeholder=\'Observaciones\' value=\""+esc(e.observaciones)+"\">"+
+      "<div id=\'eppMsg\'></div>"+
+      "<button class=\'btn b-ok\' style=\'width:100%;padding:12px\' onclick=\'eppGuardar()\'>💾 Guardar EPP</button>"+
+    "</div>";
+
+  // Restaurar el atributo data-fecha en los que ya venían marcados desde antes,
+  // para que si no se toca nada, se conserve la fecha original al guardar.
+  [["eppCascoEntregado",e.cascoEntregado],["eppCascoDevuelto",e.cascoDevuelto],
+   ["eppChalecoEntregado",e.chalecoEntregado],["eppChalecoDevuelto",e.chalecoDevuelto],
+   ["eppLentesEntregado",e.lentesEntregado],["eppLentesDevuelto",e.lentesDevuelto],
+   ["eppCamisaEntregado",e.camisaEntregada],["eppZapatoEntregado",e.zapatoEntregado]
+  ].forEach(function(par){
+    var fechaDiv = document.getElementById(par[0]+"Fecha");
+    if(fechaDiv && par[1]) fechaDiv.setAttribute("data-fecha", par[1]);
+  });
+}
+
+function eppGuardar(){
+  if(!EPP_TRAB_ACTUAL) return;
+  var msg = document.getElementById("eppMsg");
+  msg.innerHTML = "<div class=\'msg-ok\'>🔄 Guardando...</div>";
+  gasPost("guardarEPP", {
+    codigoTrabajador: EPP_TRAB_ACTUAL.codigo,
+    nombreTrabajador: EPP_TRAB_ACTUAL.nombre,
+    fechaIngreso: document.getElementById("eppFechaIngreso").value,
+    tallaCamisa: document.getElementById("eppTallaCamisa").value.trim(),
+    tallaZapato: document.getElementById("eppTallaZapato").value.trim(),
+    cascoEntregado: eppLeerFecha("eppCascoEntregado"),
+    cascoDevuelto: eppLeerFecha("eppCascoDevuelto"),
+    chalecoEntregado: eppLeerFecha("eppChalecoEntregado"),
+    chalecoDevuelto: eppLeerFecha("eppChalecoDevuelto"),
+    lentesEntregado: eppLeerFecha("eppLentesEntregado"),
+    lentesDevuelto: eppLeerFecha("eppLentesDevuelto"),
+    camisaEntregada: eppLeerFecha("eppCamisaEntregado"),
+    zapatoEntregado: eppLeerFecha("eppZapatoEntregado"),
+    observaciones: document.getElementById("eppObs").value.trim()
+  }).then(function(r){
+    if(r && r.ok) msg.innerHTML = "<div class=\'msg-ok\'>✅ EPP guardado</div>";
+    else msg.innerHTML = "<div class=\'msg-err\'>"+(r&&r.error||"Error al guardar")+"</div>";
+  }).catch(function(e){
+    msg.innerHTML = "<div class=\'msg-err\'>"+e.message+"</div>";
+  });
+}
+
 
 
 function horGoTab(n){
