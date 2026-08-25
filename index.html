@@ -4265,12 +4265,12 @@ function qrGenerarPDFCarnets(){
       doc.rect(x, y, cW, headH, "F");
       doc.setTextColor(255,255,255);
       doc.setFont(undefined,"bold");
-      doc.setFontSize(9);
-      doc.text("SOLTECING - GT02", x+cW/2, y+14, {align:"center"});
+      doc.setFontSize(13);
+      doc.text("SOLTECING - GT02", x+cW/2, y+7, {align:"center"});
       doc.setFont(undefined,"normal");
-      doc.setFontSize(6.2);
+      doc.setFontSize(8);
       doc.setTextColor(149,213,178);
-      doc.text("-· Izabal, Guatemala.-", x+cW/2, y+12, {align:"center"});
+      doc.text("-· Izabal, Guatemala.-", x+cW/2, y+10.5, {align:"center"});
 
       // Foto recortada en círculo real usando clip() de jsPDF (probado y confirmado)
       var fotoSize=28, fotoX=x+cW/2-fotoSize/2, fotoY=y+headH-fotoSize/2;
