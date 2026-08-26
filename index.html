@@ -317,8 +317,8 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <div id="carnetViewer" style="display:none;margin-bottom:14px">
     <div class="card" style="text-align:center;padding:0;overflow:hidden">
       <div style="background:#1B4332;padding:14px">
-        <div style="color:#fff;font-weight:bold;font-size:18px">SOLTECING GT02</div>
-        <div style="color:#95D5B2;font-size:13px">-· Izabal, Guatemala.-</div>
+        <div style="color:#fff;font-weight:bold;font-size:14px">Almacén GT02</div>
+        <div style="color:#95D5B2;font-size:11px">SOLTECING · Izabal, Guatemala</div>
       </div>
       <div id="carnetFoto" style="margin:16px auto 8px;width:90px;height:90px;border-radius:50%;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #2D6A4F"></div>
       <div id="carnetNombre" style="font-weight:bold;font-size:16px;color:#1B4332"></div>
@@ -664,14 +664,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.7.0   (17/08/2026)
+// VERSIÓN ACTUAL: 2.8.0   (18/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.7.0-GT02";
+var APP_VERSION = "2.8.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -786,6 +786,10 @@ function goTab(n) {
   document.querySelectorAll(".scr").forEach(function(s,i){ s.classList.toggle("on",i===n); });
   stopQR();
   if(n===4 && INV_ITEMS.length===0) invCargar();
+  // Historial se recarga SIEMPRE al entrar, no solo la primera vez —
+  // así refleja de inmediato cualquier préstamo o devolución recién
+  // hecha, sin que haya que refrescar toda la página manualmente.
+  if(n===2) cargarHist();
 }
 
 // ══════════════════════════════════════════════
@@ -855,6 +859,36 @@ function sheetsGet(range) {
 // ══════════════════════════════════════════════
 //  API — Apps Script (escritura via fetch CORS)
 // ══════════════════════════════════════════════
+// _bloquearBoton / _liberarBoton — mismo criterio que ya usaba
+// guardarPrestamo (ENVIANDO_PRESTAMO), hecho reutilizable para
+// cualquier botón de guardar del sistema. "key" es un nombre único
+// por acción (ej. "eppRegistrar"); mientras esté bloqueada, un
+// segundo toque se ignora en vez de mandar un registro duplicado.
+var _ENVIANDO = {};
+function _bloquearBoton(btn, key, textoCargando){
+  if(_ENVIANDO[key]) return false;
+  _ENVIANDO[key] = true;
+  if(btn){
+    btn.dataset.textoOriginal = btn.textContent;
+    btn.textContent = textoCargando || "⏳ Guardando...";
+    btn.disabled = true;
+  }
+  return true;
+}
+function _liberarBoton(btn, key){
+  _ENVIANDO[key] = false;
+  if(btn){
+    btn.disabled = false;
+    if(btn.dataset.textoOriginal !== undefined) btn.textContent = btn.dataset.textoOriginal;
+  }
+}
+function _botonDelEvento(){
+  // Recupera el botón que disparó el onclick actual, sin tener que
+  // cambiar cada llamada para pasar "this" — funciona porque los
+  // manejadores inline sí exponen el evento global del navegador.
+  try { return (window.event && window.event.target) || null; } catch(e){ return null; }
+}
+
 function gasPost(action, data) {
   data.action = action;
   var payload = JSON.stringify(data, function(k,v){
@@ -1362,6 +1396,8 @@ function mostrarPA(data,nom,cod){
 }
 
 function confirmarDev(id,items){
+  var btn = _botonDelEvento();
+  if(!_bloquearBoton(btn, "confirmarDev", "⏳ Procesando...")) return;
   var dev=items.map(function(it){
     return{
       idDetalle:it.idDetalle,
@@ -1370,14 +1406,16 @@ function confirmarDev(id,items){
     };
   });
   var aDevolver=dev.filter(function(d){return d.estado!=="Pendiente";});
-  if(!aDevolver.length){alert("Selecciona al menos una herramienta para devolver.");return;}
+  if(!aDevolver.length){alert("Selecciona al menos una herramienta para devolver.");_liberarBoton(btn,"confirmarDev");return;}
   gasPost("cerrarPrestamo",{idPrestamo:id,items:aDevolver,recibidoPor:(SESION&&SESION.nombre)||"Almacenista"}).then(function(r){
+    _liberarBoton(btn,"confirmarDev");
     var msg=r.pendientes?"✅ Devolución parcial — quedan herramientas pendientes":"✅ Préstamo cerrado — todas las herramientas devueltas";
     document.getElementById("rd").innerHTML="<div class='msg-ok'>"+msg+"</div>";
     setTimeout(function(){document.getElementById("rd").innerHTML="";},6000);
     // Refresca la lista con el estado real y actualizado, en vez de vaciarla
     if(TWD_COD) cargarPA(TWD_COD,TWD_NOM);
   }).catch(function(e){
+    _liberarBoton(btn,"confirmarDev");
     document.getElementById("rd").innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
   });
 }
@@ -2177,6 +2215,7 @@ function subirFotoHerramienta(codigo, inputEl, tipoBackend) {
 }
 
 function invGuardar(codigoOriginal){
+  var btn = _botonDelEvento();
   var msg=document.getElementById("ivMsg");
   msg.innerHTML="";
   var tipo=document.getElementById("ivTipo").value;
@@ -2213,12 +2252,15 @@ function invGuardar(codigoOriginal){
     data.observaciones=observacionesInput;
   }
 
+  if(!_bloquearBoton(btn, "invGuardar")) return;
   gasPost("guardarItemCatalogo",data).then(function(r){
+    _liberarBoton(btn, "invGuardar");
     if(r.error){ msg.innerHTML="<div class='msg-err'>❌ "+r.error+"</div>"; return; }
     document.getElementById("invForm").innerHTML="<div class='msg-ok'>✅ Guardado correctamente.</div>";
     setTimeout(function(){document.getElementById("invForm").innerHTML="";},1500);
     invCargar();
   }).catch(function(e){
+    _liberarBoton(btn, "invGuardar");
     msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
   });
 }
@@ -2438,6 +2480,7 @@ function apQuitarTrab(){ AP_TRAB_SEL=null; document.getElementById("apTrabSel").
 
 // ── Paso 3: registrar ──
 function apRegistrar(){
+  var btn = _botonDelEvento();
   var msg = document.getElementById("apMsg");
   msg.innerHTML="";
   if(!AP_PERNO_SEL){ msg.innerHTML="<div class=\'msg-err\'>Selecciona el tipo de perno</div>"; return; }
@@ -2446,6 +2489,7 @@ function apRegistrar(){
   if(!fecha){ msg.innerHTML="<div class=\'msg-err\'>Selecciona la fecha del armado</div>"; return; }
   var cantidad = document.getElementById("apCantidad").value;
   if(!cantidad || Number(cantidad)<=0){ msg.innerHTML="<div class=\'msg-err\'>Escribe una cantidad válida</div>"; return; }
+  if(!_bloquearBoton(btn, "apRegistrar")) return;
   var pieza = document.getElementById("apPieza").value.trim();
   var obs = document.getElementById("apObs").value.trim();
 
@@ -2461,6 +2505,7 @@ function apRegistrar(){
     observaciones: obs,
     registradoPor: (SESION&&SESION.nombre)||"Almacenista"
   }).then(function(r){
+    _liberarBoton(btn, "apRegistrar");
     if(r && r.ok){
       msg.innerHTML="<div class=\'msg-ok\'>✅ Armado registrado ("+fecha+")</div>";
       apQuitarPerno(); apQuitarTrab();
@@ -2476,6 +2521,7 @@ function apRegistrar(){
       msg.innerHTML="<div class=\'msg-err\'>"+(r&&r.error||"Error al guardar")+"</div>";
     }
   }).catch(function(e){
+    _liberarBoton(btn, "apRegistrar");
     msg.innerHTML="<div class=\'msg-err\'>"+e.message+"</div>";
   });
 }
@@ -2653,8 +2699,19 @@ function eppFilaAObjeto(r){
     codigoTrabajador: (r[1]||"").toString().trim(), nombreTrabajador: r[2]||"",
     item: r[3]||"", tipoMovimiento: r[4]||"",
     cantidad: Number(r[5])||1, talla: r[6]||"", motivo: r[7]||"",
-    observaciones: r[8]||""
+    observaciones: r[8]||"",
+    idMovimiento: r[10]||"", idAnulado: r[11]||""
   };
+}
+
+// eppFiltrarVigentes — quita del cálculo cualquier movimiento que haya
+// sido anulado, y las propias filas de "Anulacion" (esas solo sirven
+// para marcar, no son un evento de EPP en sí). El registro original
+// sigue existiendo en la hoja para auditoría, simplemente no cuenta.
+function eppFiltrarVigentes(movs){
+  var anulados = {};
+  movs.forEach(function(m){ if(m.tipoMovimiento==="Anulacion" && m.idAnulado) anulados[m.idAnulado]=true; });
+  return movs.filter(function(m){ return m.tipoMovimiento!=="Anulacion" && !anulados[m.idMovimiento]; });
 }
 
 function eppSelTrab(codigo, nombre){
@@ -2664,7 +2721,7 @@ function eppSelTrab(codigo, nombre){
   var cont = document.getElementById("eppFormContainer");
   cont.innerHTML = "<div class='card'><div class='loading'>🔄 Cargando historial de "+nombre+"...</div></div>";
 
-  sheetsGet("EPP_Movimientos!A2:J").then(function(resp){
+  sheetsGet("EPP_Movimientos!A2:L").then(function(resp){
     var rows = resp.values || [];
     EPP_MOVS_TRAB = rows.map(eppFilaAObjeto).filter(function(m){
       return m.fecha && m.codigoTrabajador.toLowerCase() === codigo.toLowerCase();
@@ -2678,7 +2735,7 @@ function eppSelTrab(codigo, nombre){
 // ── Cálculo de estado a partir del historial (nunca se guarda fijo) ──
 function eppEstadoItemSimple(item){
   // Casco y Chaleco: se pueden entregar y devolver más de una vez.
-  var movs = EPP_MOVS_TRAB.filter(function(m){ return m.item===item; }).sort(function(a,b){return a.fecha-b.fecha;});
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item===item; }).sort(function(a,b){return a.fecha-b.fecha;});
   var entregado=false, fechaEntregado="", fechaDevuelto="";
   movs.forEach(function(m){
     if(m.tipoMovimiento==="Entrega"){ entregado=true; fechaEntregado=m.fechaStr; fechaDevuelto=""; }
@@ -2688,25 +2745,27 @@ function eppEstadoItemSimple(item){
 }
 function eppEstadoSoloEntrega(item){
   // Lentes y Zapato: se quedan con el trabajador, sin devolución.
-  var movs = EPP_MOVS_TRAB.filter(function(m){ return m.item===item; }).sort(function(a,b){return b.fecha-a.fecha;});
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item===item; }).sort(function(a,b){return b.fecha-a.fecha;});
   if(!movs.length) return {entregado:false};
   return {entregado:true, fecha:movs[0].fechaStr, talla:movs[0].talla};
 }
 function eppEstadoCamisa(){
   // Camisa: se suman todas las entregas (a veces 1, a veces 2, en fechas distintas).
-  var movs = EPP_MOVS_TRAB.filter(function(m){ return m.item==="Camisa"; }).sort(function(a,b){return a.fecha-b.fecha;});
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item==="Camisa"; }).sort(function(a,b){return a.fecha-b.fecha;});
   var total = 0;
   movs.forEach(function(m){ total+=m.cantidad; });
   return {total:total, entregas:movs};
 }
 function eppEstadoGuantes(){
   // Guantes: historial completo de cambios, con motivo, para ver reincidencia.
-  var movs = EPP_MOVS_TRAB.filter(function(m){ return m.item==="Guantes"; }).sort(function(a,b){return b.fecha-a.fecha;});
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item==="Guantes"; }).sort(function(a,b){return b.fecha-a.fecha;});
   return {total:movs.length, ultimo:movs[0]||null, historial:movs};
 }
 
 // ── Registrar un movimiento (llamado desde los botones de acción) ──
 function eppRegistrar(item, tipoMovimiento, extra){
+  var btn = _botonDelEvento();
+  if(!_bloquearBoton(btn, "eppRegistrar")) return;
   extra = extra || {};
   gasPost("registrarMovimientoEPP", {
     codigoTrabajador: EPP_TRAB_ACTUAL.codigo,
@@ -2716,42 +2775,89 @@ function eppRegistrar(item, tipoMovimiento, extra){
     cantidad: extra.cantidad || 1,
     talla: extra.talla || "",
     motivo: extra.motivo || "",
+    observaciones: extra.observaciones || "",
+    fecha: extra.fecha || "",
+    idAnulado: extra.idAnulado || "",
     registradoPor: (SESION&&SESION.nombre)||"Almacenista"
   }).then(function(r){
+    _liberarBoton(btn, "eppRegistrar");
     if(r && r.ok){
       EPP_MOVS_TODOS = null; // invalida la caché del reporte general
       eppSelTrab(EPP_TRAB_ACTUAL.codigo, EPP_TRAB_ACTUAL.nombre);
     } else {
       alert("❌ "+(r&&r.error||"No se pudo guardar"));
     }
-  }).catch(function(e){ alert("❌ "+e.message); });
+  }).catch(function(e){ _liberarBoton(btn, "eppRegistrar"); alert("❌ "+e.message); });
 }
-function eppEntregarLentes(){ eppRegistrar("Lentes","Entrega"); }
+// eppPedirFechaYComentario — se pregunta en TODAS las acciones de EPP,
+// para que la fecha registrada sea la fecha real del hecho (aunque se
+// esté poniendo al día en un domingo), no la fecha del sistema.
+function eppPedirFechaYComentario(tituloAccion){
+  var hoy = new Date().toISOString().slice(0,10);
+  var fecha = prompt("Fecha real de: "+tituloAccion+"\n(AAAA-MM-DD, deja igual si fue hoy)", hoy);
+  if(fecha===null) return null;
+  fecha = fecha.trim() || hoy;
+  var obs = prompt("Comentario (opcional, puede dejarlo en blanco):","");
+  if(obs===null) obs="";
+  return {fecha:fecha, observaciones:obs.trim()};
+}
+function eppAccionSimple(item, tipoMovimiento, etiqueta){
+  var extra = eppPedirFechaYComentario(etiqueta);
+  if(!extra) return;
+  eppRegistrar(item, tipoMovimiento, extra);
+}
+function eppEntregarLentes(){
+  var extra = eppPedirFechaYComentario("Entrega de lentes de seguridad");
+  if(!extra) return;
+  eppRegistrar("Lentes","Entrega",extra);
+}
 function eppEntregarZapato(){
   var talla = prompt("Talla del zapato:");
   if(talla===null) return;
-  eppRegistrar("Zapato","Entrega",{talla:talla.trim()});
+  var extra = eppPedirFechaYComentario("Entrega de zapato industrial");
+  if(!extra) return;
+  extra.talla = talla.trim();
+  eppRegistrar("Zapato","Entrega",extra);
 }
 function eppEntregarCamisa(){
-  var cantidad = prompt("¿Cuántas camisas se entregan hoy?","1");
+  var cantidad = prompt("¿Cuántas camisas se entregan?","1");
   if(cantidad===null || !Number(cantidad) || Number(cantidad)<=0){ if(cantidad!==null) alert("Cantidad inválida"); return; }
   var talla = prompt("Talla de la camisa (opcional, puede dejarlo en blanco):","");
   if(talla===null) talla="";
-  eppRegistrar("Camisa","Entrega",{cantidad:cantidad, talla:talla.trim()});
+  var extra = eppPedirFechaYComentario("Entrega de camisa");
+  if(!extra) return;
+  extra.cantidad = cantidad;
+  extra.talla = talla.trim();
+  eppRegistrar("Camisa","Entrega",extra);
 }
 function eppCambiarGuantes(){
   var op = prompt("Motivo del cambio de guantes:\n1) Entrega inicial\n2) Dañado por uso\n3) Extraviado\n4) Otro","1");
   if(op===null) return;
   var motivos = {"1":"Entrega inicial","2":"Dañado por uso","3":"Extraviado","4":"Otro"};
   var motivo = motivos[op.trim()] || op.trim();
-  eppRegistrar("Guantes","Entrega",{motivo:motivo});
+  var extra = eppPedirFechaYComentario("Entrega/cambio de guantes");
+  if(!extra) return;
+  extra.motivo = motivo;
+  eppRegistrar("Guantes","Entrega",extra);
+}
+
+// eppAnular — NUNCA borra: agrega un registro de anulación que hace
+// que el estado calculado ignore el movimiento original, dejando
+// rastro completo de qué se corrigió, cuándo y por qué (mismo
+// criterio que usan las empresas grandes para su control de activos).
+function eppAnular(idMovimiento, item, descripcion){
+  if(!confirm("¿Anular este registro?\n\n"+descripcion+"\n\nNo se borra — queda marcado como anulado en el historial, dejando rastro de la corrección."))
+    return;
+  var motivo = prompt("Motivo de la anulación (ej. 'Registrado por error, duplicado'):","");
+  if(motivo===null) return;
+  eppRegistrar(item, "Anulacion", {idAnulado:idMovimiento, motivo:motivo.trim()});
 }
 
 // ── Bloques visuales reutilizables ──
 function eppBloqueDevuelve(item, etiqueta, estado){
   var accionBtn = estado.entregado
-    ? "<button class='btn b-sec b-sm' onclick='eppRegistrar(\""+item+"\",\"Devolucion\")'>↩️ Devolver</button>"
-    : "<button class='btn b-ok b-sm' onclick='eppRegistrar(\""+item+"\",\"Entrega\")'>✅ Entregar</button>";
+    ? "<button class='btn b-sec b-sm' onclick='eppAccionSimple(\""+item+"\",\"Devolucion\",\"Devolución de "+etiqueta.replace(/^[^ ]+ /,"")+"\")'>↩️ Devolver</button>"
+    : "<button class='btn b-ok b-sm' onclick='eppAccionSimple(\""+item+"\",\"Entrega\",\"Entrega de "+etiqueta.replace(/^[^ ]+ /,"")+"\")'>✅ Entregar</button>";
   var estadoTxt = estado.entregado ? "Entregado ("+estado.fechaEntregado+")" : (estado.fechaDevuelto ? "Devuelto ("+estado.fechaDevuelto+")" : "No entregado");
   return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2;gap:8px'>"+
     "<div><div style='font-weight:bold;font-size:13px'>"+etiqueta+"</div><div style='font-size:11px;color:#888'>"+estadoTxt+"</div></div>"+
@@ -2808,11 +2914,19 @@ function eppToggleHistorialCompleto(){
   var div = document.getElementById("eppHistCompleto");
   if(!div) return;
   if(div.style.display==="none"){
-    var ordenado = EPP_MOVS_TRAB.slice().sort(function(a,b){return b.fecha-a.fecha;});
+    var anulados = {};
+    EPP_MOVS_TRAB.forEach(function(m){ if(m.tipoMovimiento==="Anulacion" && m.idAnulado) anulados[m.idAnulado]=true; });
+    var ordenado = EPP_MOVS_TRAB.slice().filter(function(m){ return m.tipoMovimiento!=="Anulacion"; }).sort(function(a,b){return b.fecha-a.fecha;});
     div.innerHTML = ordenado.length ? ordenado.map(function(m){
-      return "<div style='padding:5px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+
-        "<b>"+m.fechaStr+"</b> — "+m.item+" ("+m.tipoMovimiento+")"+(m.cantidad>1?" x"+m.cantidad:"")+
-        (m.talla?" · talla "+m.talla:"")+(m.motivo?" · "+m.motivo:"")+"</div>";
+      var fueAnulado = m.idMovimiento && anulados[m.idMovimiento];
+      var texto = "<b>"+m.fechaStr+"</b> — "+m.item+" ("+m.tipoMovimiento+")"+(m.cantidad>1?" x"+m.cantidad:"")+
+        (m.talla?" · talla "+m.talla:"")+(m.motivo?" · "+m.motivo:"")+(m.observaciones?" · 📝 "+m.observaciones:"");
+      var btnAnular = fueAnulado
+        ? "<span style='font-size:10px;color:#C00000;font-weight:bold'>ANULADO</span>"
+        : (m.idMovimiento ? "<button class='btn b-danger b-sm' style='flex-shrink:0' onclick='eppAnular(\""+escJS(m.idMovimiento)+"\",\""+escJS(m.item)+"\",\""+escJS(m.fechaStr+" - "+m.item+" ("+m.tipoMovimiento+")")+"\")'>Anular</button>" : "");
+      return "<div style='padding:5px 0;border-bottom:1px solid #f2f2f2;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:6px'>"+
+        "<span style='"+(fueAnulado?"text-decoration:line-through;color:#999":"")+"'>"+texto+"</span>"+btnAnular+
+      "</div>";
     }).join("") : "<div style='font-size:12px;color:#888'>Sin movimientos todavía</div>";
     div.style.display="block";
   } else {
@@ -2833,7 +2947,7 @@ function eppGenerarPDFPersona(){
   doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 36);
   doc.setFont(undefined,"normal");
 
-  var filas = EPP_MOVS_TRAB.slice().sort(function(a,b){return a.fecha-b.fecha;}).map(function(m){
+  var filas = eppFiltrarVigentes(EPP_MOVS_TRAB).sort(function(a,b){return a.fecha-b.fecha;}).map(function(m){
     return [m.fechaStr, m.item, m.tipoMovimiento==="Entrega"?"Entrega":"Devolución", m.cantidad, m.talla||"—", m.motivo||"—"];
   });
   if(!filas.length){ alert("Este trabajador todavía no tiene ningún movimiento de EPP registrado."); return; }
@@ -2869,7 +2983,7 @@ function eppGenerarPDFPersona(){
 // ── Reporte general (todos los trabajadores, con filtros) ──
 function eppCargarTodos(){
   document.getElementById("eppRepLista").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet("EPP_Movimientos!A2:J").then(function(resp){
+  sheetsGet("EPP_Movimientos!A2:L").then(function(resp){
     var rows = resp.values || [];
     EPP_MOVS_TODOS = rows.map(eppFilaAObjeto).filter(function(m){ return m.fecha; });
     eppPoblarFiltroTrab();
@@ -2894,7 +3008,7 @@ function eppFiltrarTodos(){
   var hasta = hastaVal ? new Date(hastaVal+"T23:59:59") : null;
   var itemSel = document.getElementById("eppRepItem").value;
   var trabSel = document.getElementById("eppRepTrab").value;
-  return (EPP_MOVS_TODOS||[]).filter(function(m){
+  return eppFiltrarVigentes(EPP_MOVS_TODOS||[]).filter(function(m){
     if(desde && m.fecha < desde) return false;
     if(hasta && m.fecha > hasta) return false;
     if(itemSel && m.item !== itemSel) return false;
@@ -2914,7 +3028,7 @@ function eppCalcularReporte(){
   }).join("") : "<div style='font-size:12px;color:#888'>Sin registros con ese filtro</div>";
 
   var reinc = {};
-  EPP_MOVS_TODOS.filter(function(m){ return m.item==="Guantes" && m.motivo && m.motivo!=="Entrega inicial"; })
+  eppFiltrarVigentes(EPP_MOVS_TODOS).filter(function(m){ return m.item==="Guantes" && m.motivo && m.motivo!=="Entrega inicial"; })
     .forEach(function(m){ reinc[m.nombreTrabajador] = (reinc[m.nombreTrabajador]||0)+1; });
   var listaReinc = Object.keys(reinc).sort(function(a,b){return reinc[b]-reinc[a];});
   document.getElementById("eppReincidencia").innerHTML = listaReinc.length ? listaReinc.map(function(n){
@@ -3125,6 +3239,8 @@ function horGuardar(){
   var partes=fechaVal.split("-");
   var fechaFmt=partes[2]+"/"+partes[1]+"/"+partes[0]; // dd/mm/yyyy, como el resto de la app
 
+  var btn = document.getElementById("horBtnGuardar");
+  if(!_bloquearBoton(btn, "horGuardar", btn?btn.textContent:"⏳ Guardando...")) return;
   gasPost("guardarLecturaHorometro",{
     codigoMaquina: maquinaCod,
     nombreMaquina: maquinaObj?maquinaObj.nombre:"",
@@ -3135,6 +3251,7 @@ function horGuardar(){
     observaciones: obs,
     registradoPor: (SESION&&SESION.nombre)||"Almacenista"
   }).then(function(r){
+    _liberarBoton(btn, "horGuardar");
     if(r.error){ msg.innerHTML="<div class='msg-err'>❌ "+r.error+"</div>"; return; }
     horRecordarOperador(maquinaCod, operador);
     var accion = r.editado ? "Actualizado" : "Registrado";
@@ -3144,8 +3261,10 @@ function horGuardar(){
     document.getElementById("horObs").value="";
     document.getElementById("horPreview").textContent="";
     HOR_EDITANDO_ID=null;
+    if(btn) btn.dataset.textoOriginal = "💾 Registrar lectura";
     document.getElementById("horBtnGuardar").textContent="💾 Registrar lectura";
   }).catch(function(e){
+    _liberarBoton(btn, "horGuardar");
     msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
   });
 }
@@ -3368,6 +3487,7 @@ function horMantSiguiente(){ if(HOR_MANT_INDICE<HOR_MANT_LISTA.length-1){ HOR_MA
 function horMantUltimo(){ HOR_MANT_INDICE=HOR_MANT_LISTA.length-1; horMantMostrarActual(); }
 
 function horMantGuardar(){
+  var btn = _botonDelEvento();
   var r=HOR_MANT_LISTA[HOR_MANT_INDICE];
   var msg=document.getElementById("horMantMsg");
   msg.innerHTML="";
@@ -3382,6 +3502,7 @@ function horMantGuardar(){
     msg.innerHTML="<div class='msg-err'>Operador, horómetro de inicio y de fin son obligatorios.</div>";
     return;
   }
+  if(!_bloquearBoton(btn, "horMantGuardar")) return;
 
   // Se envía la MISMA máquina+fecha del registro actual — Code.gs va a
   // encontrar que ya existe y va a ACTUALIZAR esa fila, no crear una nueva.
@@ -3395,23 +3516,28 @@ function horMantGuardar(){
     observaciones: obs,
     registradoPor: (SESION&&SESION.nombre)||"Almacenista"
   }).then(function(res){
+    _liberarBoton(btn, "horMantGuardar");
     if(res.error){ msg.innerHTML="<div class='msg-err'>❌ "+res.error+"</div>"; return; }
     // Actualiza el registro en memoria, sin recargar toda la lista
     r.operador=operador; r.inicio=ini; r.fin=fin; r.observaciones=obs;
     r.trabajadas=res.horasTrabajadas; r.aPagar=res.horasAPagar;
     msg.innerHTML="<div class='msg-ok'>✅ Cambios guardados — "+res.horasTrabajadas+" h trabajadas, "+res.horasAPagar+" h a pagar.</div>";
   }).catch(function(e){
+    _liberarBoton(btn, "horMantGuardar");
     msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
   });
 }
 
 function horMantEliminar(){
+  var btn = _botonDelEvento();
   var r=HOR_MANT_LISTA[HOR_MANT_INDICE];
   if(!r) return;
   if(!confirm("¿Eliminar el registro de "+r.nombreMaquina+" del "+r.fecha+"? Esta acción no se puede deshacer.")) return;
+  if(!_bloquearBoton(btn, "horMantEliminar")) return;
 
   var msg=document.getElementById("horMantMsg");
   gasPost("eliminarLecturaHorometro",{id:r.id}).then(function(res){
+    _liberarBoton(btn, "horMantEliminar");
     if(res.error){ msg.innerHTML="<div class='msg-err'>❌ "+res.error+"</div>"; return; }
     HOR_MANT_LISTA.splice(HOR_MANT_INDICE,1);
     if(!HOR_MANT_LISTA.length){
@@ -3422,6 +3548,7 @@ function horMantEliminar(){
     if(HOR_MANT_INDICE>=HOR_MANT_LISTA.length) HOR_MANT_INDICE=HOR_MANT_LISTA.length-1;
     horMantMostrarActual();
   }).catch(function(e){
+    _liberarBoton(btn, "horMantEliminar");
     msg.innerHTML="<div class='msg-err'>❌ Error: "+e.message+"</div>";
   });
 }
@@ -3509,14 +3636,17 @@ function editarUsuarioForm(btn_or_usuario, nombre, rol, activo) {
 }
 
 function guardarEdicionUsuario(usuario) {
+  var btn = _botonDelEvento();
   var nombre = (document.getElementById("euNombre")||{value:""}).value.trim();
   var rol    = (document.getElementById("euRol")||{value:"Operador"}).value;
   var msg    = document.getElementById("euMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarEdicionUsuario")) return;
   gasPost("editarUsuario",{usuario:usuario,nombre:nombre,rol:rol}).then(function(r){
+    _liberarBoton(btn, "guardarEdicionUsuario");
     if(r&&r.ok){ cancelarFormUsuario(); cargarUsuarios(); }
     else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarEdicionUsuario"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function resetPinForm(btn_or_usuario) {
@@ -3535,25 +3665,31 @@ function resetPinForm(btn_or_usuario) {
 }
 
 function guardarNuevoPin(usuario) {
+  var btn = _botonDelEvento();
   var pin1 = (document.getElementById("nuevoPin")||{value:""}).value.trim();
   var pin2 = (document.getElementById("confirmarPin")||{value:""}).value.trim();
   var msg  = document.getElementById("pinMsg");
   if(!pin1||pin1.length<4){ if(msg)msg.innerHTML="<div class='msg-err'>El PIN debe tener al menos 4 dígitos</div>"; return; }
   if(pin1!==pin2){ if(msg)msg.innerHTML="<div class='msg-err'>Los PIN no coinciden</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarNuevoPin")) return;
   gasPost("editarUsuario",{usuario:usuario,pin:pin1}).then(function(r){
+    _liberarBoton(btn, "guardarNuevoPin");
     if(r&&r.ok){ cancelarFormUsuario(); alert("PIN actualizado correctamente"); }
     else{ if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevoPin"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function toggleActivoUsuario(btn_or_usuario, estaActivo) {
+  var btn = typeof btn_or_usuario === "string" ? null : btn_or_usuario;
   var usuario = typeof btn_or_usuario === "string" ? btn_or_usuario : btn_or_usuario.getAttribute("data-u");
   estaActivo = estaActivo !== undefined ? estaActivo : btn_or_usuario.getAttribute("data-a")==="true";
   if(!confirm((estaActivo?"Desactivar":"Activar")+" al usuario @"+usuario+"?")) return;
+  if(!_bloquearBoton(btn, "toggleActivoUsuario")) return;
   gasPost("editarUsuario",{usuario:usuario,activo:!estaActivo}).then(function(r){
+    _liberarBoton(btn, "toggleActivoUsuario");
     if(r&&r.ok) cargarUsuarios();
     else alert(r&&r.error||"Error");
-  }).catch(function(e){ alert(e.message); });
+  }).catch(function(e){ _liberarBoton(btn, "toggleActivoUsuario"); alert(e.message); });
 }
 
 function cancelarFormUsuario() {
@@ -3578,6 +3714,7 @@ function nuevoUsuarioForm() {
 }
 
 function guardarNuevoUsuario() {
+  var btn = _botonDelEvento();
   var usuario = (document.getElementById("nuUser")||{value:""}).value.trim();
   var nombre  = (document.getElementById("nuNombre")||{value:""}).value.trim();
   var pin     = (document.getElementById("nuPin")||{value:""}).value.trim();
@@ -3585,10 +3722,12 @@ function guardarNuevoUsuario() {
   var msg     = document.getElementById("nuMsg");
   if(!usuario||!nombre||!pin){ if(msg)msg.innerHTML="<div class='msg-err'>Todos los campos son requeridos</div>"; return; }
   if(pin.length<4){ if(msg)msg.innerHTML="<div class='msg-err'>PIN mínimo 4 dígitos</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarNuevoUsuario")) return;
   gasPost("agregarUsuario",{usuario:usuario,nombre:nombre,pin:pin,rol:rol,activo:true}).then(function(r){
+    _liberarBoton(btn, "guardarNuevoUsuario");
     if(r&&r.ok){ cancelarFormUsuario(); cargarUsuarios(); }
     else{ if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevoUsuario"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 // ══════════════════════════════════════════════
@@ -3827,6 +3966,7 @@ function subirFotoTrabajador(codigo, inputEl) {
 }
 
 function guardarEdicionTrabajador(codigo) {
+  var btn = _botonDelEvento();
   var nombre = (document.getElementById("etNombre")||{value:""}).value.trim();
   var cargo  = (document.getElementById("etCargo")||{value:""}).value.trim();
   var espec  = (document.getElementById("etEspecialidad")||{value:""}).value.trim();
@@ -3836,29 +3976,36 @@ function guardarEdicionTrabajador(codigo) {
   var obs    = (document.getElementById("etObs")||{value:""}).value.trim();
   var msg    = document.getElementById("etMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarEdicionTrabajador")) return;
   gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,especialidad:espec,telefono:tel,dui:dui,estado:estado,observaciones:obs}).then(function(r){
+    _liberarBoton(btn, "guardarEdicionTrabajador");
     if(r&&r.ok){ cancelarFormTrab(); cargarTrabajadoresAdmin(); }
     else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarEdicionTrabajador"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function toggleActivoTrabajador(btn) {
   var codigo=btn.getAttribute("data-c"), estaActivo=btn.getAttribute("data-a")==="true";
   if(!confirm((estaActivo?"Desactivar":"Activar")+" al trabajador "+codigo+"?")) return;
+  if(!_bloquearBoton(btn, "toggleActivoTrabajador")) return;
   gasPost("editarTrabajador",{codigo:codigo,estado:estaActivo?"Inactivo":"Activo"}).then(function(r){
+    _liberarBoton(btn, "toggleActivoTrabajador");
     if(r&&r.ok) cargarTrabajadoresAdmin();
     else alert(r&&r.error||"Error");
-  }).catch(function(e){ alert(e.message); });
+  }).catch(function(e){ _liberarBoton(btn, "toggleActivoTrabajador"); alert(e.message); });
 }
 
 function guardarNuevoTrabajador() {
+  var btn = _botonDelEvento();
   var nombre = (document.getElementById("ntNombre")||{value:""}).value.trim();
   var cargo  = (document.getElementById("ntCargo")||{value:""}).value.trim();
   var tel    = (document.getElementById("ntTel")||{value:""}).value.trim();
   var dui    = (document.getElementById("ntDui")||{value:""}).value.trim();
   var msg    = document.getElementById("ntMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarNuevoTrabajador")) return;
   gasPost("agregarTrabajador",{nombre:nombre,cargo:cargo,telefono:tel,dui:dui}).then(function(r){
+    _liberarBoton(btn, "guardarNuevoTrabajador");
     if(r&&r.ok){
       cancelarFormTrab();
       cargarTrabajadoresAdmin();
@@ -3869,7 +4016,7 @@ function guardarNuevoTrabajador() {
         }
       }, 300);
     } else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevoTrabajador"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function cancelarFormTrab() {
@@ -3932,13 +4079,16 @@ function nuevaMaquinaForm() {
 }
 
 function guardarNuevaMaquina() {
+  var btn = _botonDelEvento();
   var nombre = (document.getElementById("nmNombre")||{value:""}).value.trim();
   var tipo   = (document.getElementById("nmTipo")||{value:"Excavadora"}).value;
   var placa  = (document.getElementById("nmPlaca")||{value:""}).value.trim();
   var obs    = (document.getElementById("nmObs")||{value:""}).value.trim();
   var msg    = document.getElementById("nmMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if(!_bloquearBoton(btn, "guardarNuevaMaquina")) return;
   gasPost("agregarMaquina",{nombre:nombre,tipo:tipo,placa:placa,observaciones:obs}).then(function(r){
+    _liberarBoton(btn, "guardarNuevaMaquina");
     if(r&&r.ok){
       cancelarFormMaq();
       if(msg)msg.innerHTML="<div class='msg-ok'>✅ Máquina agregada: "+r.codigo+"</div>";
@@ -3946,7 +4096,7 @@ function guardarNuevaMaquina() {
       // Recargar selector de horómetro
       horCargarMaquinas();
     } else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
-  }).catch(function(e){ if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevaMaquina"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function cancelarFormMaq() {
@@ -4265,12 +4415,12 @@ function qrGenerarPDFCarnets(){
       doc.rect(x, y, cW, headH, "F");
       doc.setTextColor(255,255,255);
       doc.setFont(undefined,"bold");
-      doc.setFontSize(13);
-      doc.text("SOLTECING - GT02", x+cW/2, y+7, {align:"center"});
+      doc.setFontSize(9);
+      doc.text("Almacén GT02", x+cW/2, y+7, {align:"center"});
       doc.setFont(undefined,"normal");
-      doc.setFontSize(8);
+      doc.setFontSize(6.2);
       doc.setTextColor(149,213,178);
-      doc.text("-· Izabal, Guatemala.-", x+cW/2, y+10.5, {align:"center"});
+      doc.text("SOLTECING · Izabal, Guatemala", x+cW/2, y+10.5, {align:"center"});
 
       // Foto recortada en círculo real usando clip() de jsPDF (probado y confirmado)
       var fotoSize=28, fotoX=x+cW/2-fotoSize/2, fotoY=y+headH-fotoSize/2;
