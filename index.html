@@ -610,6 +610,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <div style="display:flex;gap:8px;margin-bottom:10px">
     <button class="btn b-ok b-sm" id="eppBtnPersona" style="flex:1" onclick="eppGoTab(0)">👤 Por trabajador</button>
     <button class="btn b-sec b-sm" id="eppBtnReporte" style="flex:1" onclick="eppGoTab(1)">📊 Reporte general</button>
+    <button class="btn b-sec b-sm" id="eppBtnStock" style="flex:1" onclick="eppGoTab(2)">📦 Stock disponible</button>
   </div>
 
   <div id="eppScrPersona">
@@ -653,6 +654,29 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
       <div id="eppRepLista" style="max-height:400px;overflow-y:auto"></div>
     </div>
   </div>
+
+  <div id="eppScrStock" style="display:none">
+    <div class="card">
+      <div class="ctit">Registrar ingreso de EPP</div>
+      <select id="eppStockItem">
+        <option value="Casco">Casco</option>
+        <option value="Chaleco">Chaleco reflectivo</option>
+        <option value="Lentes">Lentes de seguridad</option>
+        <option value="Guantes">Guantes</option>
+        <option value="Camisa">Camisa de uniforme</option>
+        <option value="Zapato">Zapato industrial</option>
+      </select>
+      <input type="text" id="eppStockTalla" placeholder="Talla (solo para camisa/zapato — ej. M, 42)">
+      <input type="number" id="eppStockCantidad" placeholder="Cantidad que ingresa" min="1">
+      <input type="text" id="eppStockObs" placeholder="Observaciones (opcional, ej. proveedor)">
+      <div id="eppStockMsg"></div>
+      <button class="btn b-ok" style="width:100%;padding:12px" onclick="eppRegistrarEntradaStock()">➕ Registrar ingreso</button>
+    </div>
+    <div class="card">
+      <div class="ctit">Disponible actual, por ítem y talla</div>
+      <div id="eppStockTabla"></div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -664,14 +688,14 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.8.0   (18/08/2026)
+// VERSIÓN ACTUAL: 2.9.0   (18/08/2026)
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.8.0-GT02";
+var APP_VERSION = "2.9.0-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -2657,9 +2681,12 @@ function cerrarEPP(){
 function eppGoTab(n){
   document.getElementById("eppScrPersona").style.display = n===0?"block":"none";
   document.getElementById("eppScrReporte").style.display = n===1?"block":"none";
+  document.getElementById("eppScrStock").style.display = n===2?"block":"none";
   document.getElementById("eppBtnPersona").className = "btn "+(n===0?"b-ok":"b-sec")+" b-sm";
   document.getElementById("eppBtnReporte").className = "btn "+(n===1?"b-ok":"b-sec")+" b-sm";
+  document.getElementById("eppBtnStock").className = "btn "+(n===2?"b-ok":"b-sec")+" b-sm";
   if(n===1 && !EPP_MOVS_TODOS) eppCargarTodos();
+  if(n===2) eppCargarStock();
 }
 
 // ── Buscar trabajador (Paso 1, igual patrón que otros módulos) ──
@@ -3060,6 +3087,117 @@ function eppExportarReportePDF(){
   var fg=new Date();
   var nombreArchivo="Historial_EPP_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
   mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "movimientos");
+}
+
+// ── Stock disponible por ítem y talla ──
+var EPP_STOCK_ENTRADAS = null;
+
+// eppClaveStock — agrupa por talla solo en Camisa/Zapato (los únicos
+// que realmente varían por talla); el resto se agrupa como "Única".
+function eppClaveStock(item, talla){
+  var necesitaTalla = (item==="Camisa" || item==="Zapato");
+  return item + "|" + (necesitaTalla ? (talla||"Sin talla") : "Única");
+}
+
+function eppCalcularStock(){
+  var entradas = EPP_STOCK_ENTRADAS || [];
+  var movs = eppFiltrarVigentes(EPP_MOVS_TODOS || []);
+  var stock = {};
+  function asegurar(item, talla){
+    var clave = eppClaveStock(item, talla);
+    if(!stock[clave]) stock[clave] = {
+      item:item,
+      talla: (item==="Camisa"||item==="Zapato") ? (talla||"Sin talla") : "Única",
+      entradas:0, entregas:0, devoluciones:0
+    };
+    return stock[clave];
+  }
+  entradas.forEach(function(e){ asegurar(e.item, e.talla).entradas += e.cantidad; });
+  movs.forEach(function(m){
+    var s = asegurar(m.item, m.talla);
+    if(m.tipoMovimiento==="Entrega") s.entregas += m.cantidad;
+    if(m.tipoMovimiento==="Devolucion") s.devoluciones += m.cantidad;
+  });
+  return Object.keys(stock).map(function(k){
+    var s = stock[k];
+    s.disponible = s.entradas - s.entregas + s.devoluciones;
+    return s;
+  }).sort(function(a,b){
+    return a.item===b.item ? a.talla.localeCompare(b.talla) : a.item.localeCompare(b.item);
+  });
+}
+
+function eppCargarStock(){
+  document.getElementById("eppStockTabla").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
+  Promise.all([
+    sheetsGet("EPP_Stock_Entradas!A2:F").catch(function(){ return {values:[]}; }),
+    EPP_MOVS_TODOS ? Promise.resolve({values:null}) : sheetsGet("EPP_Movimientos!A2:L").catch(function(){ return {values:[]}; })
+  ]).then(function(res){
+    var filasEntradas = res[0].values || [];
+    EPP_STOCK_ENTRADAS = filasEntradas.map(function(r){
+      return { fecha: r[0]?new Date(r[0]):null, item:r[1]||"", talla:r[2]||"", cantidad:Number(r[3])||0, observaciones:r[4]||"" };
+    }).filter(function(e){ return e.item; });
+
+    if(!EPP_MOVS_TODOS && res[1].values){
+      EPP_MOVS_TODOS = res[1].values.map(eppFilaAObjeto).filter(function(m){ return m.fecha; });
+      eppPoblarFiltroTrab();
+    }
+    eppRenderStockTabla();
+  }).catch(function(err){
+    document.getElementById("eppStockTabla").innerHTML = "<div class='msg-err'>"+err.message+"</div>";
+  });
+}
+
+function eppRenderStockTabla(){
+  var filas = eppCalcularStock();
+  var etiquetas = {Casco:"⛑ Casco", Chaleco:"🦺 Chaleco", Lentes:"🥽 Lentes", Guantes:"🧤 Guantes", Camisa:"👕 Camisa", Zapato:"👞 Zapato"};
+  document.getElementById("eppStockTabla").innerHTML = filas.length ? filas.map(function(s){
+    var bajo = s.disponible <= 3;
+    return "<div style='display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f2f2f2'>"+
+      "<div><b style='font-size:13px'>"+(etiquetas[s.item]||s.item)+(s.talla!=="Única"?" — talla "+s.talla:"")+"</b>"+
+      "<div style='font-size:10px;color:#888'>Ingresos: "+s.entradas+" · Entregados: "+s.entregas+" · Devueltos: "+s.devoluciones+"</div></div>"+
+      "<div style='font-size:18px;font-weight:bold;color:"+(bajo?"#C00000":"#375623")+"'>"+s.disponible+"</div>"+
+    "</div>";
+  }).join("") : "<div style='font-size:12px;color:#888'>Todavía no hay ingresos de EPP registrados</div>";
+}
+
+function eppRegistrarEntradaStock(){
+  var btn = _botonDelEvento();
+  var msg = document.getElementById("eppStockMsg");
+  msg.innerHTML = "";
+  var item = document.getElementById("eppStockItem").value;
+  var talla = document.getElementById("eppStockTalla").value.trim();
+  var cantidad = document.getElementById("eppStockCantidad").value;
+  var obs = document.getElementById("eppStockObs").value.trim();
+  if((item==="Camisa"||item==="Zapato") && !talla){
+    msg.innerHTML = "<div class='msg-err'>Para "+item+" hace falta indicar la talla</div>";
+    return;
+  }
+  if(!cantidad || Number(cantidad)<=0){
+    msg.innerHTML = "<div class='msg-err'>Escribe una cantidad válida</div>";
+    return;
+  }
+  if(!_bloquearBoton(btn, "eppRegistrarEntradaStock")) return;
+  gasPost("registrarEntradaEPP",{
+    item:item, talla:talla, cantidad:cantidad, observaciones:obs,
+    registradoPor:(SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(r){
+    _liberarBoton(btn, "eppRegistrarEntradaStock");
+    if(r && r.ok){
+      msg.innerHTML = "<div class='msg-ok'>✅ Ingreso registrado</div>";
+      document.getElementById("eppStockTalla").value="";
+      document.getElementById("eppStockCantidad").value="";
+      document.getElementById("eppStockObs").value="";
+      EPP_STOCK_ENTRADAS = null;
+      eppCargarStock();
+      setTimeout(function(){ msg.innerHTML=""; },2000);
+    } else {
+      msg.innerHTML = "<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){
+    _liberarBoton(btn, "eppRegistrarEntradaStock");
+    msg.innerHTML = "<div class='msg-err'>"+e.message+"</div>";
+  });
 }
 
 
