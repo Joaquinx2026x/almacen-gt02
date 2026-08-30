@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes">
 <title>Almacén GT02</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -695,7 +695,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.9.0-GT02";
+var APP_VERSION = "2.9.1-GT02";
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -1828,7 +1828,7 @@ function descargarPDF(){
   var rangoTxt=(r.desde.getTime()===r.hasta.getTime())?fechaLegible(r.desde):(fechaLegible(r.desde)+" al "+fechaLegible(r.hasta));
 
   doc.setFontSize(14);
-  doc.text("Informe — Almacen GT01 Coatepeque",14,15);
+  doc.text("Informe — Almacen GT02 Izabal",14,15);
   doc.setFontSize(9);
   doc.setTextColor(100);
   doc.text("Periodo: "+rangoTxt+"   ·   Generado: "+ahora.toLocaleString("es-GT"),14,21);
@@ -1889,7 +1889,7 @@ function descargarPDF(){
     styles:{fontSize:8},headStyles:{fillColor:[55,86,35]},margin:{left:14,right:14}
   });
 
-  doc.save("Informe_GT01_"+fechaGen+"_"+horaGen+".pdf");
+  doc.save("Informe_GT02_"+fechaGen+"_"+horaGen+".pdf");
 }
 
 // ══════════════════════════════════════════════
@@ -2363,7 +2363,7 @@ function invGuardarEntrada(idx){
 //  horGuardar()      → ⭐ registra una lectura (envía a Code.gs)
 //  horGenerarCorte() → arma la tabla semanal + botón de exportar PDF
 // ══════════════════════════════════════════════
-var HOR_MAQUINAS=[]; // catálogo de máquinas cargado de Maquinaria_GT01
+var HOR_MAQUINAS=[]; // catálogo de máquinas cargado de Maquinas_GT02
 var HOR_CARGADO=false; // evita recargar catálogos cada vez que se abre
 
 function toggleMenuMas(){
@@ -3212,19 +3212,23 @@ function horGoTab(n){
   document.getElementById("horScr2").classList.toggle("on", n===2);
 }
 
-// Carga el catálogo de máquinas (Maquinaria_GT01) para el selector del formulario.
-// Los operadores YA NO se cargan de Personal_GT01 (son personal externo, no
+// Carga el catálogo de máquinas (Maquinas_GT02, dado de alta desde
+// Gestión de máquinas) para el selector del formulario.
+// Corregido en v2.9.1: antes leía de "Maquinaria_GT01" (hoja que no
+// existe en este proyecto, resto de la plantilla GT01), por lo que
+// ninguna máquina agregada desde Admin aparecía nunca en este selector.
+// Los operadores YA NO se cargan de Personal_GT02 (son personal externo, no
 // trabajadores de SOLTECING) — ver HOR_OPERADORES_PROVISIONAL más abajo.
 function horCargarCatalogos(){
-  sheetsGet("Maquinaria_GT01!A2:C").then(function(resp){
+  sheetsGet("Maquinas_GT02!A2:F").then(function(resp){
     var maq=resp.values||[];
 
     HOR_MAQUINAS = maq.filter(function(r){return r[0];}).map(function(r){
-      return { codigo:(r[0]||"").toString(), nombre:(r[1]||"").toString(), estado:(r[2]||"Activa").toString() };
+      return { codigo:(r[0]||"").toString(), nombre:(r[1]||"").toString(), estado:(r[4]||"Activo").toString() };
     });
 
     var optsMaquina = "<option value=''>Selecciona la máquina...</option>" +
-      HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactiva";})
+      HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactivo";})
         .map(function(m){return "<option value='"+esc(m.codigo)+"'>"+esc(m.nombre)+"</option>";}).join("");
     document.getElementById("horMaquina").innerHTML = optsMaquina;
     // El selector de Corte semanal y el de Mantenimiento agregan
@@ -3242,7 +3246,7 @@ function horCargarCatalogos(){
 }
 
 // ── Operadores de maquinaria — lista PROVISIONAL, escrita directo aquí ──
-// Son personas externas a SOLTECING (no están en Personal_GT01), y todavía
+// Son personas externas a SOLTECING (no están en Personal_GT02), y todavía
 // no ameritan una hoja de Excel propia. Para agregar un operador nuevo,
 // simplemente sumá su nombre a este arreglo. El campo de texto también
 // acepta escribir un nombre que NO esté en esta lista (por si llega
@@ -3461,7 +3465,7 @@ function horGenerarCorte(){
     // Arma un arreglo de registros por cada máquina que corresponda mostrar.
     // Si es "Todas", se agrupa una tabla por máquina; si es una sola, es un solo grupo.
     var maquinasAMostrar = todasMaquinas
-      ? HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactiva";})
+      ? HOR_MAQUINAS.filter(function(m){return m.estado!=="Inactivo";})
       : HOR_MAQUINAS.filter(function(m){return m.codigo===maquinaCod;});
 
     var grupos = maquinasAMostrar.map(function(m){
@@ -4247,7 +4251,7 @@ function cancelarFormMaq() {
 // ══════════════════════════════════════════════
 var PALETA = [
   {nombre:"Verde GT02 (por defecto)", primario:"#1B4332", secundario:"#2D6A4F", claro:"#D8F3DC", xclaro:"#EBF7ED", borde:"#B7E4C7", pastel:"#95D5B2"},
-  {nombre:"Azul GT01",    primario:"#1F3864", secundario:"#2E75B6", claro:"#D6E4F0", xclaro:"#EBF3FB", borde:"#BDD7EE", pastel:"#A8C8E8"},
+  {nombre:"Azul",         primario:"#1F3864", secundario:"#2E75B6", claro:"#D6E4F0", xclaro:"#EBF3FB", borde:"#BDD7EE", pastel:"#A8C8E8"},
   {nombre:"Rojo Energía", primario:"#7B0000", secundario:"#C00000", claro:"#FCE4D6", xclaro:"#FFF5F5", borde:"#F5BBBB", pastel:"#E88"},
   {nombre:"Morado",       primario:"#4A0E8F", secundario:"#7B2FF7", claro:"#EDE0FF", xclaro:"#F5EDFF", borde:"#D4B8FF", pastel:"#C8A0F0"},
   {nombre:"Naranja",      primario:"#7B3800", secundario:"#D96900", claro:"#FFE8CC", xclaro:"#FFF4E5", borde:"#FFD199", pastel:"#FFB84D"},
