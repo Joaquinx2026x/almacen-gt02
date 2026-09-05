@@ -317,7 +317,8 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 
   <div id="carnetViewer" style="display:none;margin-bottom:14px">
     <div class="card" style="text-align:center;padding:0;overflow:hidden">
-      <div style="background:#1B4332;padding:14px">
+      <div style="background:#1B4332;padding:14px;position:relative">
+        <div id="carnetLogo" style="position:absolute;top:8px;left:10px;width:26px;height:26px"></div>
         <div style="color:#fff;font-weight:bold;font-size:14px" id="carnetHdrEmpresa">SOLTECING</div>
         <div style="color:#95D5B2;font-size:11px" id="carnetHdrProyecto">Proyecto GT02 · Izabal, Guatemala</div>
       </div>
@@ -700,7 +701,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.10.0-GT02";
+var APP_VERSION = "2.10.1-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -725,6 +726,10 @@ var CONFIG = {
   prefijoTrabajador:   "GT02/RECPER",
   prefijoMaquina:      "MAQ",
   colorPaletaDefecto:  "Verde",
+  // Logo pequeño para la esquina del carnet (opcional). Pegá acá el
+  // logo como "data URL" base64 (ej. "data:image/png;base64,iVBOR...").
+  // Vacío = no se dibuja nada y el carnet se ve como hasta ahora.
+  logoBase64: "",
   leyendaCarnet: "Credencial de acceso al proyecto — válida únicamente mientras el portador preste servicio en el sitio."
 };
 function SHEET(nombreBase){ return nombreBase + "_" + CONFIG.codigoProyecto; }
@@ -4153,6 +4158,8 @@ function carnetMostrar(){
   if(!t) return;
   document.getElementById("carnetHdrEmpresa").textContent = CONFIG.empresa;
   document.getElementById("carnetHdrProyecto").textContent = "Proyecto "+CONFIG.codigoProyecto+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal;
+  var logoDiv = document.getElementById("carnetLogo");
+  if(logoDiv) logoDiv.innerHTML = CONFIG.logoBase64 ? "<img src='"+CONFIG.logoBase64+"' style='width:100%;height:100%;object-fit:contain'>" : "";
   document.getElementById("carnetNombre").textContent = t.nombre || "(sin nombre)";
   document.getElementById("carnetCargo").textContent = t.cargo || "—";
   document.getElementById("carnetCorrelativo").textContent = t.codigo.replace(CONFIG.prefijoTrabajador+"-","");
@@ -4763,11 +4770,15 @@ function qrGenerarPDFCarnets(){
   }
   avisoBox.innerHTML="<div class='msg-ok'>🔄 Generando carnets de "+seleccionados.length+" trabajadores...</div>";
 
+  // Diseño compacto (v2.10.1): 2 columnas x 4 filas = 8 carnets por
+  // hoja carta, foto y QR lado a lado para aprovechar mejor el ancho.
+  // Medidas verificadas para que la leyenda del pie NUNCA se superponga
+  // con la fila de abajo (antes el pie quedaba cortado en la 2da fila).
   var doc=new window.jspdf.jsPDF({unit:"mm",format:"letter"});
-  var pageW=215.9, pageH=279.4, margin=8, gap=4;
-  var cW=54, cH=86;
-  var cols=Math.max(1,Math.floor((pageW-2*margin+gap)/(cW+gap)));
-  var rows=Math.max(1,Math.floor((pageH-2*margin+gap)/(cH+gap)));
+  var pageW=215.9, pageH=279.4, margin=8, gapX=5, gapY=5;
+  var cols=2, rows=4;
+  var cW=(pageW-2*margin-(cols-1)*gapX)/cols;
+  var cH=(pageH-2*margin-(rows-1)*gapY)/rows;
   var porPagina=cols*rows;
 
   var i=0;
@@ -4791,99 +4802,110 @@ function qrGenerarPDFCarnets(){
       var pos=i%porPagina;
       if(i>0 && pos===0) doc.addPage();
       var col=pos%cols, row=Math.floor(pos/cols);
-      var x=margin+col*(cW+gap);
-      var y=margin+row*(cH+gap);
+      var x=margin+col*(cW+gapX);
+      var y=margin+row*(cH+gapY);
 
       // Tarjeta base
       doc.setDrawColor(183,228,199);
       doc.setLineWidth(0.2);
       doc.rect(x,y,cW,cH);
 
-      // Encabezado verde
-      var headH=26;
+      // Encabezado verde (compacto)
+      var headH=9;
       doc.setFillColor(27,67,50);
       doc.rect(x, y, cW, headH, "F");
+
+      // Logo pequeño en la esquina (solo si CONFIG.logoBase64 tiene algo)
+      if(CONFIG.logoBase64){
+        try{ doc.addImage(CONFIG.logoBase64, x+2, y+1, 7, 7); }catch(e){ /* si el formato no es compatible, se omite */ }
+      }
+
       doc.setTextColor(255,255,255);
       doc.setFont(undefined,"bold");
-      doc.setFontSize(9);
-      doc.text(CONFIG.empresa, x+cW/2, y+7, {align:"center"});
+      doc.setFontSize(8);
+      doc.text(CONFIG.empresa, x+cW/2, y+4.3, {align:"center"});
       doc.setFont(undefined,"normal");
-      doc.setFontSize(6.2);
+      doc.setFontSize(5.5);
       doc.setTextColor(149,213,178);
-      doc.text("Proyecto "+CONFIG.codigoProyecto+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, x+cW/2, y+10.5, {align:"center"});
+      doc.text("Proyecto "+CONFIG.codigoProyecto+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, x+cW/2, y+7.4, {align:"center"});
 
-      // Foto recortada en círculo real usando clip() de jsPDF (probado y confirmado)
-      var fotoSize=28, fotoX=x+cW/2-fotoSize/2, fotoY=y+headH-fotoSize/2;
+      // Foto (izquierda) y QR (derecha), lado a lado — recortada en
+      // círculo real usando clip() de jsPDF (probado y confirmado)
+      var fotoSize=20, colIzqCentro=x+cW*0.25, rowTop=y+headH+1;
+      var fotoCX=colIzqCentro, fotoCY=rowTop+fotoSize/2, fotoX=fotoCX-fotoSize/2, fotoY=fotoCY-fotoSize/2;
       doc.setFillColor(255,255,255);
-      doc.circle(x+cW/2, y+headH, fotoSize/2, "F");
+      doc.circle(fotoCX, fotoCY, fotoSize/2, "F");
       if(fotoRes && fotoRes.ok){
         try{
           doc.saveGraphicsState();
-          doc.circle(x+cW/2, y+headH, fotoSize/2, null);
+          doc.circle(fotoCX, fotoCY, fotoSize/2, null);
           doc.clip();
           doc.discardPath();
           doc.addImage("data:"+fotoRes.mimeType+";base64,"+fotoRes.base64, "JPEG", fotoX, fotoY, fotoSize, fotoSize);
           doc.restoreGraphicsState();
           doc.setDrawColor(45,106,79);
           doc.setLineWidth(0.3);
-          doc.circle(x+cW/2, y+headH, fotoSize/2);
+          doc.circle(fotoCX, fotoCY, fotoSize/2);
         }catch(e){ /* si la imagen no es compatible, se deja el círculo vacío */ }
       } else {
         doc.setDrawColor(45,106,79);
         doc.setLineWidth(0.3);
-        doc.circle(x+cW/2, y+headH, fotoSize/2);
+        doc.circle(fotoCX, fotoCY, fotoSize/2);
         doc.setTextColor(45,106,79);
-        doc.setFontSize(6.5);
-        doc.text("FOTO", x+cW/2, y+headH+1.5, {align:"center"});
+        doc.setFontSize(6);
+        doc.text("FOTO", fotoCX, fotoCY+1.5, {align:"center"});
       }
 
-      // Nombre y cargo — se achica la fuente si el nombre es muy largo,
-      // NUNCA se recorta el texto (nombres/apellidos siempre completos).
+      var qs=20, colDerCentro=x+cW*0.75, qy=rowTop, qx=colDerCentro-qs/2;
+      if(qrUrl) doc.addImage(qrUrl,"PNG", qx, qy, qs, qs);
+
+      // Nombre y cargo, bajo la foto — se achica la fuente si el nombre
+      // es muy largo, NUNCA se recorta el texto.
       doc.setTextColor(27,67,50);
       doc.setFont(undefined,"bold");
-      var fNomCarnet = 9.5, minFNom = 5.5;
+      var fNomCarnet = 7, minFNom = 4.5;
       doc.setFontSize(fNomCarnet);
       var nombreCompleto = t.nombre || "";
-      var maxWNombre = cW - 6;
+      var maxWNombre = cW/2 - 3;
       while(doc.getTextWidth(nombreCompleto) > maxWNombre && fNomCarnet - 0.3 >= minFNom){
         fNomCarnet -= 0.3;
         doc.setFontSize(fNomCarnet);
       }
-      doc.text(nombreCompleto, x+cW/2, y+headH+fotoSize/2+7, {align:"center"});
+      var nombreY = fotoY+fotoSize+4;
+      doc.text(nombreCompleto, colIzqCentro, nombreY, {align:"center"});
       doc.setFont(undefined,"normal");
       doc.setTextColor(136,136,136);
-      doc.setFontSize(7);
-      doc.text(t.cargo || "—", x+cW/2, y+headH+fotoSize/2+11.5, {align:"center"});
+      doc.setFontSize(6);
+      doc.text(t.cargo || "—", colIzqCentro, nombreY+3.8, {align:"center"});
 
-      // QR
-      var qs=20, qy=y+headH+fotoSize/2+16;
-      if(qrUrl) doc.addImage(qrUrl,"PNG", x+(cW-qs)/2, qy, qs, qs);
-
-      // Correlativo — franja dorada
+      // Correlativo — franja dorada, bajo el QR
+      var bandW=22, bandH=6, bandY=qy+qs+2;
       doc.setFillColor(244,185,66);
-      doc.rect(x+(cW-24)/2, qy+qs+3, 24, 9, "F");
+      doc.rect(colDerCentro-bandW/2, bandY, bandW, bandH, "F");
       doc.setTextColor(65,36,2);
       doc.setFont(undefined,"bold");
-      doc.setFontSize(13);
-      doc.text(t.codigo.replace(CONFIG.prefijoTrabajador+"-",""), x+cW/2, qy+qs+9, {align:"center"});
+      doc.setFontSize(10);
+      doc.text(t.codigo.replace(CONFIG.prefijoTrabajador+"-",""), colDerCentro, bandY+4.3, {align:"center"});
       doc.setFont(undefined,"normal");
 
-      // Vigencia — mientras el proyecto continúe, o hasta la fecha indicada
-      // en Gestión de trabajadores (Pendiente 4 de la Especificación Técnica).
-      doc.setFontSize(6.3);
+      // Pie común a todo el ancho de la tarjeta: vigencia + leyenda.
+      // Se ubica DESPUÉS de la columna más alta (foto+nombre+cargo vs.
+      // QR+franja), así nunca se pisa con el borde inferior de la
+      // tarjeta ni con la fila de abajo.
+      var pieY = Math.max(nombreY+3.8, bandY+bandH) + 3.5;
+      doc.setFontSize(5.5);
       doc.setTextColor(45,106,79);
       var textoVig = t.vigenciaHasta
         ? "Vigente hasta " + (function(){ var f=new Date(t.vigenciaHasta+"T00:00:00"); return isNaN(f)?t.vigenciaHasta:f.toLocaleDateString("es-GT"); })()
         : "Vigente mientras dure el proyecto";
-      doc.text(textoVig, x+cW/2, qy+qs+15, {align:"center"});
+      doc.setFont(undefined,"bold");
+      doc.text(textoVig, x+cW/2, pieY, {align:"center"});
 
-      // Leyenda legal orientativa — confirmar redacción exacta con
-      // asesoría legal/RRHH antes de imprimir en volumen (ver
-      // Especificación Técnica, Pendiente 4).
-      doc.setFontSize(4.8);
+      doc.setFont(undefined,"normal");
+      doc.setFontSize(4.3);
       doc.setTextColor(150,150,150);
       var leyendaLineas = doc.splitTextToSize(CONFIG.leyendaCarnet, cW-6);
-      doc.text(leyendaLineas, x+cW/2, qy+qs+19.5, {align:"center"});
+      doc.text(leyendaLineas, x+cW/2, pieY+3, {align:"center"});
 
       i++;
       avisoBox.innerHTML="<div class='msg-ok'>🔄 Generando... "+i+" / "+seleccionados.length+"</div>";
