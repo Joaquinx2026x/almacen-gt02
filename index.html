@@ -109,8 +109,8 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 <!-- PANTALLA DE LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
-    <h2>🔒 Almacén GT02</h2>
-    <p>Izabal · SOLTECING</p>
+    <h2 id="loginTitulo">🔒 Almacén GT02</h2>
+    <p id="loginSub">Izabal · SOLTECING</p>
     <div class="login-err" id="loginErr">Usuario o PIN incorrecto</div>
     <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
     <input type="password" id="loginPin" placeholder="PIN" autocomplete="current-password" inputmode="numeric">
@@ -138,11 +138,12 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div class="menu-item" onclick="abrirGestionUsuarios()">👥 Gestión de usuarios</div>
     <div class="menu-item" onclick="abrirGestionTrabajadores()">👷 Gestión de trabajadores</div>
     <div class="menu-item" onclick="abrirGestionMaquinas()">🚧 Gestión de máquinas</div>
+    <div class="menu-item" onclick="abrirGestionCatalogoEPP()">🦺 Catálogo de EPP</div>
     <div class="menu-item" onclick="abrirConfigApariencia()">🎨 Apariencia del sistema</div>
     <div class="menu-item" onclick="abrirGeneradorQR()">🔳 Generar códigos QR</div>
   </div>
 </div>
-<div class="hdr"><h1>🏗 Almacén GT02</h1><span>Izabal · SOLTECING</span></div>
+<div class="hdr"><h1 id="appTitulo">🏗 Almacén GT02</h1><span id="appSub">Izabal · SOLTECING</span></div>
 <div class="tabs">
   <div class="tab on"  onclick="goTab(0)">📤 Préstamo</div>
   <div class="tab"     onclick="goTab(1)">📥 Devolución</div>
@@ -317,14 +318,16 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <div id="carnetViewer" style="display:none;margin-bottom:14px">
     <div class="card" style="text-align:center;padding:0;overflow:hidden">
       <div style="background:#1B4332;padding:14px">
-        <div style="color:#fff;font-weight:bold;font-size:14px">Almacén GT02</div>
-        <div style="color:#95D5B2;font-size:11px">SOLTECING · Izabal, Guatemala</div>
+        <div style="color:#fff;font-weight:bold;font-size:14px" id="carnetHdrEmpresa">SOLTECING</div>
+        <div style="color:#95D5B2;font-size:11px" id="carnetHdrProyecto">Proyecto GT02 · Izabal, Guatemala</div>
       </div>
       <div id="carnetFoto" style="margin:16px auto 8px;width:90px;height:90px;border-radius:50%;background:#D8F3DC;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px solid #2D6A4F"></div>
       <div id="carnetNombre" style="font-weight:bold;font-size:16px;color:#1B4332"></div>
-      <div id="carnetCargo" style="font-size:12px;color:#888;margin-bottom:10px"></div>
+      <div id="carnetCargo" style="font-size:12px;color:#888;margin-bottom:6px"></div>
+      <div id="carnetVigencia" style="font-size:11px;color:#2D6A4F;font-weight:bold;margin-bottom:8px"></div>
       <div id="carnetQR" style="display:flex;justify-content:center;align-items:center;min-height:60px;margin-bottom:8px"></div>
-      <div id="carnetCorrelativo" style="display:inline-block;background:#F4B942;color:#412402;font-weight:bold;font-size:20px;padding:6px 22px;border-radius:8px;margin-bottom:16px"></div>
+      <div id="carnetCorrelativo" style="display:inline-block;background:#F4B942;color:#412402;font-weight:bold;font-size:20px;padding:6px 22px;border-radius:8px;margin-bottom:10px"></div>
+      <div style="font-size:9px;color:#999;padding:0 14px 14px;line-height:1.3" id="carnetLeyenda"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn b-sec" style="flex:1" onclick="carnetAnterior()">◀ Anterior</button>
@@ -354,6 +357,20 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevaMaquinaForm()">➕ Agregar máquina</button>
   <div id="maqForm"></div>
   <div id="maqLista"></div>
+</div>
+
+<div id="gestionCatalogoEPPScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">🦺 Catálogo de EPP</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <div style="font-size:11px;color:#888;margin-bottom:10px">
+    Acá se define qué ítems de EPP existen y cómo se comportan — sin tocar código.
+    Desactivar un ítem lo saca de las pantallas de Control de EPP, pero no borra su historial.
+  </div>
+  <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevoItemEPPForm()">➕ Nuevo ítem de EPP</button>
+  <div id="epFormCat"></div>
+  <div id="epLista"></div>
 </div>
 
 <div id="configAparienciaScr" class="scr">
@@ -632,19 +649,13 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
       </div>
       <select id="eppRepItem" onchange="eppCalcularReporte()">
         <option value="">Todos los EPP</option>
-        <option value="Casco">Casco</option>
-        <option value="Chaleco">Chaleco reflectivo</option>
-        <option value="Lentes">Lentes de seguridad</option>
-        <option value="Guantes">Guantes</option>
-        <option value="Camisa">Camisa de uniforme</option>
-        <option value="Zapato">Zapato industrial</option>
       </select>
       <select id="eppRepTrab" onchange="eppCalcularReporte()">
         <option value="">Todos los trabajadores</option>
       </select>
     </div>
     <div class="card">
-      <div class="ctit">Reincidencia de guantes (cambios por motivo)</div>
+      <div class="ctit">Reincidencia (cambios repetidos por daño/extravío)</div>
       <div id="eppReincidencia"></div>
     </div>
     <div class="card">
@@ -659,12 +670,6 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div class="card">
       <div class="ctit">Registrar ingreso de EPP</div>
       <select id="eppStockItem">
-        <option value="Casco">Casco</option>
-        <option value="Chaleco">Chaleco reflectivo</option>
-        <option value="Lentes">Lentes de seguridad</option>
-        <option value="Guantes">Guantes</option>
-        <option value="Camisa">Camisa de uniforme</option>
-        <option value="Zapato">Zapato industrial</option>
       </select>
       <input type="text" id="eppStockTalla" placeholder="Talla (solo para camisa/zapato — ej. M, 42)">
       <input type="number" id="eppStockCantidad" placeholder="Cantidad que ingresa" min="1">
@@ -695,7 +700,34 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.9.1-GT02";
+var APP_VERSION = "2.10.0-GT02";
+
+// ══════════════════════════════════════════════
+//  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
+//  todos juntos. Antes "GT02" / "Izabal" / "SOLTECING" estaban
+//  escritos a mano en decenas de lugares (título, header, PDFs,
+//  carnet, paleta de colores, prefijos de correlativo) — ahora
+//  todo sale de acá. Para crear un GT03: copiar este bloque a un
+//  archivo nuevo y cambiar estos valores; el resto del código no
+//  vuelve a mencionar "GT02" en ningún lado. Debe reflejar los
+//  mismos valores que el objeto CONFIG de Code.gs.
+//
+//  SHEET(nombreBase) arma el nombre real de las 3 hojas del Sheet
+//  cuyo nombre incluye el código de proyecto (Personal, Usuarios,
+//  Maquinas). Las demás hojas no llevan el código en el nombre.
+// ══════════════════════════════════════════════
+var CONFIG = {
+  codigoProyecto:      "GT02",
+  nombreProyecto:      "Almacén GT02",
+  ubicacion:           "Izabal",
+  empresa:             "SOLTECING",
+  paisLegal:           "Guatemala",
+  prefijoTrabajador:   "GT02/RECPER",
+  prefijoMaquina:      "MAQ",
+  colorPaletaDefecto:  "Verde",
+  leyendaCarnet: "Credencial de acceso al proyecto — válida únicamente mientras el portador preste servicio en el sitio."
+};
+function SHEET(nombreBase){ return nombreBase + "_" + CONFIG.codigoProyecto; }
 
 // ═══════════════════════════════════════════════════════════
 // ÍNDICE — mapa rápido de este archivo, para ubicarte sin tener
@@ -747,7 +779,25 @@ var SESION = null;
 //  así que la sesión se queda guardada en el dispositivo
 //  hasta que la persona la cierre manualmente.
 // ══════════════════════════════════════════════
+
+// Aplica CONFIG a los textos estáticos del HTML (título de pestaña,
+// pantalla de login, encabezado de la app) — así, si CONFIG cambia
+// (por ejemplo, al adaptar este archivo para un GT03), no hace
+// falta buscar y reemplazar texto suelto en el HTML.
+function aplicarConfigProyecto(){
+  document.title = CONFIG.nombreProyecto;
+  var elLoginT = document.getElementById("loginTitulo");
+  if(elLoginT) elLoginT.textContent = "🔒 " + CONFIG.nombreProyecto;
+  var elLoginS = document.getElementById("loginSub");
+  if(elLoginS) elLoginS.textContent = CONFIG.ubicacion + " · " + CONFIG.empresa;
+  var elAppT = document.getElementById("appTitulo");
+  if(elAppT) elAppT.textContent = "🏗 " + CONFIG.nombreProyecto;
+  var elAppS = document.getElementById("appSub");
+  if(elAppS) elAppS.textContent = CONFIG.ubicacion + " · " + CONFIG.empresa;
+}
+
 function iniciarApp(){
+  aplicarConfigProyecto();
   var guardada=null;
   try{ guardada=JSON.parse(localStorage.getItem("gt02_sesion")||"null"); }catch(e){}
   if(guardada && guardada.nombre){
@@ -1078,7 +1128,7 @@ function abrirRecortadorFoto(file, onConfirm, titulo) {
 //  BUSCAR TRABAJADOR — usa Sheets API directamente
 // ══════════════════════════════════════════════
 function buscaTWDirecto(val, mode) {
-  sheetsGet("Personal_GT02!A2:H").then(function(resp){
+  sheetsGet(SHEET("Personal")+"!A2:H").then(function(resp){
     var rows = resp.values || [];
     var q = val.toString().trim().toLowerCase();
     var qNum = q.replace(/^0+/,"").replace("gt01/recper-","");
@@ -1464,7 +1514,7 @@ function cargarHist(){
   Promise.all([
     sheetsGet("Prestamos_Herramientas!A2:K"),
     sheetsGet("Prestamos_Detalle!A2:I"),
-    sheetsGet("Personal_GT02!A2:C")
+    sheetsGet(SHEET("Personal")+"!A2:C")
   ]).then(function(results){
     var dp=results[0].values||[];
     var dd=results[1].values||[];
@@ -1648,7 +1698,7 @@ function generarInforme(){
   Promise.all([
     sheetsGet("Prestamos_Herramientas!A2:H"),
     sheetsGet("Prestamos_Detalle!A2:I"),
-    sheetsGet("Personal_GT02!A2:C")
+    sheetsGet(SHEET("Personal")+"!A2:C")
   ]).then(function(results){
     var dp=results[0].values||[];
     var dd=results[1].values||[];
@@ -1828,7 +1878,7 @@ function descargarPDF(){
   var rangoTxt=(r.desde.getTime()===r.hasta.getTime())?fechaLegible(r.desde):(fechaLegible(r.desde)+" al "+fechaLegible(r.hasta));
 
   doc.setFontSize(14);
-  doc.text("Informe — Almacen GT02 Izabal",14,15);
+  doc.text("Informe — "+CONFIG.nombreProyecto+" "+CONFIG.ubicacion,14,15);
   doc.setFontSize(9);
   doc.setTextColor(100);
   doc.text("Periodo: "+rangoTxt+"   ·   Generado: "+ahora.toLocaleString("es-GT"),14,21);
@@ -1889,7 +1939,7 @@ function descargarPDF(){
     styles:{fontSize:8},headStyles:{fillColor:[55,86,35]},margin:{left:14,right:14}
   });
 
-  doc.save("Informe_GT02_"+fechaGen+"_"+horaGen+".pdf");
+  doc.save("Informe_"+CONFIG.codigoProyecto+"_"+fechaGen+"_"+horaGen+".pdf");
 }
 
 // ══════════════════════════════════════════════
@@ -2057,9 +2107,9 @@ function invExportarPDF(){
   var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
   var q = document.getElementById("invBuscar").value.trim();
   doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Inventario — Almacén GT02", 14, 15);
+  doc.text("Inventario — "+CONFIG.nombreProyecto, 14, 15);
   doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
-  doc.text("SOLTECING · Izabal, Guatemala"+(q?"  ·  Filtro: \""+q+"\"":"")+"  ·  "+res.length+" ítems", 14, 21);
+  doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+(q?"  ·  Filtro: \""+q+"\"":"")+"  ·  "+res.length+" ítems", 14, 21);
 
   var filas = res.map(function(it){
     return [it.codigo, it.descripcion, it.tipo, it.categoria||"—", (it.cantidadTotal!==""?it.cantidadTotal:"—")+"", it.ubicacion||"—", it.estado||"—"];
@@ -2469,7 +2519,7 @@ function apBuscarTrabajadores(){
   var d = document.getElementById("apSugTrab");
   if(v.length<1){ d.style.display="none"; return; }
   apTBuscaTrab = setTimeout(function(){
-    sheetsGet("Personal_GT02!A2:G").then(function(resp){
+    sheetsGet(SHEET("Personal")+"!A2:G").then(function(resp){
       var rows = resp.values || [];
       var q = v.toLowerCase();
       var res = [];
@@ -2665,13 +2715,83 @@ var EPP_TRAB_ACTUAL = null; // {codigo, nombre}
 var EPP_TRAB_ACTUAL = null;
 var EPP_MOVS_TRAB = [];
 var EPP_MOVS_TODOS = null;
+var EPP_CATALOGO = null; // catálogo de ítems de EPP (Admin → Catálogo de EPP)
 
 function abrirEPP(){
   document.getElementById("menuMas").style.display="none";
   document.querySelector(".tabs").style.display="none";
   document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display="none"; });
   document.getElementById("eppScreen").style.display="block";
-  eppGoTab(0);
+  eppCargarCatalogo().then(function(){ eppGoTab(0); });
+}
+// eppCargarCatalogo — trae el catálogo de EPP (qué ítems existen, ícono,
+// tipo de comportamiento, si requiere talla). Antes esto era una lista
+// fija de 6 ítems escrita en el HTML; ahora sale de la hoja
+// EPP_Catalogo, así que agregar o desactivar un ítem (Admin → Catálogo
+// de EPP) no requiere tocar código. Si la hoja todavía no existe (recién
+// instalado, o un GT03 que copió el código pero no los datos), se crea
+// sola con los 6 ítems de siempre antes de reintentar la lectura.
+function eppCargarCatalogo(){
+  if(EPP_CATALOGO) return Promise.resolve(EPP_CATALOGO);
+  return sheetsGet("EPP_Catalogo!A2:F").then(function(resp){
+    var rows = resp.values || [];
+    if(!rows.length) throw new Error("vacio");
+    EPP_CATALOGO = rows.filter(function(r){return r[0];}).map(eppFilaCatalogoAObjeto);
+    return EPP_CATALOGO;
+  }).catch(function(){
+    return gasPost("asegurarCatalogoEPP",{}).then(function(){
+      return sheetsGet("EPP_Catalogo!A2:F");
+    }).then(function(resp){
+      var rows = resp.values || [];
+      EPP_CATALOGO = rows.filter(function(r){return r[0];}).map(eppFilaCatalogoAObjeto);
+      return EPP_CATALOGO;
+    }).catch(function(){
+      // Último respaldo: si ni siquiera se pudo crear la hoja (sin
+      // conexión, por ejemplo), seguimos con los 6 de siempre en
+      // memoria para que la pantalla no quede vacía.
+      EPP_CATALOGO = [
+        {item:"Casco",icono:"⛑",tipo:"devuelve",requiereTalla:false,activo:true,orden:1},
+        {item:"Chaleco",icono:"🦺",tipo:"devuelve",requiereTalla:false,activo:true,orden:2},
+        {item:"Lentes",icono:"🥽",tipo:"unico",requiereTalla:false,activo:true,orden:3},
+        {item:"Zapato",icono:"👞",tipo:"unico",requiereTalla:true,activo:true,orden:4},
+        {item:"Camisa",icono:"👕",tipo:"acumulable",requiereTalla:true,activo:true,orden:5},
+        {item:"Guantes",icono:"🧤",tipo:"reincidente",requiereTalla:false,activo:true,orden:6}
+      ];
+      return EPP_CATALOGO;
+    });
+  }).then(function(cat){
+    eppPoblarSelectsCatalogo();
+    return cat;
+  });
+}
+function eppFilaCatalogoAObjeto(r){
+  return {
+    item:(r[0]||"").toString(), icono:r[1]||"🦺", tipo:r[2]||"unico",
+    requiereTalla:(r[3]||"").toString().toLowerCase()==="si",
+    activo:(r[4]===undefined || r[4]==="" ) ? true : (r[4]||"").toString().toLowerCase()==="si",
+    orden:Number(r[5])||99
+  };
+}
+function eppCatalogoActivos(){
+  return (EPP_CATALOGO||[]).filter(function(c){return c.activo;}).sort(function(a,b){return a.orden-b.orden;});
+}
+function eppRequiereTalla(item){
+  var c = (EPP_CATALOGO||[]).find(function(c){return c.item===item;});
+  return c ? c.requiereTalla : false;
+}
+function eppEtiqueta(item){
+  var c = (EPP_CATALOGO||[]).find(function(c){return c.item===item;});
+  return c ? (c.icono+" "+c.item) : item;
+}
+// Llena los <select> de filtro (Reporte general) y de alta de stock
+// con los ítems activos del catálogo, en vez de <option> fijas.
+function eppPoblarSelectsCatalogo(){
+  var activos = eppCatalogoActivos();
+  var opts = activos.map(function(c){ return "<option value=\""+esc(c.item)+"\">"+esc(c.icono+" "+c.item)+"</option>"; }).join("");
+  var selRep = document.getElementById("eppRepItem");
+  if(selRep){ var actualRep = selRep.value; selRep.innerHTML = "<option value=''>Todos los EPP</option>" + opts; selRep.value = actualRep; }
+  var selStock = document.getElementById("eppStockItem");
+  if(selStock){ var actualStock = selStock.value; selStock.innerHTML = opts; if(actualStock) selStock.value = actualStock; }
 }
 function cerrarEPP(){
   document.getElementById("eppScreen").style.display="none";
@@ -2697,7 +2817,7 @@ function eppBuscarTrabajadores(){
   var d = document.getElementById("eppSugTrab");
   if(v.length<1){ d.style.display="none"; return; }
   eppTBusca = setTimeout(function(){
-    sheetsGet("Personal_GT02!A2:G").then(function(resp){
+    sheetsGet(SHEET("Personal")+"!A2:G").then(function(resp){
       var rows = resp.values || [];
       var q = v.toLowerCase();
       var res = [];
@@ -2776,16 +2896,17 @@ function eppEstadoSoloEntrega(item){
   if(!movs.length) return {entregado:false};
   return {entregado:true, fecha:movs[0].fechaStr, talla:movs[0].talla};
 }
-function eppEstadoCamisa(){
-  // Camisa: se suman todas las entregas (a veces 1, a veces 2, en fechas distintas).
-  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item==="Camisa"; }).sort(function(a,b){return a.fecha-b.fecha;});
+function eppEstadoAcumulable(item){
+  // Ítems tipo "acumulable" (ej. Camisa): se suman todas las entregas.
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item===item; }).sort(function(a,b){return a.fecha-b.fecha;});
   var total = 0;
   movs.forEach(function(m){ total+=m.cantidad; });
   return {total:total, entregas:movs};
 }
-function eppEstadoGuantes(){
-  // Guantes: historial completo de cambios, con motivo, para ver reincidencia.
-  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item==="Guantes"; }).sort(function(a,b){return b.fecha-a.fecha;});
+function eppEstadoReincidente(item){
+  // Ítems tipo "reincidente" (ej. Guantes): historial completo de
+  // cambios, con motivo, para ver reincidencia.
+  var movs = eppFiltrarVigentes(EPP_MOVS_TRAB).filter(function(m){ return m.item===item; }).sort(function(a,b){return b.fecha-a.fecha;});
   return {total:movs.length, ultimo:movs[0]||null, historial:movs};
 }
 
@@ -2833,39 +2954,38 @@ function eppAccionSimple(item, tipoMovimiento, etiqueta){
   if(!extra) return;
   eppRegistrar(item, tipoMovimiento, extra);
 }
-function eppEntregarLentes(){
-  var extra = eppPedirFechaYComentario("Entrega de lentes de seguridad");
+// eppAccionGenerica — reemplaza las funciones que antes existían una
+// por cada ítem (eppEntregarLentes, eppEntregarZapato, etc.). Ahora el
+// comportamiento (si pide talla, si pide cantidad, si pide motivo) sale
+// del "tipo" del ítem en el catálogo, así que un ítem de EPP nuevo
+// (ej. un brazalete) no necesita ninguna función propia — alcanza con
+// darlo de alta en Admin → Catálogo de EPP con el tipo correcto.
+function eppAccionGenerica(item, tipo, requiereTalla){
+  var talla = "";
+  if(requiereTalla){
+    var t = prompt("Talla de "+item+":");
+    if(t===null) return;
+    talla = t.trim();
+  }
+  var cantidad = 1;
+  if(tipo==="acumulable"){
+    var c = prompt("¿Cuántas unidades de "+item+" se entregan?","1");
+    if(c===null || !Number(c) || Number(c)<=0){ if(c!==null) alert("Cantidad inválida"); return; }
+    cantidad = c;
+  }
+  var motivo = "";
+  if(tipo==="reincidente"){
+    var op = prompt("Motivo de la entrega/cambio de "+item+":\n1) Entrega inicial\n2) Dañado por uso\n3) Extraviado\n4) Otro","1");
+    if(op===null) return;
+    var motivos = {"1":"Entrega inicial","2":"Dañado por uso","3":"Extraviado","4":"Otro"};
+    motivo = motivos[op.trim()] || op.trim();
+  }
+  var extra = eppPedirFechaYComentario("Entrega de "+item);
   if(!extra) return;
-  eppRegistrar("Lentes","Entrega",extra);
-}
-function eppEntregarZapato(){
-  var talla = prompt("Talla del zapato:");
-  if(talla===null) return;
-  var extra = eppPedirFechaYComentario("Entrega de zapato industrial");
-  if(!extra) return;
-  extra.talla = talla.trim();
-  eppRegistrar("Zapato","Entrega",extra);
-}
-function eppEntregarCamisa(){
-  var cantidad = prompt("¿Cuántas camisas se entregan?","1");
-  if(cantidad===null || !Number(cantidad) || Number(cantidad)<=0){ if(cantidad!==null) alert("Cantidad inválida"); return; }
-  var talla = prompt("Talla de la camisa (opcional, puede dejarlo en blanco):","");
-  if(talla===null) talla="";
-  var extra = eppPedirFechaYComentario("Entrega de camisa");
-  if(!extra) return;
+  extra.talla = talla;
   extra.cantidad = cantidad;
-  extra.talla = talla.trim();
-  eppRegistrar("Camisa","Entrega",extra);
-}
-function eppCambiarGuantes(){
-  var op = prompt("Motivo del cambio de guantes:\n1) Entrega inicial\n2) Dañado por uso\n3) Extraviado\n4) Otro","1");
-  if(op===null) return;
-  var motivos = {"1":"Entrega inicial","2":"Dañado por uso","3":"Extraviado","4":"Otro"};
-  var motivo = motivos[op.trim()] || op.trim();
-  var extra = eppPedirFechaYComentario("Entrega/cambio de guantes");
-  if(!extra) return;
   extra.motivo = motivo;
-  eppRegistrar("Guantes","Entrega",extra);
+  eppRegistrar(item, "Entrega", extra);
 }
 
 // eppAnular — NUNCA borra: agrega un registro de anulación que hace
@@ -2891,8 +3011,8 @@ function eppBloqueDevuelve(item, etiqueta, estado){
     accionBtn+
   "</div>";
 }
-function eppBloqueSolo(etiqueta, estado, funcionEntregar){
-  var accionBtn = estado.entregado ? "" : "<button class='btn b-ok b-sm' onclick='"+funcionEntregar+"()'>✅ Entregar</button>";
+function eppBloqueSolo(item, etiqueta, estado, tipo, requiereTalla){
+  var accionBtn = estado.entregado ? "" : "<button class='btn b-ok b-sm' onclick='eppAccionGenerica(\""+item+"\",\""+tipo+"\","+(requiereTalla?"true":"false")+")'>✅ Entregar</button>";
   var estadoTxt = estado.entregado ? "Entregado ("+estado.fecha+")"+(estado.talla?" — talla "+estado.talla:"") : "No entregado";
   return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2;gap:8px'>"+
     "<div><div style='font-weight:bold;font-size:13px'>"+etiqueta+"</div><div style='font-size:11px;color:#888'>"+estadoTxt+"</div></div>"+
@@ -2902,31 +3022,31 @@ function eppBloqueSolo(etiqueta, estado, funcionEntregar){
 
 function eppRenderEstado(){
   var cont = document.getElementById("eppFormContainer");
-  var casco = eppEstadoItemSimple("Casco");
-  var chaleco = eppEstadoItemSimple("Chaleco");
-  var lentes = eppEstadoSoloEntrega("Lentes");
-  var zapato = eppEstadoSoloEntrega("Zapato");
-  var camisa = eppEstadoCamisa();
-  var guantes = eppEstadoGuantes();
-
   var html = "<div class='card'><div class='ctit'>"+EPP_TRAB_ACTUAL.nombre+" · "+EPP_TRAB_ACTUAL.codigo+"</div>";
-  html += "<div style='font-size:11px;color:#888;margin-bottom:6px'>Casco y chaleco se devuelven al final del proyecto. Lentes, camisa y zapato se quedan con el trabajador.</div>";
-  html += eppBloqueDevuelve("Casco","⛑ Casco", casco);
-  html += eppBloqueDevuelve("Chaleco","🦺 Chaleco reflectivo", chaleco);
-  html += eppBloqueSolo("🥽 Lentes de seguridad", lentes, "eppEntregarLentes");
-  html += eppBloqueSolo("👞 Zapato industrial", zapato, "eppEntregarZapato");
+  html += "<div style='font-size:11px;color:#888;margin-bottom:6px'>El comportamiento de cada ítem (si se devuelve, si pide talla) se define en Admin → Catálogo de EPP.</div>";
 
-  html += "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
-    "<div style='font-weight:bold;font-size:13px'>👕 Camisa de uniforme — Total entregado: "+camisa.total+"</div>"+
-    (camisa.entregas.length ? "<div style='font-size:11px;color:#888;margin:3px 0'>"+camisa.entregas.map(function(m){return m.fechaStr+": "+m.cantidad+(m.talla?" (talla "+m.talla+")":"");}).join(" · ")+"</div>" : "")+
-    "<button class='btn b-sec b-sm' onclick='eppEntregarCamisa()'>➕ Registrar entrega de camisa</button>"+
-  "</div>";
-
-  html += "<div style='padding:8px 0'>"+
-    "<div style='font-weight:bold;font-size:13px'>🧤 Guantes — Cambios registrados: "+guantes.total+"</div>"+
-    (guantes.ultimo ? "<div style='font-size:11px;color:#888;margin:3px 0'>Último: "+guantes.ultimo.fechaStr+" — "+(guantes.ultimo.motivo||"Entrega inicial")+"</div>" : "")+
-    "<button class='btn b-sec b-sm' onclick='eppCambiarGuantes()'>➕ Registrar entrega/cambio de guantes</button>"+
-  "</div>";
+  eppCatalogoActivos().forEach(function(c){
+    var etiqueta = c.icono+" "+c.item;
+    if(c.tipo==="devuelve"){
+      html += eppBloqueDevuelve(c.item, etiqueta, eppEstadoItemSimple(c.item));
+    } else if(c.tipo==="unico"){
+      html += eppBloqueSolo(c.item, etiqueta, eppEstadoSoloEntrega(c.item), c.tipo, c.requiereTalla);
+    } else if(c.tipo==="acumulable"){
+      var ac = eppEstadoAcumulable(c.item);
+      html += "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
+        "<div style='font-weight:bold;font-size:13px'>"+etiqueta+" — Total entregado: "+ac.total+"</div>"+
+        (ac.entregas.length ? "<div style='font-size:11px;color:#888;margin:3px 0'>"+ac.entregas.map(function(m){return m.fechaStr+": "+m.cantidad+(m.talla?" (talla "+m.talla+")":"");}).join(" · ")+"</div>" : "")+
+        "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"acumulable\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega de "+c.item.toLowerCase()+"</button>"+
+      "</div>";
+    } else if(c.tipo==="reincidente"){
+      var rc = eppEstadoReincidente(c.item);
+      html += "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
+        "<div style='font-weight:bold;font-size:13px'>"+etiqueta+" — Cambios registrados: "+rc.total+"</div>"+
+        (rc.ultimo ? "<div style='font-size:11px;color:#888;margin:3px 0'>Último: "+rc.ultimo.fechaStr+" — "+(rc.ultimo.motivo||"Entrega inicial")+"</div>" : "")+
+        "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"reincidente\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega/cambio de "+c.item.toLowerCase()+"</button>"+
+      "</div>";
+    }
+  });
   html += "</div>";
 
   html += "<div class='card'><button class='btn b-sec b-sm' style='width:100%' onclick='eppToggleHistorialCompleto()'>📜 Ver historial completo ("+EPP_MOVS_TRAB.length+")</button>"+
@@ -2968,7 +3088,7 @@ function eppGenerarPDFPersona(){
   doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
   doc.text("Hoja de Responsabilidad de EPP", 14, 15);
   doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
-  doc.text("Almacén GT02 · SOLTECING · Izabal, Guatemala", 14, 21);
+  doc.text(CONFIG.nombreProyecto+" · "+CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, 14, 21);
   doc.setFontSize(11); doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
   doc.text("Trabajador: "+EPP_TRAB_ACTUAL.nombre, 14, 30);
   doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 36);
@@ -3054,13 +3174,14 @@ function eppCalcularReporte(){
       "</div>";
   }).join("") : "<div style='font-size:12px;color:#888'>Sin registros con ese filtro</div>";
 
+  var itemsReinc = (EPP_CATALOGO||[]).filter(function(c){return c.tipo==="reincidente";}).map(function(c){return c.item;});
   var reinc = {};
-  eppFiltrarVigentes(EPP_MOVS_TODOS).filter(function(m){ return m.item==="Guantes" && m.motivo && m.motivo!=="Entrega inicial"; })
+  eppFiltrarVigentes(EPP_MOVS_TODOS).filter(function(m){ return itemsReinc.indexOf(m.item)>=0 && m.motivo && m.motivo!=="Entrega inicial"; })
     .forEach(function(m){ reinc[m.nombreTrabajador] = (reinc[m.nombreTrabajador]||0)+1; });
   var listaReinc = Object.keys(reinc).sort(function(a,b){return reinc[b]-reinc[a];});
   document.getElementById("eppReincidencia").innerHTML = listaReinc.length ? listaReinc.map(function(n){
     return "<div style='display:flex;justify-content:space-between;padding:4px 0;font-size:12px'><span>"+n+"</span><b>"+reinc[n]+" cambio(s)</b></div>";
-  }).join("") : "<div style='font-size:12px;color:#888'>Sin cambios de guantes por daño/extravío registrados</div>";
+  }).join("") : "<div style='font-size:12px;color:#888'>Sin cambios por daño/extravío registrados</div>";
 }
 function eppExportarReportePDF(){
   var aviso = document.getElementById("eppRepAviso");
@@ -3071,7 +3192,7 @@ function eppExportarReportePDF(){
   doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
   doc.text("Historial de EPP — Almacén GT02", 14, 15);
   doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
-  doc.text("SOLTECING · Izabal, Guatemala · "+filtrados.length+" movimientos", 14, 21);
+  doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" movimientos", 14, 21);
 
   var filas = filtrados.map(function(m){
     return [m.fechaStr, m.nombreTrabajador, m.item, m.tipoMovimiento, m.cantidad, m.talla||"—", m.motivo||"—"];
@@ -3092,10 +3213,10 @@ function eppExportarReportePDF(){
 // ── Stock disponible por ítem y talla ──
 var EPP_STOCK_ENTRADAS = null;
 
-// eppClaveStock — agrupa por talla solo en Camisa/Zapato (los únicos
-// que realmente varían por talla); el resto se agrupa como "Única".
+// eppClaveStock — agrupa por talla solo en los ítems marcados
+// "RequiereTalla" en el catálogo; el resto se agrupa como "Única".
 function eppClaveStock(item, talla){
-  var necesitaTalla = (item==="Camisa" || item==="Zapato");
+  var necesitaTalla = eppRequiereTalla(item);
   return item + "|" + (necesitaTalla ? (talla||"Sin talla") : "Única");
 }
 
@@ -3107,7 +3228,7 @@ function eppCalcularStock(){
     var clave = eppClaveStock(item, talla);
     if(!stock[clave]) stock[clave] = {
       item:item,
-      talla: (item==="Camisa"||item==="Zapato") ? (talla||"Sin talla") : "Única",
+      talla: eppRequiereTalla(item) ? (talla||"Sin talla") : "Única",
       entradas:0, entregas:0, devoluciones:0
     };
     return stock[clave];
@@ -3150,11 +3271,10 @@ function eppCargarStock(){
 
 function eppRenderStockTabla(){
   var filas = eppCalcularStock();
-  var etiquetas = {Casco:"⛑ Casco", Chaleco:"🦺 Chaleco", Lentes:"🥽 Lentes", Guantes:"🧤 Guantes", Camisa:"👕 Camisa", Zapato:"👞 Zapato"};
   document.getElementById("eppStockTabla").innerHTML = filas.length ? filas.map(function(s){
     var bajo = s.disponible <= 3;
     return "<div style='display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f2f2f2'>"+
-      "<div><b style='font-size:13px'>"+(etiquetas[s.item]||s.item)+(s.talla!=="Única"?" — talla "+s.talla:"")+"</b>"+
+      "<div><b style='font-size:13px'>"+eppEtiqueta(s.item)+(s.talla!=="Única"?" — talla "+s.talla:"")+"</b>"+
       "<div style='font-size:10px;color:#888'>Ingresos: "+s.entradas+" · Entregados: "+s.entregas+" · Devueltos: "+s.devoluciones+"</div></div>"+
       "<div style='font-size:18px;font-weight:bold;color:"+(bajo?"#C00000":"#375623")+"'>"+s.disponible+"</div>"+
     "</div>";
@@ -3169,7 +3289,7 @@ function eppRegistrarEntradaStock(){
   var talla = document.getElementById("eppStockTalla").value.trim();
   var cantidad = document.getElementById("eppStockCantidad").value;
   var obs = document.getElementById("eppStockObs").value.trim();
-  if((item==="Camisa"||item==="Zapato") && !talla){
+  if(eppRequiereTalla(item) && !talla){
     msg.innerHTML = "<div class='msg-err'>Para "+item+" hace falta indicar la talla</div>";
     return;
   }
@@ -3220,7 +3340,7 @@ function horGoTab(n){
 // Los operadores YA NO se cargan de Personal_GT02 (son personal externo, no
 // trabajadores de SOLTECING) — ver HOR_OPERADORES_PROVISIONAL más abajo.
 function horCargarCatalogos(){
-  sheetsGet("Maquinas_GT02!A2:F").then(function(resp){
+  sheetsGet(SHEET("Maquinas")+"!A2:F").then(function(resp){
     var maq=resp.values||[];
 
     HOR_MAQUINAS = maq.filter(function(r){return r[0];}).map(function(r){
@@ -3729,7 +3849,7 @@ function cargarUsuarios() {
   var div = document.getElementById("usuariosLista");
   if(!div) return;
   div.innerHTML = "<div class='loading'>Cargando usuarios...</div>";
-  sheetsGet("Usuarios_GT02!A2:E").then(function(r){
+  sheetsGet(SHEET("Usuarios")+"!A2:E").then(function(r){
     var rows = r.values || [];
     if(!rows.length){ div.innerHTML="<p style='text-align:center;color:#888;padding:20px'>No hay usuarios registrados</p>"; return; }
     var html2 = "";
@@ -3891,7 +4011,7 @@ function cargarTrabajadoresAdmin() {
   var div = document.getElementById("trabLista");
   if(!div) return;
   div.innerHTML = "<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet("Personal_GT02!A2:J").then(function(r){
+  sheetsGet(SHEET("Personal")+"!A2:K").then(function(r){
     var rows = (r.values||[]).filter(function(row){ return row[0]; });
     TRAB_ROWS_CACHE = rows;
     if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>No hay trabajadores</p></div>"; return; }
@@ -3900,7 +4020,7 @@ function cargarTrabajadoresAdmin() {
       TRAB_CACHE[row[0]] = {
         codigo:row[0], nombre:row[1]||"", cargo:row[2]||"", especialidad:row[3]||"",
         telefono:row[4]||"", estado:row[6]||"Activo", dui:row[7]||"", observaciones:row[8]||"",
-        fotoId:row[9]||""
+        fotoId:row[9]||"", vigenciaHasta:row[10]||""
       };
     });
     trabRenderLista(rows);
@@ -3991,6 +4111,8 @@ function editarTrabajadorForm(codigo) {
       "<option value='Activo'"+(t.estado==="Activo"?" selected":"")+">Activo</option>"+
       "<option value='Inactivo'"+(t.estado==="Inactivo"?" selected":"")+">Inactivo</option>"+
     "</select>" +
+    "<label style='display:block;font-size:11px;color:#888;margin-top:6px'>Vigencia del carnet (opcional — en blanco = mientras dure el proyecto)</label>" +
+    "<input type='date' id='etVigencia' value=\""+esc(t.vigenciaHasta)+"\">" +
     "<input type='text' id='etObs' placeholder='Observaciones' value=\""+esc(t.observaciones)+"\">" +
     "<div id='etMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
@@ -4029,10 +4151,25 @@ function cerrarCarnetViewer(){
 function carnetMostrar(){
   var t = CARNET_LISTA[CARNET_IDX];
   if(!t) return;
+  document.getElementById("carnetHdrEmpresa").textContent = CONFIG.empresa;
+  document.getElementById("carnetHdrProyecto").textContent = "Proyecto "+CONFIG.codigoProyecto+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal;
   document.getElementById("carnetNombre").textContent = t.nombre || "(sin nombre)";
   document.getElementById("carnetCargo").textContent = t.cargo || "—";
-  document.getElementById("carnetCorrelativo").textContent = t.codigo.replace("GT02/RECPER-","");
+  document.getElementById("carnetCorrelativo").textContent = t.codigo.replace(CONFIG.prefijoTrabajador+"-","");
   document.getElementById("carnetContador").textContent = (CARNET_IDX+1)+" de "+CARNET_LISTA.length;
+  var vigDiv = document.getElementById("carnetVigencia");
+  if(t.estado === "Inactivo"){
+    vigDiv.textContent = "⚠ Vigencia finalizada";
+    vigDiv.style.color = "#C00000";
+  } else if(t.vigenciaHasta){
+    var f = new Date(t.vigenciaHasta+"T00:00:00");
+    vigDiv.textContent = "Vigente hasta " + (isNaN(f) ? t.vigenciaHasta : f.toLocaleDateString("es-GT"));
+    vigDiv.style.color = "#2D6A4F";
+  } else {
+    vigDiv.textContent = "Vigente mientras dure el proyecto";
+    vigDiv.style.color = "#2D6A4F";
+  }
+  document.getElementById("carnetLeyenda").textContent = CONFIG.leyendaCarnet;
   var fotoDiv = document.getElementById("carnetFoto");
   if(!t.fotoId){
     fotoDiv.innerHTML = "<span style='font-size:34px'>👤</span>";
@@ -4115,11 +4252,12 @@ function guardarEdicionTrabajador(codigo) {
   var tel    = (document.getElementById("etTel")||{value:""}).value.trim();
   var dui    = (document.getElementById("etDui")||{value:""}).value.trim();
   var estado = (document.getElementById("etEstado")||{value:""}).value;
+  var vigencia = (document.getElementById("etVigencia")||{value:""}).value;
   var obs    = (document.getElementById("etObs")||{value:""}).value.trim();
   var msg    = document.getElementById("etMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
   if(!_bloquearBoton(btn, "guardarEdicionTrabajador")) return;
-  gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,especialidad:espec,telefono:tel,dui:dui,estado:estado,observaciones:obs}).then(function(r){
+  gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,especialidad:espec,telefono:tel,dui:dui,estado:estado,vigenciaHasta:vigencia,observaciones:obs}).then(function(r){
     _liberarBoton(btn, "guardarEdicionTrabajador");
     if(r&&r.ok){ cancelarFormTrab(); cargarTrabajadoresAdmin(); }
     else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
@@ -4183,7 +4321,7 @@ function cargarMaquinasAdmin() {
   var div = document.getElementById("maqLista");
   if(!div) return;
   div.innerHTML="<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet("Maquinas_GT02!A2:F").then(function(r){
+  sheetsGet(SHEET("Maquinas")+"!A2:F").then(function(r){
     var rows=(r.values||[]).filter(function(row){return row[0];});
     if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>🚧</div><p>No hay máquinas registradas</p></div>"; return; }
     div.innerHTML=rows.map(function(row){
@@ -4247,10 +4385,120 @@ function cancelarFormMaq() {
 }
 
 // ══════════════════════════════════════════════
+// CATÁLOGO DE EPP (solo Admin) — Pendiente 1 de la Especificación
+// Técnica. Antes de esta pantalla, agregar o quitar un ítem de EPP
+// (ej. un brazalete de seguridad) exigía reprogramar en varios
+// lugares del index.html. Ahora es un alta común, como cualquier
+// otro catálogo del sistema.
+// ══════════════════════════════════════════════
+function abrirGestionCatalogoEPP() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("gestionCatalogoEPPScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  EPP_CATALOGO = null; // recargar por si se editó desde otra pestaña/sesión
+  eppCargarCatalogo().then(cargarCatalogoEPPAdmin);
+}
+
+var EP_TIPO_ETIQUETAS = {
+  devuelve: "Se entrega y se devuelve (ej. Casco)",
+  unico: "Se entrega una vez, no se devuelve (ej. Lentes)",
+  acumulable: "Se pueden sumar varias entregas (ej. Camisa)",
+  reincidente: "Cambios repetidos con motivo (ej. Guantes)"
+};
+
+function cargarCatalogoEPPAdmin() {
+  var div = document.getElementById("epLista");
+  if(!div) return;
+  var todos = (EPP_CATALOGO||[]).slice().sort(function(a,b){return a.orden-b.orden;});
+  if(!todos.length){ div.innerHTML="<div class='empty'><div class='ei'>🦺</div><p>No hay ítems en el catálogo</p></div>"; return; }
+  div.innerHTML = todos.map(function(c){
+    return "<div class='card' style='margin-bottom:7px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:8px'>" +
+      "<div>" +
+        "<b>"+c.icono+" "+esc(c.item)+"</b> " +
+        "<span class='badge bm'>"+(c.activo?"Activo":"Inactivo")+"</span>" +
+        "<div style='font-size:11px;color:#888;margin-top:3px'>"+(EP_TIPO_ETIQUETAS[c.tipo]||c.tipo)+(c.requiereTalla?" · pide talla":"")+"</div>" +
+      "</div>" +
+      "<div style='display:flex;flex-direction:column;gap:4px'>" +
+        "<button class='btn b-sec b-sm' onclick='toggleActivoItemEPP(\""+escJS(c.item)+"\","+(c.activo?"false":"true")+")'>"+(c.activo?"Desactivar":"Activar")+"</button>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+}
+
+function nuevoItemEPPForm() {
+  var formDiv = document.getElementById("epFormCat");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>➕ Agregar ítem de EPP</div>" +
+    "<input type='text' id='epNombre' placeholder='Nombre del ítem (ej. Brazalete de seguridad) *'>" +
+    "<input type='text' id='epIcono' placeholder='Ícono/emoji (opcional, ej. 🟠)' maxlength='4'>" +
+    "<select id='epTipo'>" +
+    "<option value='unico'>"+EP_TIPO_ETIQUETAS.unico+"</option>" +
+    "<option value='devuelve'>"+EP_TIPO_ETIQUETAS.devuelve+"</option>" +
+    "<option value='acumulable'>"+EP_TIPO_ETIQUETAS.acumulable+"</option>" +
+    "<option value='reincidente'>"+EP_TIPO_ETIQUETAS.reincidente+"</option>" +
+    "</select>" +
+    "<label style='display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0'>" +
+    "<input type='checkbox' id='epRequiereTalla' style='width:auto'> Este ítem pide talla al entregarlo" +
+    "</label>" +
+    "<div id='epMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevoItemEPP()'>💾 Agregar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormEPP()'>Cancelar</button>" +
+    "</div></div>";
+}
+
+function guardarNuevoItemEPP() {
+  var btn = _botonDelEvento();
+  var nombre = (document.getElementById("epNombre")||{value:""}).value.trim();
+  var icono  = (document.getElementById("epIcono")||{value:""}).value.trim() || "🦺";
+  var tipo   = (document.getElementById("epTipo")||{value:"unico"}).value;
+  var talla  = (document.getElementById("epRequiereTalla")||{checked:false}).checked;
+  var msg    = document.getElementById("epMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if((EPP_CATALOGO||[]).some(function(c){return c.item.toLowerCase()===nombre.toLowerCase();})){
+    if(msg)msg.innerHTML="<div class='msg-err'>Ya existe un ítem de EPP con ese nombre</div>"; return;
+  }
+  if(!_bloquearBoton(btn, "guardarNuevoItemEPP")) return;
+  gasPost("guardarItemEPPCatalogo",{item:nombre, icono:icono, tipo:tipo, requiereTalla:talla, activo:true}).then(function(r){
+    _liberarBoton(btn, "guardarNuevoItemEPP");
+    if(r&&r.ok){
+      cancelarFormEPP();
+      EPP_CATALOGO = null;
+      eppCargarCatalogo().then(cargarCatalogoEPPAdmin);
+    } else if(msg){
+      msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevoItemEPP"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function toggleActivoItemEPP(item, nuevoActivo) {
+  var actual = (EPP_CATALOGO||[]).find(function(c){return c.item===item;});
+  if(!actual) return;
+  if(!confirm((nuevoActivo?"¿Activar ":"¿Desactivar ")+item+"?"+(nuevoActivo?"":"\n\nDejará de aparecer en Control de EPP, pero su historial no se pierde."))) return;
+  gasPost("guardarItemEPPCatalogo",{item:actual.item, icono:actual.icono, tipo:actual.tipo, requiereTalla:actual.requiereTalla, activo:nuevoActivo, orden:actual.orden}).then(function(r){
+    if(r&&r.ok){
+      EPP_CATALOGO = null;
+      eppCargarCatalogo().then(cargarCatalogoEPPAdmin);
+    } else {
+      alert("❌ "+(r&&r.error||"No se pudo actualizar"));
+    }
+  }).catch(function(e){ alert("❌ "+e.message); });
+}
+
+function cancelarFormEPP() {
+  var f = document.getElementById("epFormCat");
+  if(f) f.innerHTML="";
+}
+
+// ══════════════════════════════════════════════
 // CONFIGURACIÓN DE APARIENCIA (solo Admin)
 // ══════════════════════════════════════════════
 var PALETA = [
-  {nombre:"Verde GT02 (por defecto)", primario:"#1B4332", secundario:"#2D6A4F", claro:"#D8F3DC", xclaro:"#EBF7ED", borde:"#B7E4C7", pastel:"#95D5B2"},
+  {nombre:CONFIG.colorPaletaDefecto+" (por defecto)", primario:"#1B4332", secundario:"#2D6A4F", claro:"#D8F3DC", xclaro:"#EBF7ED", borde:"#B7E4C7", pastel:"#95D5B2"},
   {nombre:"Azul",         primario:"#1F3864", secundario:"#2E75B6", claro:"#D6E4F0", xclaro:"#EBF3FB", borde:"#BDD7EE", pastel:"#A8C8E8"},
   {nombre:"Rojo Energía", primario:"#7B0000", secundario:"#C00000", claro:"#FCE4D6", xclaro:"#FFF5F5", borde:"#F5BBBB", pastel:"#E88"},
   {nombre:"Morado",       primario:"#4A0E8F", secundario:"#7B2FF7", claro:"#EDE0FF", xclaro:"#F5EDFF", borde:"#D4B8FF", pastel:"#C8A0F0"},
@@ -4300,10 +4548,10 @@ function qrCargarTrabajadores(){
   var d = document.getElementById("qrLista");
   if(!d) return;
   d.innerHTML="<div style='padding:10px;font-size:12px;color:#888'>Cargando...</div>";
-  sheetsGet("Personal_GT02!A2:J").then(function(data){
+  sheetsGet(SHEET("Personal")+"!A2:K").then(function(data){
     var rows = data.values || [];
     qrTRABAJADORES = rows.map(function(row){
-      return {codigo:(row[0]||"").toString().trim(), nombre:(row[1]||"").toString().trim(), cargo:(row[2]||"").toString().trim(), dui:(row[7]||"").toString().trim(), fotoId:(row[9]||"").toString().trim()};
+      return {codigo:(row[0]||"").toString().trim(), nombre:(row[1]||"").toString().trim(), cargo:(row[2]||"").toString().trim(), estado:(row[6]||"Activo").toString().trim(), dui:(row[7]||"").toString().trim(), fotoId:(row[9]||"").toString().trim(), vigenciaHasta:(row[10]||"").toString().trim()};
     }).filter(function(t){ return t.codigo; });
     qrFiltrar();
   }).catch(function(){
@@ -4526,7 +4774,7 @@ function qrGenerarPDFCarnets(){
   function siguiente(){
     if(i>=seleccionados.length){
       var fg=new Date();
-      var nombreArchivo="Carnets_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
+      var nombreArchivo="Carnets_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
       mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "carnets");
       return;
     }
@@ -4558,11 +4806,11 @@ function qrGenerarPDFCarnets(){
       doc.setTextColor(255,255,255);
       doc.setFont(undefined,"bold");
       doc.setFontSize(9);
-      doc.text("Almacén GT02", x+cW/2, y+7, {align:"center"});
+      doc.text(CONFIG.empresa, x+cW/2, y+7, {align:"center"});
       doc.setFont(undefined,"normal");
       doc.setFontSize(6.2);
       doc.setTextColor(149,213,178);
-      doc.text("SOLTECING · Izabal, Guatemala", x+cW/2, y+10.5, {align:"center"});
+      doc.text("Proyecto "+CONFIG.codigoProyecto+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, x+cW/2, y+10.5, {align:"center"});
 
       // Foto recortada en círculo real usando clip() de jsPDF (probado y confirmado)
       var fotoSize=28, fotoX=x+cW/2-fotoSize/2, fotoY=y+headH-fotoSize/2;
@@ -4617,8 +4865,25 @@ function qrGenerarPDFCarnets(){
       doc.setTextColor(65,36,2);
       doc.setFont(undefined,"bold");
       doc.setFontSize(13);
-      doc.text(t.codigo.replace("GT02/RECPER-",""), x+cW/2, qy+qs+9, {align:"center"});
+      doc.text(t.codigo.replace(CONFIG.prefijoTrabajador+"-",""), x+cW/2, qy+qs+9, {align:"center"});
       doc.setFont(undefined,"normal");
+
+      // Vigencia — mientras el proyecto continúe, o hasta la fecha indicada
+      // en Gestión de trabajadores (Pendiente 4 de la Especificación Técnica).
+      doc.setFontSize(6.3);
+      doc.setTextColor(45,106,79);
+      var textoVig = t.vigenciaHasta
+        ? "Vigente hasta " + (function(){ var f=new Date(t.vigenciaHasta+"T00:00:00"); return isNaN(f)?t.vigenciaHasta:f.toLocaleDateString("es-GT"); })()
+        : "Vigente mientras dure el proyecto";
+      doc.text(textoVig, x+cW/2, qy+qs+15, {align:"center"});
+
+      // Leyenda legal orientativa — confirmar redacción exacta con
+      // asesoría legal/RRHH antes de imprimir en volumen (ver
+      // Especificación Técnica, Pendiente 4).
+      doc.setFontSize(4.8);
+      doc.setTextColor(150,150,150);
+      var leyendaLineas = doc.splitTextToSize(CONFIG.leyendaCarnet, cW-6);
+      doc.text(leyendaLineas, x+cW/2, qy+qs+19.5, {align:"center"});
 
       i++;
       avisoBox.innerHTML="<div class='msg-ok'>🔄 Generando... "+i+" / "+seleccionados.length+"</div>";
@@ -4690,7 +4955,7 @@ function qrGenerarPDFLote(){
       doc.setFontSize(cfg.fCod);
       doc.setTextColor(20,20,20);
       doc.setFont(undefined,"bold");
-      doc.text(t.codigo.replace("GT02/RECPER-",""), x+cfg.cW/2, y+L.codY, {align:"center"});
+      doc.text(t.codigo.replace(CONFIG.prefijoTrabajador+"-",""), x+cfg.cW/2, y+L.codY, {align:"center"});
       doc.setFont(undefined,"normal");
 
       var nombre=t.nombre||"";
