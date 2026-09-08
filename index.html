@@ -18,7 +18,7 @@ body{font-family:Arial,sans-serif;background:#f0f4f8;color:#333;font-size:14px}
 .hscr{display:none}.hscr.on{display:block}
 .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .ctit{font-size:12px;font-weight:bold;color:var(--c-prim,#1B4332);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--c-xclaro,#EBF7ED)}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7);border-radius:6px;font-size:13px;margin-bottom:7px;outline:none;background:#fff}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7);border-radius:6px;font-size:13px;margin-bottom:7px;outline:none;background:#fff;font-family:inherit}
 .btn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;margin-bottom:7px}
 .b-blue{background:var(--c-secu,#2D6A4F);color:#fff}.b-ok{background:#375623;color:#fff}
 .b-danger{background:#C00000;color:#fff}.b-warn{background:#F4B942;color:#333}
@@ -132,6 +132,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <div class="menu-item" onclick="abrirHorometro()">⏱ Horómetro de maquinaria</div>
   <div class="menu-item" onclick="abrirArmadoPernos()">🔩 Armado de pernos</div>
   <div class="menu-item" onclick="abrirEPP()">🦺 Control de EPP</div>
+  <div class="menu-item" onclick="abrirSalud()">💊 Salud del trabajador</div>
   <div id="menuAdmin" style="display:none">
     <hr style="margin:6px 0;border-color:#eee">
     <div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:bold">ADMINISTRACIÓN</div>
@@ -139,6 +140,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
     <div class="menu-item" onclick="abrirGestionTrabajadores()">👷 Gestión de trabajadores</div>
     <div class="menu-item" onclick="abrirGestionMaquinas()">🚧 Gestión de máquinas</div>
     <div class="menu-item" onclick="abrirGestionCatalogoEPP()">🦺 Catálogo de EPP</div>
+    <div class="menu-item" onclick="abrirGestionCatalogoMed()">💊 Catálogo de medicamentos</div>
     <div class="menu-item" onclick="abrirConfigApariencia()">🎨 Apariencia del sistema</div>
     <div class="menu-item" onclick="abrirGeneradorQR()">🔳 Generar códigos QR</div>
   </div>
@@ -372,6 +374,20 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevoItemEPPForm()">➕ Nuevo ítem de EPP</button>
   <div id="epFormCat"></div>
   <div id="epLista"></div>
+</div>
+
+<div id="gestionCatalogoMedScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">💊 Catálogo de medicamentos</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <div style="font-size:11px;color:#888;margin-bottom:10px">
+    Acá se define qué medicamentos existen en bodega — sin tocar el Excel.
+    Desactivar uno lo saca de las pantallas de Salud, pero no borra su historial de entregas.
+  </div>
+  <button class="btn b-ok" style="width:100%;margin-bottom:10px" onclick="nuevoItemMedForm()">➕ Nuevo medicamento</button>
+  <div id="medFormCat"></div>
+  <div id="medLista"></div>
 </div>
 
 <div id="configAparienciaScr" class="scr">
@@ -685,6 +701,70 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     SALUD DEL TRABAJADOR — alergias/notas en el perfil + stock y
+     entrega de medicamentos. Mismo patrón que Control de EPP:
+     el estado se calcula de un historial (Medicamentos_Entregas),
+     nunca se guarda fijo.
+     ══════════════════════════════════════════════ -->
+<div id="saludScreen" style="display:none;padding:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">💊 Salud del trabajador</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="cerrarSalud()">← Volver</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="btn b-ok b-sm" id="saludBtnPersona" style="flex:1" onclick="saludGoTab(0)">👤 Por trabajador</button>
+    <button class="btn b-sec b-sm" id="saludBtnReporte" style="flex:1" onclick="saludGoTab(1)">📊 Reporte general</button>
+    <button class="btn b-sec b-sm" id="saludBtnStock" style="flex:1" onclick="saludGoTab(2)">📦 Stock disponible</button>
+  </div>
+
+  <div id="saludScrPersona">
+    <div class="card">
+      <div class="ctit">Buscar trabajador</div>
+      <input type="text" id="saludBuscar" placeholder="Buscar por nombre o código..." oninput="saludBuscarTrabajadores()" autocomplete="off">
+      <div id="saludSugTrab" style="display:none;border:1px solid #eee;border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div id="saludFormContainer"></div>
+  </div>
+
+  <div id="saludScrReporte" style="display:none">
+    <div class="card">
+      <div class="ctit">Filtrar historial</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="saludRepDesde" style="margin:0" oninput="saludCalcularReporte()">
+        <span>→</span>
+        <input type="date" id="saludRepHasta" style="margin:0" oninput="saludCalcularReporte()">
+      </div>
+      <select id="saludRepMed" onchange="saludCalcularReporte()">
+        <option value="">Todos los medicamentos</option>
+      </select>
+      <select id="saludRepTrab" onchange="saludCalcularReporte()">
+        <option value="">Todos los trabajadores</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="ctit">Historial filtrado</div>
+      <div id="saludRepLista" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <div id="saludScrStock" style="display:none">
+    <div class="card">
+      <div class="ctit">Registrar ingreso de medicamento</div>
+      <select id="saludStockMed"></select>
+      <input type="number" id="saludStockCantidad" placeholder="Cantidad que ingresa" min="1">
+      <input type="text" id="saludStockObs" placeholder="Observaciones (opcional, ej. proveedor, lote)">
+      <div id="saludStockMsg"></div>
+      <button class="btn b-ok" style="width:100%;padding:12px" onclick="saludRegistrarEntradaStock()">➕ Registrar ingreso</button>
+    </div>
+    <div class="card">
+      <div class="ctit">Disponible actual, por medicamento</div>
+      <div id="saludStockTabla"></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -694,14 +774,17 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--c-borde,#B7E4C7)
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.9.0   (18/08/2026)
+// VERSIÓN ACTUAL: 2.11.0  (08/09/2026) — talla de camisa/zapato y
+// alergias en el perfil del trabajador, módulo de Salud (catálogo,
+// stock y entrega de medicamentos) y entrega de EPP más rápida
+// (sin diálogos encadenados).
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.10.1-GT02";
+var APP_VERSION = "2.11.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -2942,22 +3025,19 @@ function eppRegistrar(item, tipoMovimiento, extra){
     }
   }).catch(function(e){ _liberarBoton(btn, "eppRegistrar"); alert("❌ "+e.message); });
 }
-// eppPedirFechaYComentario — se pregunta en TODAS las acciones de EPP,
-// para que la fecha registrada sea la fecha real del hecho (aunque se
-// esté poniendo al día en un domingo), no la fecha del sistema.
-function eppPedirFechaYComentario(tituloAccion){
-  var hoy = new Date().toISOString().slice(0,10);
-  var fecha = prompt("Fecha real de: "+tituloAccion+"\n(AAAA-MM-DD, deja igual si fue hoy)", hoy);
-  if(fecha===null) return null;
-  fecha = fecha.trim() || hoy;
-  var obs = prompt("Comentario (opcional, puede dejarlo en blanco):","");
-  if(obs===null) obs="";
-  return {fecha:fecha, observaciones:obs.trim()};
+// eppAccionSimple — Casco/Chaleco (tipo "devuelve"): no piden talla ni
+// motivo, así que se registra de UN toque, con la fecha de hoy — sin
+// diálogos encadenados. Para corregir fecha/observaciones de un
+// registro ya hecho, o para dejar uno con fecha atrasada, está el
+// botón 🗓️ (eppAccionSimpleFecha) que sí abre un formulario en línea.
+function eppAccionSimple(item, tipoMovimiento){
+  eppRegistrar(item, tipoMovimiento, {fecha:new Date().toISOString().slice(0,10), observaciones:""});
 }
-function eppAccionSimple(item, tipoMovimiento, etiqueta){
-  var extra = eppPedirFechaYComentario(etiqueta);
-  if(!extra) return;
-  eppRegistrar(item, tipoMovimiento, extra);
+// eppAccionSimpleFecha — variante con formulario en línea (fecha +
+// observaciones) para cuando la entrega/devolución no fue hoy, o hace
+// falta dejar un comentario.
+function eppAccionSimpleFecha(item, tipoMovimiento, etiqueta){
+  eppMostrarFormRapido(item, tipoMovimiento, "devuelve", false, etiqueta);
 }
 // eppAccionGenerica — reemplaza las funciones que antes existían una
 // por cada ítem (eppEntregarLentes, eppEntregarZapato, etc.). Ahora el
@@ -2965,32 +3045,63 @@ function eppAccionSimple(item, tipoMovimiento, etiqueta){
 // del "tipo" del ítem en el catálogo, así que un ítem de EPP nuevo
 // (ej. un brazalete) no necesita ninguna función propia — alcanza con
 // darlo de alta en Admin → Catálogo de EPP con el tipo correcto.
+// En vez de encadenar 2-3 prompt() (talla, cantidad/motivo, fecha,
+// comentario) — lentos y fáciles de tocar mal en el celular — se
+// muestra UN solo formulario en línea con todo junto.
 function eppAccionGenerica(item, tipo, requiereTalla){
+  eppMostrarFormRapido(item, "Entrega", tipo, requiereTalla, "Entrega de "+item);
+}
+// eppMostrarFormRapido — arma el formulario en línea, insertándolo
+// justo arriba de la lista de EPP, con solo los campos que ese tipo
+// de ítem necesita (talla / cantidad / motivo), fecha de hoy por
+// defecto y observaciones opcionales.
+function eppMostrarFormRapido(item, tipoMovimiento, tipo, requiereTalla, etiquetaAccion){
+  var hoy = new Date().toISOString().slice(0,10);
+  var camposExtra = "";
+  if(requiereTalla) camposExtra += "<input type='text' id='eppFTalla' placeholder='Talla de "+esc(item)+" *'>";
+  if(tipo==="acumulable") camposExtra += "<input type='number' id='eppFCantidad' placeholder='Cantidad' value='1' min='1'>";
+  if(tipo==="reincidente") camposExtra +=
+    "<select id='eppFMotivo'>"+
+      "<option value='Entrega inicial'>Entrega inicial</option>"+
+      "<option value='Dañado por uso'>Dañado por uso</option>"+
+      "<option value='Extraviado'>Extraviado</option>"+
+      "<option value='Otro'>Otro</option>"+
+    "</select>";
+  var html = "<div class='card' id='eppFormRapido' style='border:2px solid #2D6A4F'>"+
+    "<div class='ctit' style='margin:0 0 6px'>"+esc(etiquetaAccion)+"</div>"+
+    camposExtra+
+    "<input type='date' id='eppFFecha' value='"+hoy+"'>"+
+    "<input type='text' id='eppFObs' placeholder='Observaciones (opcional)'>"+
+    "<div style='display:flex;gap:8px'>"+
+      "<button class='btn b-ok' style='flex:1' onclick='eppConfirmarFormRapido(\""+escJS(item)+"\",\""+tipoMovimiento+"\",\""+tipo+"\")'>✅ Confirmar</button>"+
+      "<button class='btn b-sec' style='flex:1' onclick='eppCancelarFormRapido()'>Cancelar</button>"+
+    "</div></div>";
+  eppCancelarFormRapido();
+  document.getElementById("eppFormContainer").insertAdjacentHTML("afterbegin", html);
+  document.getElementById("eppFormRapido").scrollIntoView({behavior:"smooth", block:"center"});
+}
+function eppCancelarFormRapido(){
+  var f = document.getElementById("eppFormRapido");
+  if(f) f.remove();
+}
+function eppConfirmarFormRapido(item, tipoMovimiento, tipo){
   var talla = "";
-  if(requiereTalla){
-    var t = prompt("Talla de "+item+":");
-    if(t===null) return;
-    talla = t.trim();
+  var campoTalla = document.getElementById("eppFTalla");
+  if(campoTalla){
+    talla = campoTalla.value.trim();
+    if(!talla){ alert("Falta la talla de "+item); return; }
   }
   var cantidad = 1;
   if(tipo==="acumulable"){
-    var c = prompt("¿Cuántas unidades de "+item+" se entregan?","1");
-    if(c===null || !Number(c) || Number(c)<=0){ if(c!==null) alert("Cantidad inválida"); return; }
-    cantidad = c;
+    cantidad = (document.getElementById("eppFCantidad")||{value:"1"}).value;
+    if(!Number(cantidad) || Number(cantidad)<=0){ alert("Cantidad inválida"); return; }
   }
-  var motivo = "";
-  if(tipo==="reincidente"){
-    var op = prompt("Motivo de la entrega/cambio de "+item+":\n1) Entrega inicial\n2) Dañado por uso\n3) Extraviado\n4) Otro","1");
-    if(op===null) return;
-    var motivos = {"1":"Entrega inicial","2":"Dañado por uso","3":"Extraviado","4":"Otro"};
-    motivo = motivos[op.trim()] || op.trim();
-  }
-  var extra = eppPedirFechaYComentario("Entrega de "+item);
-  if(!extra) return;
-  extra.talla = talla;
-  extra.cantidad = cantidad;
-  extra.motivo = motivo;
-  eppRegistrar(item, "Entrega", extra);
+  var motivo = tipo==="reincidente" ? (document.getElementById("eppFMotivo")||{value:""}).value : "";
+  var hoy = new Date().toISOString().slice(0,10);
+  var fecha = (document.getElementById("eppFFecha")||{value:hoy}).value || hoy;
+  var obs = (document.getElementById("eppFObs")||{value:""}).value.trim();
+  eppCancelarFormRapido();
+  eppRegistrar(item, tipoMovimiento, {talla:talla, cantidad:cantidad, motivo:motivo, fecha:fecha, observaciones:obs});
 }
 
 // eppAnular — NUNCA borra: agrega un registro de anulación que hace
@@ -3007,13 +3118,18 @@ function eppAnular(idMovimiento, item, descripcion){
 
 // ── Bloques visuales reutilizables ──
 function eppBloqueDevuelve(item, etiqueta, estado){
+  var tipoMov = estado.entregado ? "Devolucion" : "Entrega";
+  var etiquetaAccion = (estado.entregado?"Devolución de ":"Entrega de ")+etiqueta.replace(/^[^ ]+ /,"");
   var accionBtn = estado.entregado
-    ? "<button class='btn b-sec b-sm' onclick='eppAccionSimple(\""+item+"\",\"Devolucion\",\"Devolución de "+etiqueta.replace(/^[^ ]+ /,"")+"\")'>↩️ Devolver</button>"
-    : "<button class='btn b-ok b-sm' onclick='eppAccionSimple(\""+item+"\",\"Entrega\",\"Entrega de "+etiqueta.replace(/^[^ ]+ /,"")+"\")'>✅ Entregar</button>";
+    ? "<button class='btn b-sec b-sm' onclick='eppAccionSimple(\""+item+"\",\"Devolucion\")'>↩️ Devolver</button>"
+    : "<button class='btn b-ok b-sm' onclick='eppAccionSimple(\""+item+"\",\"Entrega\")'>✅ Entregar</button>";
+  var linkFecha = "<div style='font-size:10px;color:#2D6A4F;text-align:right;margin-top:2px;cursor:pointer' onclick='eppAccionSimpleFecha(\""+item+"\",\""+tipoMov+"\",\""+escJS(etiquetaAccion)+"\")'>🗓️ Otra fecha / comentario</div>";
   var estadoTxt = estado.entregado ? "Entregado ("+estado.fechaEntregado+")" : (estado.fechaDevuelto ? "Devuelto ("+estado.fechaDevuelto+")" : "No entregado");
-  return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2;gap:8px'>"+
+  return "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
+    "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px'>"+
     "<div><div style='font-weight:bold;font-size:13px'>"+etiqueta+"</div><div style='font-size:11px;color:#888'>"+estadoTxt+"</div></div>"+
     accionBtn+
+    "</div>"+linkFecha+
   "</div>";
 }
 function eppBloqueSolo(item, etiqueta, estado, tipo, requiereTalla){
@@ -3327,6 +3443,438 @@ function eppRegistrarEntradaStock(){
 
 
 
+// ══════════════════════════════════════════════
+// SALUD DEL TRABAJADOR — alergias/notas + stock y entrega de
+// medicamentos. Mismo patrón de diseño que Control de EPP: el
+// catálogo (qué medicamentos existen) sale de una hoja editable
+// desde la app, y el "disponible" se calcula de un historial
+// (ingresos − entregas vigentes), nunca se guarda fijo.
+// ══════════════════════════════════════════════
+var MED_CATALOGO = null;
+var SALUD_TRAB_ACTUAL = null;
+var SALUD_CANDIDATOS = {};
+var SALUD_ENTREGAS_TRAB = [];
+var SALUD_ENTREGAS_TODOS = null;
+var MED_STOCK_ENTRADAS = null;
+
+function abrirSalud(){
+  document.getElementById("menuMas").style.display="none";
+  document.querySelector(".tabs").style.display="none";
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display="none"; });
+  document.getElementById("saludScreen").style.display="block";
+  saludCargarCatalogo().then(function(){ saludGoTab(0); });
+}
+function cerrarSalud(){
+  document.getElementById("saludScreen").style.display="none";
+  document.querySelector(".tabs").style.display="flex";
+  document.querySelectorAll("#appContent > .scr").forEach(function(s){ s.style.display=""; });
+}
+function saludGoTab(n){
+  document.getElementById("saludScrPersona").style.display = n===0?"block":"none";
+  document.getElementById("saludScrReporte").style.display = n===1?"block":"none";
+  document.getElementById("saludScrStock").style.display = n===2?"block":"none";
+  document.getElementById("saludBtnPersona").className = "btn "+(n===0?"b-ok":"b-sec")+" b-sm";
+  document.getElementById("saludBtnReporte").className = "btn "+(n===1?"b-ok":"b-sec")+" b-sm";
+  document.getElementById("saludBtnStock").className = "btn "+(n===2?"b-ok":"b-sec")+" b-sm";
+  if(n===1 && !SALUD_ENTREGAS_TODOS) saludCargarTodos();
+  if(n===2) saludCargarStock();
+}
+
+// ── Catálogo de medicamentos (Admin → Catálogo de medicamentos) ──
+function saludCargarCatalogo(){
+  if(MED_CATALOGO) return Promise.resolve(MED_CATALOGO);
+  return sheetsGet("Medicamentos_Catalogo!A2:C").then(function(resp){
+    var rows = resp.values || [];
+    if(!rows.length) throw new Error("vacio");
+    MED_CATALOGO = rows.filter(function(r){return r[0];}).map(saludFilaCatalogoAObjeto);
+    return MED_CATALOGO;
+  }).catch(function(){
+    return gasPost("asegurarCatalogoMedicamentos",{}).then(function(){
+      return sheetsGet("Medicamentos_Catalogo!A2:C");
+    }).then(function(resp){
+      var rows = resp.values || [];
+      MED_CATALOGO = rows.filter(function(r){return r[0];}).map(saludFilaCatalogoAObjeto);
+      return MED_CATALOGO;
+    }).catch(function(){
+      MED_CATALOGO = [
+        {nombre:"Acetaminofén", activo:true, orden:1},
+        {nombre:"Ibuprofeno", activo:true, orden:2},
+        {nombre:"Suero oral", activo:true, orden:3}
+      ];
+      return MED_CATALOGO;
+    });
+  }).then(function(cat){
+    saludPoblarSelectsCatalogo();
+    return cat;
+  });
+}
+function saludFilaCatalogoAObjeto(r){
+  return {
+    nombre:(r[0]||"").toString(),
+    activo:(r[1]===undefined || r[1]==="") ? true : (r[1]||"").toString().toLowerCase()==="si",
+    orden:Number(r[2])||99
+  };
+}
+function saludCatalogoActivos(){
+  return (MED_CATALOGO||[]).filter(function(c){return c.activo;}).sort(function(a,b){return a.orden-b.orden;});
+}
+function saludPoblarSelectsCatalogo(){
+  var activos = saludCatalogoActivos();
+  var opts = activos.map(function(c){ return "<option value=\""+esc(c.nombre)+"\">"+esc(c.nombre)+"</option>"; }).join("");
+  var selStock = document.getElementById("saludStockMed");
+  if(selStock){ var actualStock = selStock.value; selStock.innerHTML = opts; if(actualStock) selStock.value = actualStock; }
+  var selRep = document.getElementById("saludRepMed");
+  if(selRep){ var actualRep = selRep.value; selRep.innerHTML = "<option value=''>Todos los medicamentos</option>" + opts; selRep.value = actualRep; }
+  var selEntrega = document.getElementById("saludEntregaMed");
+  if(selEntrega){ var actualEnt = selEntrega.value; selEntrega.innerHTML = opts; if(actualEnt) selEntrega.value = actualEnt; }
+}
+
+// ── Buscar trabajador (mismo patrón que Control de EPP) ──
+var saludTBusca;
+function saludBuscarTrabajadores(){
+  clearTimeout(saludTBusca);
+  var v = document.getElementById("saludBuscar").value.trim();
+  var d = document.getElementById("saludSugTrab");
+  if(v.length<1){ d.style.display="none"; return; }
+  saludTBusca = setTimeout(function(){
+    sheetsGet(SHEET("Personal")+"!A2:N").then(function(resp){
+      var rows = resp.values || [];
+      var q = v.toLowerCase();
+      var res = [];
+      for(var i=0;i<rows.length && res.length<8;i++){
+        var cod=(rows[i][0]||"").toString().trim();
+        var nom=(rows[i][1]||"").toString().trim();
+        if(!cod) continue;
+        if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0){
+          res.push({codigo:cod, nombre:nom||cod, alergias:(rows[i][13]||"").toString()});
+        }
+      }
+      if(!res.length){ d.style.display="none"; return; }
+      res.forEach(function(t){ SALUD_CANDIDATOS[t.codigo]=t; });
+      d.innerHTML = res.map(function(t){
+        return "<div class='sug-item' onclick='saludSelTrab(\""+escJS(t.codigo)+"\")'>"+
+          "<div class='sug-nom'>"+t.nombre+"</div><div class='sug-cod'>"+t.codigo+"</div></div>";
+      }).join("");
+      d.style.display="block";
+    }).catch(function(){ d.style.display="none"; });
+  },300);
+}
+
+function saludFilaEntregaAObjeto(r){
+  return {
+    fecha: r[0] ? new Date(r[0]) : null,
+    fechaStr: r[0] ? new Date(r[0]).toLocaleDateString("es-GT") : "",
+    codigoTrabajador: (r[1]||"").toString().trim(), nombreTrabajador: r[2]||"",
+    medicamento: r[3]||"", cantidad: Number(r[4])||0, observaciones: r[5]||"",
+    idMovimiento: r[7]||""
+  };
+}
+
+function saludSelTrab(codigo){
+  var cand = SALUD_CANDIDATOS[codigo];
+  SALUD_TRAB_ACTUAL = {codigo:codigo, nombre:(cand&&cand.nombre)||codigo, alergias:(cand&&cand.alergias)||""};
+  document.getElementById("saludSugTrab").style.display="none";
+  document.getElementById("saludBuscar").value = SALUD_TRAB_ACTUAL.nombre;
+  var cont = document.getElementById("saludFormContainer");
+  cont.innerHTML = "<div class='card'><div class='loading'>🔄 Cargando historial...</div></div>";
+
+  sheetsGet("Medicamentos_Entregas!A2:I").then(function(resp){
+    var rows = resp.values || [];
+    SALUD_ENTREGAS_TRAB = rows.map(saludFilaEntregaAObjeto).filter(function(m){
+      return m.fecha && m.cantidad>0 && m.codigoTrabajador.toLowerCase() === codigo.toLowerCase();
+    }).sort(function(a,b){ return b.fecha-a.fecha; });
+    saludRenderEstado();
+  }).catch(function(){
+    SALUD_ENTREGAS_TRAB = [];
+    saludRenderEstado();
+  });
+}
+
+function saludRenderEstado(){
+  var cont = document.getElementById("saludFormContainer");
+  var t = SALUD_TRAB_ACTUAL;
+  var opts = saludCatalogoActivos().map(function(c){ return "<option value=\""+esc(c.nombre)+"\">"+esc(c.nombre)+"</option>"; }).join("");
+
+  var html = "<div class='card'><div class='ctit'>"+esc(t.nombre)+" · "+esc(t.codigo)+"</div>"+
+    "<label style='display:block;font-size:11px;color:#888;margin-bottom:3px'>⚠️ Alergias / notas de salud</label>"+
+    "<textarea id='saludAlergias' placeholder='Ej: alérgico a acetaminofén' style='min-height:50px'>"+escTexto(t.alergias)+"</textarea>"+
+    "<button class='btn b-sec b-sm' onclick='saludGuardarAlergias()'>💾 Guardar alergias/notas</button>"+
+    "<div id='saludAlergiasMsg'></div>"+
+  "</div>";
+
+  html += "<div class='card'><div class='ctit'>💊 Entregar medicamento</div>"+
+    "<select id='saludEntregaMed'>"+opts+"</select>"+
+    "<div style='display:flex;gap:8px'>"+
+      "<input type='number' id='saludEntregaCantidad' placeholder='Cantidad' value='1' min='1' style='flex:1'>"+
+      "<input type='text' id='saludEntregaObs' placeholder='Observaciones (opcional)' style='flex:2'>"+
+    "</div>"+
+    "<div id='saludEntregaMsg'></div>"+
+    "<button class='btn b-ok' style='width:100%' onclick='saludRegistrarEntrega()'>✅ Registrar entrega</button>"+
+  "</div>";
+
+  html += "<div class='card'><div class='ctit'>📜 Historial de este trabajador ("+SALUD_ENTREGAS_TRAB.length+")</div>"+
+    (SALUD_ENTREGAS_TRAB.length ? SALUD_ENTREGAS_TRAB.map(function(m){
+      return "<div style='padding:5px 0;border-bottom:1px solid #f2f2f2;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:6px'>"+
+        "<span><b>"+m.fechaStr+"</b> — "+esc(m.medicamento)+" x"+m.cantidad+(m.observaciones?" · 📝 "+esc(m.observaciones):"")+"</span>"+
+        "<button class='btn b-danger b-sm' style='flex-shrink:0' onclick='saludAnularEntrega(\""+escJS(m.idMovimiento)+"\",\""+escJS(m.fechaStr+" - "+m.medicamento+" x"+m.cantidad)+"\")'>Anular</button>"+
+      "</div>";
+    }).join("") : "<div style='font-size:12px;color:#888'>Sin entregas registradas todavía</div>")+
+  "</div>";
+
+  cont.innerHTML = html;
+}
+
+function saludGuardarAlergias(){
+  var btn = _botonDelEvento();
+  var val = (document.getElementById("saludAlergias")||{value:""}).value.trim();
+  var msg = document.getElementById("saludAlergiasMsg");
+  if(!_bloquearBoton(btn, "saludGuardarAlergias")) return;
+  gasPost("editarTrabajador",{codigo:SALUD_TRAB_ACTUAL.codigo, alergias:val}).then(function(r){
+    _liberarBoton(btn, "saludGuardarAlergias");
+    if(r&&r.ok){
+      SALUD_TRAB_ACTUAL.alergias = val;
+      if(SALUD_CANDIDATOS[SALUD_TRAB_ACTUAL.codigo]) SALUD_CANDIDATOS[SALUD_TRAB_ACTUAL.codigo].alergias = val;
+      if(msg){ msg.innerHTML="<div class='msg-ok'>✅ Guardado</div>"; setTimeout(function(){msg.innerHTML="";},2000); }
+    } else if(msg){ msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ _liberarBoton(btn, "saludGuardarAlergias"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function saludRegistrarEntrega(){
+  var btn = _botonDelEvento();
+  var medicamento = (document.getElementById("saludEntregaMed")||{value:""}).value;
+  var cantidad = (document.getElementById("saludEntregaCantidad")||{value:"1"}).value;
+  var obs = (document.getElementById("saludEntregaObs")||{value:""}).value.trim();
+  var msg = document.getElementById("saludEntregaMsg");
+  if(!medicamento){ if(msg)msg.innerHTML="<div class='msg-err'>Elige un medicamento</div>"; return; }
+  if(!cantidad || Number(cantidad)<=0){ if(msg)msg.innerHTML="<div class='msg-err'>Cantidad inválida</div>"; return; }
+  if(!_bloquearBoton(btn, "saludRegistrarEntrega")) return;
+  gasPost("registrarEntregaMedicamento",{
+    codigoTrabajador: SALUD_TRAB_ACTUAL.codigo,
+    nombreTrabajador: SALUD_TRAB_ACTUAL.nombre,
+    medicamento: medicamento,
+    cantidad: cantidad,
+    observaciones: obs,
+    registradoPor: (SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(r){
+    _liberarBoton(btn, "saludRegistrarEntrega");
+    if(r&&r.ok){
+      SALUD_ENTREGAS_TODOS = null; MED_STOCK_ENTRADAS = null;
+      saludSelTrab(SALUD_TRAB_ACTUAL.codigo);
+    } else if(msg){ msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
+  }).catch(function(e){ _liberarBoton(btn, "saludRegistrarEntrega"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+
+function saludAnularEntrega(idMovimiento, descripcion){
+  if(!confirm("¿Anular este registro?\n\n"+descripcion+"\n\nQueda marcado como anulado en el historial y deja de contar en el stock disponible."))
+    return;
+  var motivo = prompt("Motivo de la anulación (ej. 'Registrado por error, duplicado'):","");
+  if(motivo===null) return;
+  gasPost("anularEntregaMedicamento",{idMovimiento:idMovimiento, motivo:motivo.trim()}).then(function(r){
+    if(r&&r.ok){
+      SALUD_ENTREGAS_TODOS = null; MED_STOCK_ENTRADAS = null;
+      saludSelTrab(SALUD_TRAB_ACTUAL.codigo);
+    } else alert("❌ "+(r&&r.error||"No se pudo anular"));
+  }).catch(function(e){ alert("❌ "+e.message); });
+}
+
+// ── Reporte general ──
+function saludCargarTodos(){
+  document.getElementById("saludRepLista").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
+  sheetsGet("Medicamentos_Entregas!A2:I").then(function(resp){
+    var rows = resp.values || [];
+    SALUD_ENTREGAS_TODOS = rows.map(saludFilaEntregaAObjeto).filter(function(m){ return m.fecha && m.cantidad>0; });
+    saludPoblarFiltroTrab();
+    saludCalcularReporte();
+  }).catch(function(){
+    document.getElementById("saludRepLista").innerHTML = "<div class='msg-err'>No se pudo cargar (¿ya registró alguna entrega?)</div>";
+  });
+}
+function saludPoblarFiltroTrab(){
+  var sel = document.getElementById("saludRepTrab");
+  var actual = sel.value;
+  var nombres = {};
+  (SALUD_ENTREGAS_TODOS||[]).forEach(function(m){ if(m.nombreTrabajador) nombres[m.nombreTrabajador]=true; });
+  sel.innerHTML = "<option value=''>Todos los trabajadores</option>" +
+    Object.keys(nombres).sort().map(function(n){ return "<option value=\""+esc(n)+"\">"+n+"</option>"; }).join("");
+  if(nombres[actual]) sel.value = actual;
+}
+function saludFiltrarTodos(){
+  var desdeVal = document.getElementById("saludRepDesde").value;
+  var hastaVal = document.getElementById("saludRepHasta").value;
+  var desde = desdeVal ? new Date(desdeVal+"T00:00:00") : null;
+  var hasta = hastaVal ? new Date(hastaVal+"T23:59:59") : null;
+  var medSel = document.getElementById("saludRepMed").value;
+  var trabSel = document.getElementById("saludRepTrab").value;
+  return (SALUD_ENTREGAS_TODOS||[]).filter(function(m){
+    if(desde && m.fecha < desde) return false;
+    if(hasta && m.fecha > hasta) return false;
+    if(medSel && m.medicamento !== medSel) return false;
+    if(trabSel && m.nombreTrabajador !== trabSel) return false;
+    return true;
+  });
+}
+function saludCalcularReporte(){
+  if(!SALUD_ENTREGAS_TODOS) return;
+  var filtrados = saludFiltrarTodos().sort(function(a,b){ return b.fecha-a.fecha; });
+  document.getElementById("saludRepLista").innerHTML = filtrados.length ? filtrados.map(function(m){
+    return "<div style='padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+
+      "<b>"+m.fechaStr+"</b> — "+esc(m.nombreTrabajador)+" — "+esc(m.medicamento)+" x"+m.cantidad+
+      (m.observaciones?" · "+esc(m.observaciones):"")+
+    "</div>";
+  }).join("") : "<div style='font-size:12px;color:#888'>Sin registros con ese filtro</div>";
+}
+
+// ── Stock disponible ──
+function saludCalcularStock(){
+  var entradas = MED_STOCK_ENTRADAS || [];
+  var entregas = SALUD_ENTREGAS_TODOS || [];
+  var stock = {};
+  function asegurar(med){
+    if(!stock[med]) stock[med] = {medicamento:med, entradas:0, entregas:0};
+    return stock[med];
+  }
+  entradas.forEach(function(e){ asegurar(e.medicamento).entradas += e.cantidad; });
+  entregas.forEach(function(m){ asegurar(m.medicamento).entregas += m.cantidad; });
+  return Object.keys(stock).map(function(k){
+    var s = stock[k];
+    s.disponible = s.entradas - s.entregas;
+    return s;
+  }).sort(function(a,b){ return a.medicamento.localeCompare(b.medicamento); });
+}
+function saludCargarStock(){
+  document.getElementById("saludStockTabla").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
+  Promise.all([
+    sheetsGet("Medicamentos_Stock_Entradas!A2:E").catch(function(){ return {values:[]}; }),
+    SALUD_ENTREGAS_TODOS ? Promise.resolve({values:null}) : sheetsGet("Medicamentos_Entregas!A2:I").catch(function(){ return {values:[]}; })
+  ]).then(function(res){
+    var filasEntradas = res[0].values || [];
+    MED_STOCK_ENTRADAS = filasEntradas.map(function(r){
+      return { fecha: r[0]?new Date(r[0]):null, medicamento:r[1]||"", cantidad:Number(r[2])||0, observaciones:r[3]||"" };
+    }).filter(function(e){ return e.medicamento; });
+
+    if(!SALUD_ENTREGAS_TODOS && res[1].values){
+      SALUD_ENTREGAS_TODOS = res[1].values.map(saludFilaEntregaAObjeto).filter(function(m){ return m.fecha && m.cantidad>0; });
+      saludPoblarFiltroTrab();
+    }
+    saludRenderStockTabla();
+  }).catch(function(err){
+    document.getElementById("saludStockTabla").innerHTML = "<div class='msg-err'>"+err.message+"</div>";
+  });
+}
+function saludRenderStockTabla(){
+  var filas = saludCalcularStock();
+  document.getElementById("saludStockTabla").innerHTML = filas.length ? filas.map(function(s){
+    var bajo = s.disponible <= 10;
+    return "<div style='display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f2f2f2'>"+
+      "<div><b style='font-size:13px'>"+esc(s.medicamento)+"</b>"+
+      "<div style='font-size:10px;color:#888'>Ingresos: "+s.entradas+" · Entregados: "+s.entregas+"</div></div>"+
+      "<div style='font-size:18px;font-weight:bold;color:"+(bajo?"#C00000":"#375623")+"'>"+s.disponible+"</div>"+
+    "</div>";
+  }).join("") : "<div style='font-size:12px;color:#888'>Todavía no hay ingresos de medicamentos registrados</div>";
+}
+function saludRegistrarEntradaStock(){
+  var btn = _botonDelEvento();
+  var msg = document.getElementById("saludStockMsg");
+  msg.innerHTML = "";
+  var medicamento = document.getElementById("saludStockMed").value;
+  var cantidad = document.getElementById("saludStockCantidad").value;
+  var obs = document.getElementById("saludStockObs").value.trim();
+  if(!medicamento){ msg.innerHTML = "<div class='msg-err'>Elige un medicamento</div>"; return; }
+  if(!cantidad || Number(cantidad)<=0){ msg.innerHTML = "<div class='msg-err'>Escribe una cantidad válida</div>"; return; }
+  if(!_bloquearBoton(btn, "saludRegistrarEntradaStock")) return;
+  gasPost("registrarEntradaMedicamento",{
+    medicamento:medicamento, cantidad:cantidad, observaciones:obs,
+    registradoPor:(SESION&&SESION.nombre)||"Almacenista"
+  }).then(function(r){
+    _liberarBoton(btn, "saludRegistrarEntradaStock");
+    if(r && r.ok){
+      msg.innerHTML = "<div class='msg-ok'>✅ Ingreso registrado</div>";
+      document.getElementById("saludStockCantidad").value="";
+      document.getElementById("saludStockObs").value="";
+      MED_STOCK_ENTRADAS = null;
+      saludCargarStock();
+      setTimeout(function(){ msg.innerHTML=""; },2000);
+    } else {
+      msg.innerHTML = "<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){
+    _liberarBoton(btn, "saludRegistrarEntradaStock");
+    msg.innerHTML = "<div class='msg-err'>"+e.message+"</div>";
+  });
+}
+
+// ── Admin: Catálogo de medicamentos ──
+function abrirGestionCatalogoMed() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("gestionCatalogoMedScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  MED_CATALOGO = null; // recargar por si se editó desde otra pestaña/sesión
+  saludCargarCatalogo().then(cargarCatalogoMedAdmin);
+}
+function cargarCatalogoMedAdmin() {
+  var div = document.getElementById("medLista");
+  if(!div) return;
+  var todos = (MED_CATALOGO||[]).slice().sort(function(a,b){return a.orden-b.orden;});
+  if(!todos.length){ div.innerHTML="<div class='empty'><div class='ei'>💊</div><p>No hay medicamentos en el catálogo</p></div>"; return; }
+  div.innerHTML = todos.map(function(c){
+    return "<div class='card' style='margin-bottom:7px;padding:10px;display:flex;justify-content:space-between;align-items:center;gap:8px'>" +
+      "<div><b>💊 "+esc(c.nombre)+"</b> <span class='badge bm'>"+(c.activo?"Activo":"Inactivo")+"</span></div>" +
+      "<button class='btn b-sec b-sm' onclick='toggleActivoItemMed(\""+escJS(c.nombre)+"\","+(c.activo?"false":"true")+")'>"+(c.activo?"Desactivar":"Activar")+"</button>" +
+    "</div>";
+  }).join("");
+}
+function nuevoItemMedForm() {
+  var formDiv = document.getElementById("medFormCat");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>➕ Agregar medicamento</div>" +
+    "<input type='text' id='medNombre' placeholder='Nombre del medicamento (ej. Dolofín) *'>" +
+    "<div id='medMsg'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarNuevoItemMed()'>💾 Agregar</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormMed()'>Cancelar</button>" +
+    "</div></div>";
+}
+function guardarNuevoItemMed() {
+  var btn = _botonDelEvento();
+  var nombre = (document.getElementById("medNombre")||{value:""}).value.trim();
+  var msg = document.getElementById("medMsg");
+  if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
+  if((MED_CATALOGO||[]).some(function(c){return c.nombre.toLowerCase()===nombre.toLowerCase();})){
+    if(msg)msg.innerHTML="<div class='msg-err'>Ya existe un medicamento con ese nombre</div>"; return;
+  }
+  if(!_bloquearBoton(btn, "guardarNuevoItemMed")) return;
+  gasPost("guardarItemMedicamentoCatalogo",{nombre:nombre, activo:true}).then(function(r){
+    _liberarBoton(btn, "guardarNuevoItemMed");
+    if(r&&r.ok){
+      cancelarFormMed();
+      MED_CATALOGO = null;
+      saludCargarCatalogo().then(cargarCatalogoMedAdmin);
+    } else if(msg){
+      msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){ _liberarBoton(btn, "guardarNuevoItemMed"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
+}
+function toggleActivoItemMed(nombre, nuevoActivo) {
+  var actual = (MED_CATALOGO||[]).find(function(c){return c.nombre===nombre;});
+  if(!actual) return;
+  if(!confirm((nuevoActivo?"¿Activar ":"¿Desactivar ")+nombre+"?"+(nuevoActivo?"":"\n\nDejará de aparecer en Salud, pero su historial no se pierde."))) return;
+  gasPost("guardarItemMedicamentoCatalogo",{nombre:actual.nombre, activo:nuevoActivo, orden:actual.orden}).then(function(r){
+    if(r&&r.ok){
+      MED_CATALOGO = null;
+      saludCargarCatalogo().then(cargarCatalogoMedAdmin);
+    } else {
+      alert("❌ "+(r&&r.error||"No se pudo actualizar"));
+    }
+  }).catch(function(e){ alert("❌ "+e.message); });
+}
+function cancelarFormMed() {
+  var f = document.getElementById("medFormCat");
+  if(f) f.innerHTML="";
+}
 
 function horGoTab(n){
   document.getElementById("horTab0").classList.toggle("on", n===0);
@@ -3821,6 +4369,12 @@ function horMantEliminar(){
 }
 
 function esc(s){return(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;");}
+// escTexto — para texto que va DENTRO de un <textarea>...</textarea>
+// (no como valor de atributo). esc() no alcanza ahí porque no escapa
+// &, < ni > — si el trabajador tuviera algo como "</textarea>" en sus
+// notas, cortaría el HTML a la mitad. Se usa en Alergias/notas de
+// salud, que es texto libre.
+function escTexto(s){return(s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
 // escJS — para texto que se inserta como argumento de una función JS dentro
 // de un onclick='...'. A diferencia de esc() (pensada para atributos HTML
@@ -4016,7 +4570,7 @@ function cargarTrabajadoresAdmin() {
   var div = document.getElementById("trabLista");
   if(!div) return;
   div.innerHTML = "<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet(SHEET("Personal")+"!A2:K").then(function(r){
+  sheetsGet(SHEET("Personal")+"!A2:N").then(function(r){
     var rows = (r.values||[]).filter(function(row){ return row[0]; });
     TRAB_ROWS_CACHE = rows;
     if(!rows.length){ div.innerHTML="<div class='empty'><div class='ei'>👷</div><p>No hay trabajadores</p></div>"; return; }
@@ -4025,7 +4579,8 @@ function cargarTrabajadoresAdmin() {
       TRAB_CACHE[row[0]] = {
         codigo:row[0], nombre:row[1]||"", cargo:row[2]||"", especialidad:row[3]||"",
         telefono:row[4]||"", estado:row[6]||"Activo", dui:row[7]||"", observaciones:row[8]||"",
-        fotoId:row[9]||"", vigenciaHasta:row[10]||""
+        fotoId:row[9]||"", vigenciaHasta:row[10]||"",
+        tallaCamisa:row[11]||"", tallaZapato:row[12]||"", alergias:row[13]||""
       };
     });
     trabRenderLista(rows);
@@ -4077,6 +4632,10 @@ function nuevoTrabajadorForm() {
     "<input type='text' id='ntCargo' placeholder='Cargo (ej: Técnico)'>" +
     "<input type='text' id='ntTel' placeholder='Teléfono'>" +
     "<input type='text' id='ntDui' placeholder='Número de DUI/DPI'>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<input type='text' id='ntTallaCamisa' placeholder='Talla de camisa' style='flex:1'>" +
+    "<input type='text' id='ntTallaZapato' placeholder='Talla de zapato' style='flex:1'>" +
+    "</div>" +
     "<div id='ntMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
     "<button class='btn b-ok' onclick='guardarNuevoTrabajador()'>💾 Agregar</button>" +
@@ -4112,6 +4671,11 @@ function editarTrabajadorForm(codigo) {
     "<input type='text' id='etEspecialidad' placeholder='Especialidad' value=\""+esc(t.especialidad)+"\">" +
     "<input type='text' id='etTel' placeholder='Teléfono' value=\""+esc(t.telefono)+"\">" +
     "<input type='text' id='etDui' placeholder='Número de DUI/DPI' value=\""+esc(t.dui)+"\">" +
+    "<div style='display:flex;gap:8px'>" +
+    "<input type='text' id='etTallaCamisa' placeholder='Talla de camisa' value=\""+esc(t.tallaCamisa)+"\" style='flex:1'>" +
+    "<input type='text' id='etTallaZapato' placeholder='Talla de zapato' value=\""+esc(t.tallaZapato)+"\" style='flex:1'>" +
+    "</div>" +
+    "<textarea id='etAlergias' placeholder='Alergias / notas de salud (ej: alérgico a acetaminofén)' style='min-height:50px'>"+escTexto(t.alergias)+"</textarea>" +
     "<select id='etEstado'>" +
       "<option value='Activo'"+(t.estado==="Activo"?" selected":"")+">Activo</option>"+
       "<option value='Inactivo'"+(t.estado==="Inactivo"?" selected":"")+">Inactivo</option>"+
@@ -4261,10 +4825,13 @@ function guardarEdicionTrabajador(codigo) {
   var estado = (document.getElementById("etEstado")||{value:""}).value;
   var vigencia = (document.getElementById("etVigencia")||{value:""}).value;
   var obs    = (document.getElementById("etObs")||{value:""}).value.trim();
+  var tallaCamisa = (document.getElementById("etTallaCamisa")||{value:""}).value.trim();
+  var tallaZapato = (document.getElementById("etTallaZapato")||{value:""}).value.trim();
+  var alergias    = (document.getElementById("etAlergias")||{value:""}).value.trim();
   var msg    = document.getElementById("etMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
   if(!_bloquearBoton(btn, "guardarEdicionTrabajador")) return;
-  gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,especialidad:espec,telefono:tel,dui:dui,estado:estado,vigenciaHasta:vigencia,observaciones:obs}).then(function(r){
+  gasPost("editarTrabajador",{codigo:codigo,nombre:nombre,cargo:cargo,especialidad:espec,telefono:tel,dui:dui,estado:estado,vigenciaHasta:vigencia,observaciones:obs,tallaCamisa:tallaCamisa,tallaZapato:tallaZapato,alergias:alergias}).then(function(r){
     _liberarBoton(btn, "guardarEdicionTrabajador");
     if(r&&r.ok){ cancelarFormTrab(); cargarTrabajadoresAdmin(); }
     else { if(msg)msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error")+"</div>"; }
@@ -4288,10 +4855,12 @@ function guardarNuevoTrabajador() {
   var cargo  = (document.getElementById("ntCargo")||{value:""}).value.trim();
   var tel    = (document.getElementById("ntTel")||{value:""}).value.trim();
   var dui    = (document.getElementById("ntDui")||{value:""}).value.trim();
+  var tallaCamisa = (document.getElementById("ntTallaCamisa")||{value:""}).value.trim();
+  var tallaZapato = (document.getElementById("ntTallaZapato")||{value:""}).value.trim();
   var msg    = document.getElementById("ntMsg");
   if(!nombre){ if(msg)msg.innerHTML="<div class='msg-err'>El nombre es requerido</div>"; return; }
   if(!_bloquearBoton(btn, "guardarNuevoTrabajador")) return;
-  gasPost("agregarTrabajador",{nombre:nombre,cargo:cargo,telefono:tel,dui:dui}).then(function(r){
+  gasPost("agregarTrabajador",{nombre:nombre,cargo:cargo,telefono:tel,dui:dui,tallaCamisa:tallaCamisa,tallaZapato:tallaZapato}).then(function(r){
     _liberarBoton(btn, "guardarNuevoTrabajador");
     if(r&&r.ok){
       cancelarFormTrab();
