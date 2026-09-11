@@ -3304,15 +3304,7 @@ function eppCalcularReporte(){
     return "<div style='display:flex;justify-content:space-between;padding:4px 0;font-size:12px'><span>"+n+"</span><b>"+reinc[n]+" cambio(s)</b></div>";
   }).join("") : "<div style='font-size:12px;color:#888'>Sin cambios por daño/extravío registrados</div>";
 }
-function resumenPorTalla(movs, item){
-  var resumen = {};
-  movs.filter(function(m){ return m.item === item; }).forEach(function(m){
-    var talla = m.talla || "Sin talla";
-    resumen[talla] = (resumen[talla]||0) + (m.cantidad||1);
-  });
-  return resumen;
-}
-  function eppExportarReportePDF(){
+function eppExportarReportePDF(){
   var aviso = document.getElementById("eppRepAviso");
   var filtrados = eppFiltrarTodos().sort(function(a,b){ return a.fecha-b.fecha; });
   if(!filtrados.length){ aviso.innerHTML="<div class='msg-err'>No hay registros con ese filtro.</div>"; return; }
@@ -3322,32 +3314,12 @@ function resumenPorTalla(movs, item){
   doc.text("Historial de EPP — Almacén GT02", 14, 15);
   doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
   doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" movimientos", 14, 21);
-  var resumenCamisas = resumenPorTalla(filtrados, "Camisa");
-  var resumenZapatos = resumenPorTalla(filtrados, "Zapato");
-  var yPos = 26;
-  doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Consolidado de tallas - Camisas", 14, yPos);
-  doc.setFont(undefined,"normal"); doc.setFontSize(9); doc.setTextColor(60,60,60);
-  yPos += 5;
-  Object.keys(resumenCamisas).sort().forEach(function(talla){
-    doc.text("Talla " + talla + ": " + resumenCamisas[talla], 14, yPos);
-    yPos += 4.5;
-  });
-  yPos += 3;
-  doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Consolidado de tallas - Zapatos", 14, yPos);
-  doc.setFont(undefined,"normal"); doc.setFontSize(9); doc.setTextColor(60,60,60);
-  yPos += 5;
-  Object.keys(resumenZapatos).sort().forEach(function(talla){
-    doc.text("Talla " + talla + ": " + resumenZapatos[talla], 14, yPos);
-    yPos += 4.5;
-  });
-  yPos += 4;
+
   var filas = filtrados.map(function(m){
     return [m.fechaStr, m.nombreTrabajador, m.item, m.tipoMovimiento, m.cantidad, m.talla||"—", m.motivo||"—"];
   });
   doc.autoTable({
-   startY: yPos,
+    startY: 26,
     head: [["Fecha","Trabajador","EPP","Movimiento","Cant.","Talla","Motivo"]],
     body: filas,
     styles:{fontSize:7.5},
@@ -3356,15 +3328,6 @@ function resumenPorTalla(movs, item){
 
   var fg=new Date();
   var nombreArchivo="Historial_EPP_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
-      var fechaImpresion = new Date().toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  var totalPaginas = doc.internal.getNumberOfPages();
-  for (var pg = 1; pg <= totalPaginas; pg++) {
-    doc.setPage(pg);
-    doc.setFontSize(8);
-    doc.setTextColor(120);
-    doc.text("Emitido: " + fechaImpresion, 14, doc.internal.pageSize.getHeight() - 8);
-    doc.text("Página " + pg + " de " + totalPaginas, doc.internal.pageSize.getWidth() - 14, doc.internal.pageSize.getHeight() - 8, { align: "right" });
-  }
   mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "movimientos");
 }
 
