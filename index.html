@@ -670,6 +670,11 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
       <select id="eppRepTrab" onchange="eppCalcularReporte()">
         <option value="">Todos los trabajadores</option>
       </select>
+      <select id="eppRepMovimiento" onchange="eppCalcularReporte()">
+        <option value="">Entregas y devoluciones</option>
+        <option value="Entrega">Solo entregas</option>
+        <option value="Devolucion">Solo devoluciones</option>
+      </select>
     </div>
     <div class="card">
       <div class="ctit">Reincidencia (cambios repetidos por daño/extravío)</div>
@@ -784,7 +789,7 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.11.0-GT02";
+var APP_VERSION = "2.12.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -3276,11 +3281,13 @@ function eppFiltrarTodos(){
   var hasta = hastaVal ? new Date(hastaVal+"T23:59:59") : null;
   var itemSel = document.getElementById("eppRepItem").value;
   var trabSel = document.getElementById("eppRepTrab").value;
+  var movSel = (document.getElementById("eppRepMovimiento")||{value:""}).value;
   return eppFiltrarVigentes(EPP_MOVS_TODOS||[]).filter(function(m){
     if(desde && m.fecha < desde) return false;
     if(hasta && m.fecha > hasta) return false;
     if(itemSel && m.item !== itemSel) return false;
     if(trabSel && m.nombreTrabajador !== trabSel) return false;
+    if(movSel && m.tipoMovimiento !== movSel) return false;
     return true;
   });
 }
@@ -3311,15 +3318,43 @@ function eppExportarReportePDF(){
 
   var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
   doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Historial de EPP — Almacén GT02", 14, 15);
+  doc.text("Historial de EPP — "+CONFIG.nombreCorto, 14, 15);
   doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
   doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" movimientos", 14, 21);
+
+  var siguienteY = 26;
+
+  // Consolidado por talla — SOLO tiene sentido para Camisa y Zapato,
+  // que son los únicos EPP con talla variable. Se muestra primero,
+  // antes del detalle línea por línea, para dar el panorama rápido.
+  var conTalla = filtrados.filter(function(m){ return (m.item==="Camisa"||m.item==="Zapato") && m.tipoMovimiento==="Entrega"; });
+  if(conTalla.length){
+    var porTalla = {};
+    conTalla.forEach(function(m){
+      var clave = m.item+" — talla "+(m.talla||"Sin talla");
+      porTalla[clave] = (porTalla[clave]||0) + m.cantidad;
+    });
+    var filasTalla = Object.keys(porTalla).sort().map(function(k){ return [k, porTalla[k]]; });
+    doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+    doc.text("Consolidado por talla (camisa/zapato)", 14, siguienteY);
+    doc.autoTable({
+      startY: siguienteY+3,
+      head: [["Ítem y talla","Cantidad total"]],
+      body: filasTalla,
+      styles:{fontSize:8},
+      headStyles:{fillColor:[45,106,79], textColor:255},
+      margin:{left:14, right:120}
+    });
+    siguienteY = doc.lastAutoTable.finalY + 10;
+  }
 
   var filas = filtrados.map(function(m){
     return [m.fechaStr, m.nombreTrabajador, m.item, m.tipoMovimiento, m.cantidad, m.talla||"—", m.motivo||"—"];
   });
+  doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+  doc.text("Detalle de movimientos", 14, siguienteY);
   doc.autoTable({
-    startY: 26,
+    startY: siguienteY+3,
     head: [["Fecha","Trabajador","EPP","Movimiento","Cant.","Talla","Motivo"]],
     body: filas,
     styles:{fontSize:7.5},
@@ -3327,7 +3362,7 @@ function eppExportarReportePDF(){
   });
 
   var fg=new Date();
-  var nombreArchivo="Historial_EPP_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
+  var nombreArchivo="Historial_EPP_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
   mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "movimientos");
 }
 
@@ -4919,6 +4954,7 @@ function nuevaMaquinaForm() {
     "<input type='text' id='nmNombre' placeholder='Nombre de la máquina *'>" +
     "<select id='nmTipo'>" +
     "<option value='Excavadora'>Excavadora</option>" +
+    "<option value='Retroexcavadora'>Retroexcavadora</option>" +
     "<option value='Telehandler'>Telehandler</option>" +
     "<option value='Montacargas'>Montacargas</option>" +
     "<option value='Compactadora'>Compactadora</option>" +
@@ -5310,7 +5346,25 @@ function qrActualizarPreview(){
 // deja verlo primero (se abre en el visor de PDF del navegador/celular)
 // y solo se descarga de verdad cuando el usuario confirma que le
 // parece bien. Evita generar archivos "a ciegas".
-function mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, totalGenerados, etiqueta){
+// esReporte=false se usa SOLO para los PDFs de stickers/carnets físicos
+// (grillas de tarjetas para imprimir y recortar), donde un pie de
+// página de "reporte" no tiene sentido y estorbaría la cuadrícula.
+function mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, totalGenerados, etiqueta, esReporte){
+  if(esReporte !== false){
+    var totalPaginas = doc.internal.getNumberOfPages();
+    var ahora = new Date();
+    var fechaEmision = String(ahora.getDate()).padStart(2,"0")+"/"+String(ahora.getMonth()+1).padStart(2,"0")+"/"+ahora.getFullYear()+" "+String(ahora.getHours()).padStart(2,"0")+":"+String(ahora.getMinutes()).padStart(2,"0");
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    for(var p=1; p<=totalPaginas; p++){
+      doc.setPage(p);
+      doc.setFontSize(7.5);
+      doc.setTextColor(140,140,140);
+      doc.setFont(undefined,"normal");
+      doc.text("Emitido: "+fechaEmision, 14, pageH-7);
+      doc.text("Página "+p+" de "+totalPaginas, pageW-14, pageH-7, {align:"right"});
+    }
+  }
   var blobUrl = doc.output("bloburl");
   window["_pdfPendiente_"+nombreArchivo.replace(/[^a-zA-Z0-9]/g,"")] = {doc:doc, nombreArchivo:nombreArchivo};
   var idSafe = nombreArchivo.replace(/[^a-zA-Z0-9]/g,"");
@@ -5361,7 +5415,7 @@ function qrGenerarPDFCarnets(){
     if(i>=seleccionados.length){
       var fg=new Date();
       var nombreArchivo="Carnets_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
-      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "carnets");
+      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "carnets", false);
       return;
     }
     var t=seleccionados[i];
@@ -5524,7 +5578,7 @@ function qrGenerarPDFLote(){
     if(i>=seleccionados.length){
       var fg=new Date();
       var nombreArchivo="QR_Trabajadores_GT02_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+"_"+String(fg.getHours()).padStart(2,"0")+String(fg.getMinutes()).padStart(2,"0")+".pdf";
-      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "códigos");
+      mostrarVistaPreviaPDF(doc, nombreArchivo, avisoBox, seleccionados.length, "códigos", false);
       return;
     }
     var t=seleccionados[i];
