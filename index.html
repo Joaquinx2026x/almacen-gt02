@@ -136,11 +136,12 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
   <div id="menuAdmin" style="display:none">
     <hr style="margin:6px 0;border-color:#eee">
     <div style="font-size:10px;color:#888;padding:4px 0 2px;font-weight:bold">ADMINISTRACIÓN</div>
-    <div class="menu-item" onclick="abrirGestionUsuarios()">👥 Gestión de usuarios</div>
+    <div class="menu-item" id="miGestionUsuarios" onclick="abrirGestionUsuarios()">👥 Gestión de usuarios</div>
     <div class="menu-item" onclick="abrirGestionTrabajadores()">👷 Gestión de trabajadores</div>
-    <div class="menu-item" onclick="abrirGestionMaquinas()">🚧 Gestión de máquinas</div>
+    <div class="menu-item" id="miGestionMaquinas" onclick="abrirGestionMaquinas()">🚧 Gestión de máquinas</div>
     <div class="menu-item" onclick="abrirGestionCatalogoEPP()">🦺 Catálogo de EPP</div>
     <div class="menu-item" onclick="abrirGestionCatalogoMed()">💊 Catálogo de medicamentos</div>
+    <div class="menu-item" onclick="abrirAjustes()">⚙️ Ajustes del sistema</div>
     <div class="menu-item" onclick="abrirConfigApariencia()">🎨 Apariencia del sistema</div>
     <div class="menu-item" onclick="abrirGeneradorQR()">🔳 Generar códigos QR</div>
   </div>
@@ -396,6 +397,32 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
     <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
   </div>
   <div id="paletaOpciones"></div>
+</div>
+
+<div id="ajustesScr" class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="ctit" style="margin:0">⚙️ Ajustes del sistema</div>
+    <button class="btn b-sec" style="padding:6px 12px;font-size:12px" onclick="goTab(0)">← Volver</button>
+  </div>
+  <div class="card">
+    <div class="ctit">Identidad del proyecto</div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Estos textos aparecen en la pantalla de acceso, el encabezado y los reportes en PDF — el cambio se guarda para todos los usuarios, no solo en este celular.</div>
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:2px">Nombre del proyecto</label>
+    <input type="text" id="ajNombreProyecto" placeholder="Ej: Almacén GT02">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:2px">Ubicación</label>
+    <input type="text" id="ajUbicacion" placeholder="Ej: Izabal">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:2px">Empresa</label>
+    <input type="text" id="ajEmpresa" placeholder="Ej: SOLTECING">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:2px">País (para reportes/carnets)</label>
+    <input type="text" id="ajPaisLegal" placeholder="Ej: Guatemala">
+    <label style="font-size:11px;color:#888;display:block;margin-bottom:2px">Leyenda del carnet</label>
+    <textarea id="ajLeyendaCarnet" style="min-height:55px" placeholder="Texto que aparece al pie del carnet"></textarea>
+    <div id="ajMsg"></div>
+    <button class="btn b-ok" style="width:100%" onclick="guardarAjustesIdentidad()">💾 Guardar cambios</button>
+  </div>
+  <div class="card" style="background:#FFF9E6;border:1px solid #F4B942">
+    <div style="font-size:11px;color:#7B5800">⚠️ El código del proyecto (GT02), el prefijo de trabajadores/máquinas y el logo del carnet no se pueden cambiar desde aquí — están incrustados en nombres de hojas y correlativos ya generados, así que requieren ajuste directo en el código para no romper datos existentes.</div>
+  </div>
 </div>
 
 <div id="generadorQRScr" class="scr">
@@ -664,8 +691,11 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
         <span>→</span>
         <input type="date" id="eppRepHasta" style="margin:0" oninput="eppCalcularReporte()">
       </div>
-      <select id="eppRepItem" onchange="eppCalcularReporte()">
+      <select id="eppRepItem" onchange="eppActualizarFiltroTalla();eppCalcularReporte()">
         <option value="">Todos los EPP</option>
+      </select>
+      <select id="eppRepTalla" onchange="eppCalcularReporte()" style="display:none">
+        <option value="">Todas las tallas</option>
       </select>
       <select id="eppRepTrab" onchange="eppCalcularReporte()">
         <option value="">Todos los trabajadores</option>
@@ -750,6 +780,8 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
     </div>
     <div class="card">
       <div class="ctit">Historial filtrado</div>
+      <div id="saludRepAviso"></div>
+      <button class="btn b-ok" style="width:100%;margin-bottom:8px" onclick="saludExportarReportePDF()">📄 Exportar historial a PDF</button>
       <div id="saludRepLista" style="max-height:400px;overflow-y:auto"></div>
     </div>
   </div>
@@ -779,17 +811,22 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.11.0  (08/09/2026) — talla de camisa/zapato y
-// alergias en el perfil del trabajador, módulo de Salud (catálogo,
-// stock y entrega de medicamentos) y entrega de EPP más rápida
-// (sin diálogos encadenados).
+// VERSIÓN ACTUAL: 2.18.0  (16/09/2026) — Lentes ahora se comporta
+// como Guantes (se puede registrar un cambio por daño/pérdida, con
+// motivo) — y desde Admin → Catálogo de EPP ya se puede EDITAR el
+// comportamiento de un ítem existente (antes solo se podía activar/
+// desactivar). No se permite registrar préstamos nuevos, entregas de
+// EPP ni de medicamento a un trabajador marcado como Inactivo — se
+// bloquea en pantalla y también en el backend (por si alguien tiene
+// una versión vieja de la app cacheada). Las devoluciones de lo que
+// ya tenía asignado siguen permitidas siempre.
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.12.0-GT02";
+var APP_VERSION = "2.18.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -889,8 +926,50 @@ function aplicarConfigProyecto(){
   if(elAppS) elAppS.textContent = CONFIG.ubicacion + " · " + CONFIG.empresa;
 }
 
+// ══════════════════════════════════════════════
+//  CONFIG REMOTO — lee Config_GT02 (Clave|Valor) y sobreescribe el
+//  objeto CONFIG local + la paleta de colores. Se llama al arrancar
+//  la app (antes del login) y cada vez que Admin guarda un cambio en
+//  Ajustes/Apariencia, así todos los dispositivos ven lo mismo. Si la
+//  hoja todavía no existe (primera vez que se usa esta versión), se
+//  crea sola con los valores que ya tenía el sistema — mismo patrón
+//  que eppCargarCatalogo/saludCargarCatalogo.
+// ══════════════════════════════════════════════
+function cargarConfigRemota(){
+  return sheetsGet(SHEET("Config")+"!A2:B").then(function(resp){
+    var rows = resp.values || [];
+    if(!rows.length) throw new Error("vacio");
+    return rows;
+  }).catch(function(){
+    return gasPost("asegurarConfig",{}).then(function(){
+      return sheetsGet(SHEET("Config")+"!A2:B");
+    }).then(function(resp){ return resp.values || []; });
+  }).then(function(rows){
+    var mapa = {};
+    rows.forEach(function(r){ if(r[0]) mapa[r[0].toString().trim()] = (r[1]||"").toString(); });
+
+    if(mapa.nombreProyecto) CONFIG.nombreProyecto = mapa.nombreProyecto;
+    if(mapa.ubicacion)      CONFIG.ubicacion      = mapa.ubicacion;
+    if(mapa.empresa)        CONFIG.empresa        = mapa.empresa;
+    if(mapa.paisLegal)      CONFIG.paisLegal      = mapa.paisLegal;
+    if(mapa.leyendaCarnet)  CONFIG.leyendaCarnet  = mapa.leyendaCarnet;
+    aplicarConfigProyecto();
+
+    aplicarColores(
+      mapa.colorPrimario   || "#1B4332",
+      mapa.colorSecundario || "#2D6A4F",
+      mapa.colorClaro      || "#D8F3DC",
+      mapa.colorXclaro     || "#EBF7ED",
+      mapa.colorBorde      || "#B7E4C7",
+      mapa.colorPastel     || "#95D5B2"
+    );
+    return mapa;
+  });
+}
+
 function iniciarApp(){
   aplicarConfigProyecto();
+  cargarConfigRemota().catch(function(){}); // valores por defecto quedan si falla la carga remota
   var guardada=null;
   try{ guardada=JSON.parse(localStorage.getItem("gt02_sesion")||"null"); }catch(e){}
   if(guardada && guardada.nombre){
@@ -929,10 +1008,20 @@ function mostrarApp(){
   document.getElementById("appContent").style.display="block";
   document.getElementById("sesionNombre").textContent=SESION.nombre;
   document.getElementById("verApp").textContent=APP_VERSION;
-  // Mostrar opciones admin solo para Admin
-  var isAdmin = SESION.rol && SESION.rol.toLowerCase()==="admin";
+  // Menú de administración: Admin ve todo. Supervisor ve el mismo
+  // menú EXCEPTO Gestión de usuarios y Gestión de máquinas (rol
+  // intermedio — acceso a reportes/catálogos/ajustes, sin poder
+  // tocar cuentas de acceso ni el parque de maquinaria). Operador no
+  // ve nada de esto.
+  var rol = (SESION.rol||"").toLowerCase();
+  var isAdmin = rol==="admin";
+  var isSupervisor = rol==="supervisor";
   var menuAdmin = document.getElementById("menuAdmin");
-  if(menuAdmin) menuAdmin.style.display = isAdmin ? "block" : "none";
+  if(menuAdmin) menuAdmin.style.display = (isAdmin||isSupervisor) ? "block" : "none";
+  var miUsuarios = document.getElementById("miGestionUsuarios");
+  if(miUsuarios) miUsuarios.style.display = isAdmin ? "block" : "none";
+  var miMaquinas = document.getElementById("miGestionMaquinas");
+  if(miMaquinas) miMaquinas.style.display = isAdmin ? "block" : "none";
 }
 
 function cerrarSesion(){
@@ -1221,7 +1310,7 @@ function abrirRecortadorFoto(file, onConfirm, titulo) {
 //  BUSCAR TRABAJADOR — usa Sheets API directamente
 // ══════════════════════════════════════════════
 function buscaTWDirecto(val, mode) {
-  sheetsGet(SHEET("Personal")+"!A2:H").then(function(resp){
+  sheetsGet(SHEET("Personal")+"!A2:J").then(function(resp){
     var rows = resp.values || [];
     var q = val.toString().trim().toLowerCase();
     var qNum = q.replace(/^0+/,"").replace("gt01/recper-","");
@@ -1231,13 +1320,15 @@ function buscaTWDirecto(val, mode) {
       var cod = (rows[i][0]||"").toString().trim();
       var nom = (rows[i][1]||"").toString().trim();
       var car = (rows[i][2]||"").toString().trim();
+      var est = (rows[i][6]||"Activo").toString().trim();
       var dui = (rows[i][7]||"").toString().trim();
+      var foto = (rows[i][9]||"").toString().trim();
       var duiNum = dui.replace(/[^0-9]/g,"");
       if(!cod) continue;
       var codNum = cod.toLowerCase().replace("gt01/recper-","").replace(/^0+/,"");
       var coincideDui = duiNum && qDui && duiNum===qDui;
       if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0 || codNum===qNum || coincideDui){
-        res.push({codigo:cod, nombre:nom||cod, cargo:car, dui:dui});
+        res.push({codigo:cod, nombre:nom||cod, cargo:car, estado:est, dui:dui, fotoId:foto});
       }
     }
     if(!res.length) return;
@@ -1261,9 +1352,14 @@ function mostrarSugTW(data, mode) {
   var d=document.getElementById(mode===0?"st":"std");
   d.innerHTML=data.map(function(t){
     var fn=mode===0
-      ?"selTWPre({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"'})"
-      :"selTWDev({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"'})";
-    return "<div class='sug-item' onclick=\""+fn+"\"><div class='sug-nom'>"+(t.nombre||t.codigo)+"</div><div class='sug-cod'>"+t.codigo+" · "+(t.cargo||"—")+"</div></div>";
+      ?"selTWPre({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"',estado:'"+esc(t.estado)+"',fotoId:'"+esc(t.fotoId)+"'})"
+      :"selTWDev({codigo:'"+esc(t.codigo)+"',nombre:'"+esc(t.nombre)+"',cargo:'"+esc(t.cargo)+"',fotoId:'"+esc(t.fotoId)+"'})";
+    var mini=t.fotoId
+      ?"<img src='"+urlFotoDrive(t.fotoId,60)+"' style='width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+      :"<div style='width:32px;height:32px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0'>👤</div>";
+    var esInactivo = mode===0 && (t.estado||"Activo").toLowerCase()==="inactivo";
+    var badgeInactivo = esInactivo ? " <span style='font-size:9px;color:#C00000;font-weight:bold'>· INACTIVO</span>" : "";
+    return "<div class='sug-item' style='display:flex;align-items:center;gap:8px' onclick=\""+fn+"\">"+mini+"<div><div class='sug-nom'>"+(t.nombre||t.codigo)+badgeInactivo+"</div><div class='sug-cod'>"+t.codigo+" · "+(t.cargo||"—")+"</div></div></div>";
   }).join("");
   d.style.display="block";
 }
@@ -1272,12 +1368,22 @@ function selTWPre(t){
   TWK=t;
   document.getElementById("st").style.display="none";
   document.getElementById("bt").value=t.nombre||t.codigo;
+  var esInactivo = (t.estado||"Activo").toLowerCase()==="inactivo";
+  var fotoHTML=t.fotoId
+    ?"<img src='"+urlFotoDrive(t.fotoId,100)+"' style='width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+    :"<div style='width:42px;height:42px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0'>👤</div>";
   document.getElementById("tw").innerHTML=
-    "<div class='tw-card'><div style='flex:1'><div class='tw-nom'>👷 "+(t.nombre||t.codigo)+"</div>"+
+    "<div class='tw-card'"+(esInactivo?" style='border-color:#C00000;background:#FCE4E4'":"")+">"+fotoHTML+"<div style='flex:1'><div class='tw-nom'>👷 "+(t.nombre||t.codigo)+"</div>"+
     "<div class='tw-cod'>"+t.codigo+" · "+(t.cargo||"—")+"</div></div>"+
     "<button class='b-warn b-sm' onclick='resetTW()'>✕ Cambiar</button></div>";
   document.getElementById("tw").style.display="block";
-  document.getElementById("ci").style.display="block";
+  if(esInactivo){
+    document.getElementById("ci").style.display="none";
+    document.getElementById("rp").innerHTML="<div class='msg-err'>⚠️ Este trabajador está marcado como INACTIVO — no se le pueden registrar nuevos préstamos. Para reactivarlo: Admin → Gestión de trabajadores.</div>";
+  } else {
+    document.getElementById("rp").innerHTML="";
+    document.getElementById("ci").style.display="block";
+  }
 }
 
 function resetTW(){
@@ -1326,13 +1432,13 @@ function buscaItem(v){
     // Herramientas
     if(TIPO==="Herramienta"){
       promises.push(
-        sheetsGet("Catalogo_Herramientas!A2:B").then(function(resp){
+        sheetsGet("Catalogo_Herramientas!A2:O").then(function(resp){
           var rows=resp.values||[];
           for(var i=0;i<rows.length&&res.length<8;i++){
             var cod=(rows[i][0]||"").toString().toLowerCase();
             var desc=(rows[i][1]||"").toString().toLowerCase();
             if(cod.indexOf(q)>=0||desc.indexOf(q)>=0){
-              res.push({codigo:rows[i][0],descripcion:rows[i][1],tipo:"Herramienta",unidad:"und"});
+              res.push({codigo:rows[i][0],descripcion:rows[i][1],tipo:"Herramienta",unidad:"und",fotoId:(rows[i][14]||"").toString()});
             }
           }
         })
@@ -1342,7 +1448,7 @@ function buscaItem(v){
     // Insumos y Materiales — misma hoja, tipo según botón seleccionado
     if(TIPO==="Insumo"||TIPO==="Material"){
       promises.push(
-        sheetsGet("Catalogo_Insumos!A2:D").then(function(resp){
+        sheetsGet("Catalogo_Insumos!A2:I").then(function(resp){
           var rows=resp.values||[];
           for(var i=0;i<rows.length&&res.length<14;i++){
             var cod=(rows[i][0]||"").toString().toLowerCase();
@@ -1352,7 +1458,8 @@ function buscaItem(v){
               codigo:rows[i][0],
               descripcion:rows[i][1],
               tipo:TIPO,
-              unidad:(rows[i][3]||"und").toString()
+              unidad:(rows[i][3]||"und").toString(),
+              fotoId:(rows[i][8]||"").toString()
             });
           }
         })
@@ -1363,9 +1470,13 @@ function buscaItem(v){
       if(!res.length){d.style.display="none";return;}
       d.innerHTML=res.map(function(it){
         var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
-        return "<div class='sug-item' onclick='addItem(\""+escJS(it.codigo)+"\",\""+escJS(it.descripcion)+"\",\""+it.tipo+"\",\""+escJS(it.unidad)+"\")'>" +
-          "<div class='sug-nom'>"+it.descripcion+"</div>" +
-          "<div class='sug-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div></div>";
+        var mini=it.fotoId
+          ?"<img src='"+urlFotoDrive(it.fotoId,60)+"' style='width:36px;height:36px;border-radius:7px;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+          :"<div style='width:36px;height:36px;border-radius:7px;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0'>🔧</div>";
+        return "<div class='sug-item' style='display:flex;align-items:center;gap:8px' onclick='addItem(\""+escJS(it.codigo)+"\",\""+escJS(it.descripcion)+"\",\""+it.tipo+"\",\""+escJS(it.unidad)+"\",\""+escJS(it.fotoId)+"\")'>" +
+          mini+
+          "<div><div class='sug-nom'>"+it.descripcion+"</div>" +
+          "<div class='sug-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div></div></div>";
       }).join("");
       d.style.display="block";
     }).catch(function(){d.style.display="none";});
@@ -1375,13 +1486,13 @@ function buscaItem(v){
 // ══════════════════════════════════════════════
 //  AGREGAR ÍTEM
 // ══════════════════════════════════════════════
-function addItem(cod,desc,tipo,unidad){
+function addItem(cod,desc,tipo,unidad,fotoId){
   document.getElementById("si").style.display="none";
   document.getElementById("bi").value="";
   if(tipo==="Herramienta"&&ITEMS.some(function(i){return i.codigo===cod;})){
     alert("Esa herramienta ya está en la lista.");return;
   }
-  ITEMS.unshift({codigo:cod,descripcion:desc,tipo:tipo||TIPO,unidad:unidad||"und",cantidad:1,detalle:"",obs:""});
+  ITEMS.unshift({codigo:cod,descripcion:desc,tipo:tipo||TIPO,unidad:unidad||"und",cantidad:1,detalle:"",obs:"",fotoId:fotoId||""});
   renderItems();
 }
 
@@ -1406,7 +1517,11 @@ function renderItems(){
   var html="<div class='items-resumen'>"+res+"</div>";
   ITEMS.forEach(function(it,i){
     var bc=it.tipo==="Herramienta"?"bh":(it.tipo==="Material"?"bm":"bi");
+    var mini=it.fotoId
+      ?"<img src='"+urlFotoDrive(it.fotoId,60)+"' style='width:38px;height:38px;border-radius:7px;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+      :"<div style='width:38px;height:38px;border-radius:7px;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0'>🔧</div>";
     html+="<div class='item-row r-"+it.tipo+"'>" +
+      mini+
       "<div class='item-info'>" +
       "<div class='item-cod'><span class='badge "+bc+"'>"+it.tipo+"</span> "+it.codigo+"</div>" +
       "<div class='item-desc'>"+it.descripcion+"</div>" +
@@ -1438,6 +1553,7 @@ var ENVIANDO_PRESTAMO=false; // evita doble registro por doble toque o reintento
 function guardar(){
   if(ENVIANDO_PRESTAMO) return; // ya hay un guardado en curso, ignora el toque repetido
   if(!TWK||!ITEMS.length){alert("Selecciona trabajador y agrega ítems.");return;}
+  if((TWK.estado||"Activo").toLowerCase()==="inactivo"){alert("Este trabajador está Inactivo — no se le pueden registrar préstamos nuevos.");return;}
   ENVIANDO_PRESTAMO=true;
   var btn=document.getElementById("bguard");
   btn.textContent="⏳ Guardando...";btn.disabled=true;
@@ -1607,17 +1723,20 @@ function cargarHist(){
   Promise.all([
     sheetsGet("Prestamos_Herramientas!A2:K"),
     sheetsGet("Prestamos_Detalle!A2:I"),
-    sheetsGet(SHEET("Personal")+"!A2:C")
+    sheetsGet(SHEET("Personal")+"!A2:J")
   ]).then(function(results){
     var dp=results[0].values||[];
     var dd=results[1].values||[];
     var dpers=results[2].values||[];
-    // Mapa código → nombre, de respaldo para registros viejos sin nombre guardado
+    // Mapa código → nombre/foto, de respaldo para registros viejos sin nombre guardado
     var mapaNom={};
+    var mapaFoto={};
     for(var p=0;p<dpers.length;p++){
       var cP=(dpers[p][0]||"").toString().trim();
       var nP=(dpers[p][1]||"").toString().trim();
+      var fP=(dpers[p][9]||"").toString().trim();
       if(cP&&nP) mapaNom[cP.toLowerCase()]=nP;
+      if(cP&&fP) mapaFoto[cP.toLowerCase()]=fP;
     }
     // Filtrar
     var hoy=new Date();
@@ -1651,10 +1770,12 @@ function cargarHist(){
       var nomGuardado=(dp[i][3]||"").toString().trim();
       var codActual=(dp[i][2]||"").toString().trim();
       var nomFinal=nomGuardado||mapaNom[codActual.toLowerCase()]||"";
+      var fotoFinal=mapaFoto[codActual.toLowerCase()]||"";
       lista.push({
         idPrestamo:id,fecha:fecha,
         nombreTrabajador:nomFinal,
         codigoTrabajador:codActual,
+        fotoId:fotoFinal,
         estado:estRow,
         horaSalida:(dp[i][5]||"").toString(),
         horaDevolucion:(dp[i][6]||"").toString(),
@@ -1683,9 +1804,12 @@ function cargarHist(){
       var btnDev=p.estado!=="cerrado"
         ?"<div style='margin-top:7px'><button class='btn b-warn' style='padding:7px;font-size:11px;margin:0' onclick='irADev(\""+escJS(p.codigoTrabajador)+"\",\""+escJS(p.nombreTrabajador)+"\")'>📥 Procesar devolución</button></div>"
         :"";
+      var miniHist=p.fotoId
+        ?"<img src='"+urlFotoDrive(p.fotoId,60)+"' style='width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+        :"<div style='width:30px;height:30px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0'>👤</div>";
       return "<div class='hist-row "+cls+"'>" +
         "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'><span style='font-size:11px;color:#888'>📄 "+p.idPrestamo+"</span>"+badge+"</div>" +
-        "<div style='font-size:13px;font-weight:bold;color:#1B4332'>👷 "+(p.nombreTrabajador||"(sin nombre)")+" <span style='font-weight:normal;color:#666'>· "+p.codigoTrabajador+"</span></div>" +
+        "<div style='display:flex;align-items:center;gap:7px'>"+miniHist+"<div style='font-size:13px;font-weight:bold;color:#1B4332'>👷 "+(p.nombreTrabajador||"(sin nombre)")+" <span style='font-weight:normal;color:#666'>· "+p.codigoTrabajador+"</span></div></div>" +
         "<div style='font-size:11px;margin-top:4px'>"+badges+"</div>" +
         (detallesTxt?"<div style='font-size:10px;color:#666;margin-top:2px;font-style:italic'>🔎 "+detallesTxt+"</div>":"")+
         "<div style='font-size:10px;color:#888;margin-top:3px'>📅 "+p.fecha+(p.horaSalida?" · "+p.horaSalida:"")+(p.horaDevolucion?" → "+p.horaDevolucion:"")+"</div>" +
@@ -2845,7 +2969,7 @@ function eppCargarCatalogo(){
       EPP_CATALOGO = [
         {item:"Casco",icono:"⛑",tipo:"devuelve",requiereTalla:false,activo:true,orden:1},
         {item:"Chaleco",icono:"🦺",tipo:"devuelve",requiereTalla:false,activo:true,orden:2},
-        {item:"Lentes",icono:"🥽",tipo:"unico",requiereTalla:false,activo:true,orden:3},
+        {item:"Lentes",icono:"🥽",tipo:"reincidente",requiereTalla:false,activo:true,orden:3},
         {item:"Zapato",icono:"👞",tipo:"unico",requiereTalla:true,activo:true,orden:4},
         {item:"Camisa",icono:"👕",tipo:"acumulable",requiereTalla:true,activo:true,orden:5},
         {item:"Guantes",icono:"🧤",tipo:"reincidente",requiereTalla:false,activo:true,orden:6}
@@ -2910,27 +3034,36 @@ function eppBuscarTrabajadores(){
   var d = document.getElementById("eppSugTrab");
   if(v.length<1){ d.style.display="none"; return; }
   eppTBusca = setTimeout(function(){
-    sheetsGet(SHEET("Personal")+"!A2:G").then(function(resp){
+    sheetsGet(SHEET("Personal")+"!A2:J").then(function(resp){
       var rows = resp.values || [];
       var q = v.toLowerCase();
       var res = [];
       for(var i=0;i<rows.length && res.length<8;i++){
         var cod=(rows[i][0]||"").toString().trim();
         var nom=(rows[i][1]||"").toString().trim();
+        var est=(rows[i][6]||"Activo").toString().trim();
+        var foto=(rows[i][9]||"").toString().trim();
         if(!cod) continue;
         if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0){
-          res.push({codigo:cod, nombre:nom||cod});
+          res.push({codigo:cod, nombre:nom||cod, estado:est, fotoId:foto});
         }
       }
       if(!res.length){ d.style.display="none"; return; }
+      res.forEach(function(t){ EPP_CANDIDATOS_FOTO[t.codigo]=t.fotoId; EPP_CANDIDATOS_ESTADO[t.codigo]=t.estado; });
       d.innerHTML = res.map(function(t){
-        return "<div class='sug-item' onclick='eppSelTrab(\""+escJS(t.codigo)+"\",\""+escJS(t.nombre)+"\")'>"+
-          "<div class='sug-nom'>"+t.nombre+"</div><div class='sug-cod'>"+t.codigo+"</div></div>";
+        var mini=t.fotoId
+          ?"<img src='"+urlFotoDrive(t.fotoId,60)+"' style='width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+          :"<div style='width:30px;height:30px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0'>👤</div>";
+        var badgeInactivo = (t.estado||"Activo").toLowerCase()==="inactivo" ? " <span style='font-size:9px;color:#C00000;font-weight:bold'>· INACTIVO</span>" : "";
+        return "<div class='sug-item' style='display:flex;align-items:center;gap:8px' onclick='eppSelTrab(\""+escJS(t.codigo)+"\",\""+escJS(t.nombre)+"\")'>"+
+          mini+"<div><div class='sug-nom'>"+t.nombre+badgeInactivo+"</div><div class='sug-cod'>"+t.codigo+"</div></div></div>";
       }).join("");
       d.style.display="block";
     }).catch(function(){ d.style.display="none"; });
   },300);
 }
+var EPP_CANDIDATOS_FOTO = {};
+var EPP_CANDIDATOS_ESTADO = {};
 
 function eppFilaAObjeto(r){
   return {
@@ -2955,7 +3088,7 @@ function eppFiltrarVigentes(movs){
 }
 
 function eppSelTrab(codigo, nombre){
-  EPP_TRAB_ACTUAL = {codigo:codigo, nombre:nombre};
+  EPP_TRAB_ACTUAL = {codigo:codigo, nombre:nombre, fotoId: EPP_CANDIDATOS_FOTO[codigo]||"", estado: EPP_CANDIDATOS_ESTADO[codigo]||"Activo"};
   document.getElementById("eppSugTrab").style.display="none";
   document.getElementById("eppBuscar").value = nombre;
   var cont = document.getElementById("eppFormContainer");
@@ -3006,6 +3139,10 @@ function eppEstadoReincidente(item){
 // ── Registrar un movimiento (llamado desde los botones de acción) ──
 function eppRegistrar(item, tipoMovimiento, extra){
   var btn = _botonDelEvento();
+  if(tipoMovimiento==="Entrega" && (EPP_TRAB_ACTUAL.estado||"Activo").toLowerCase()==="inactivo"){
+    alert("Este trabajador está Inactivo — no se le pueden registrar entregas nuevas de EPP.");
+    return;
+  }
   if(!_bloquearBoton(btn, "eppRegistrar")) return;
   extra = extra || {};
   gasPost("registrarMovimientoEPP", {
@@ -3122,13 +3259,16 @@ function eppAnular(idMovimiento, item, descripcion){
 }
 
 // ── Bloques visuales reutilizables ──
-function eppBloqueDevuelve(item, etiqueta, estado){
+function eppBloqueDevuelve(item, etiqueta, estado, bloquearEntrega){
   var tipoMov = estado.entregado ? "Devolucion" : "Entrega";
   var etiquetaAccion = (estado.entregado?"Devolución de ":"Entrega de ")+etiqueta.replace(/^[^ ]+ /,"");
+  var puedeEntregar = !bloquearEntrega || estado.entregado; // devolver siempre se permite, aunque esté inactivo
   var accionBtn = estado.entregado
     ? "<button class='btn b-sec b-sm' onclick='eppAccionSimple(\""+item+"\",\"Devolucion\")'>↩️ Devolver</button>"
-    : "<button class='btn b-ok b-sm' onclick='eppAccionSimple(\""+item+"\",\"Entrega\")'>✅ Entregar</button>";
-  var linkFecha = "<div style='font-size:10px;color:#2D6A4F;text-align:right;margin-top:2px;cursor:pointer' onclick='eppAccionSimpleFecha(\""+item+"\",\""+tipoMov+"\",\""+escJS(etiquetaAccion)+"\")'>🗓️ Otra fecha / comentario</div>";
+    : (puedeEntregar ? "<button class='btn b-ok b-sm' onclick='eppAccionSimple(\""+item+"\",\"Entrega\")'>✅ Entregar</button>" : "");
+  var linkFecha = puedeEntregar
+    ? "<div style='font-size:10px;color:#2D6A4F;text-align:right;margin-top:2px;cursor:pointer' onclick='eppAccionSimpleFecha(\""+item+"\",\""+tipoMov+"\",\""+escJS(etiquetaAccion)+"\")'>🗓️ Otra fecha / comentario</div>"
+    : "";
   var estadoTxt = estado.entregado ? "Entregado ("+estado.fechaEntregado+")" : (estado.fechaDevuelto ? "Devuelto ("+estado.fechaDevuelto+")" : "No entregado");
   return "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
     "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px'>"+
@@ -3137,8 +3277,8 @@ function eppBloqueDevuelve(item, etiqueta, estado){
     "</div>"+linkFecha+
   "</div>";
 }
-function eppBloqueSolo(item, etiqueta, estado, tipo, requiereTalla){
-  var accionBtn = estado.entregado ? "" : "<button class='btn b-ok b-sm' onclick='eppAccionGenerica(\""+item+"\",\""+tipo+"\","+(requiereTalla?"true":"false")+")'>✅ Entregar</button>";
+function eppBloqueSolo(item, etiqueta, estado, tipo, requiereTalla, bloquearEntrega){
+  var accionBtn = (estado.entregado || bloquearEntrega) ? "" : "<button class='btn b-ok b-sm' onclick='eppAccionGenerica(\""+item+"\",\""+tipo+"\","+(requiereTalla?"true":"false")+")'>✅ Entregar</button>";
   var estadoTxt = estado.entregado ? "Entregado ("+estado.fecha+")"+(estado.talla?" — talla "+estado.talla:"") : "No entregado";
   return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2;gap:8px'>"+
     "<div><div style='font-weight:bold;font-size:13px'>"+etiqueta+"</div><div style='font-size:11px;color:#888'>"+estadoTxt+"</div></div>"+
@@ -3148,28 +3288,35 @@ function eppBloqueSolo(item, etiqueta, estado, tipo, requiereTalla){
 
 function eppRenderEstado(){
   var cont = document.getElementById("eppFormContainer");
-  var html = "<div class='card'><div class='ctit'>"+EPP_TRAB_ACTUAL.nombre+" · "+EPP_TRAB_ACTUAL.codigo+"</div>";
-  html += "<div style='font-size:11px;color:#888;margin-bottom:6px'>El comportamiento de cada ítem (si se devuelve, si pide talla) se define en Admin → Catálogo de EPP.</div>";
+  var bloquearEntrega = (EPP_TRAB_ACTUAL.estado||"Activo").toLowerCase()==="inactivo";
+  var fotoHdr = EPP_TRAB_ACTUAL.fotoId
+    ? "<img src='"+urlFotoDrive(EPP_TRAB_ACTUAL.fotoId,100)+"' style='width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+    : "<div style='width:42px;height:42px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0'>👤</div>";
+  var html = "<div class='card'><div style='display:flex;align-items:center;gap:8px'>"+fotoHdr+"<div class='ctit' style='margin:0'>"+EPP_TRAB_ACTUAL.nombre+" · "+EPP_TRAB_ACTUAL.codigo+"</div></div>";
+  if(bloquearEntrega){
+    html += "<div class='msg-err' style='margin:8px 0'>⚠️ Trabajador INACTIVO — no se pueden registrar entregas nuevas. Sí se puede recibir devolución de lo que ya tenía asignado.</div>";
+  }
+  html += "<div style='font-size:11px;color:#888;margin:8px 0 6px'>El comportamiento de cada ítem (si se devuelve, si pide talla) se define en Admin → Catálogo de EPP.</div>";
 
   eppCatalogoActivos().forEach(function(c){
     var etiqueta = c.icono+" "+c.item;
     if(c.tipo==="devuelve"){
-      html += eppBloqueDevuelve(c.item, etiqueta, eppEstadoItemSimple(c.item));
+      html += eppBloqueDevuelve(c.item, etiqueta, eppEstadoItemSimple(c.item), bloquearEntrega);
     } else if(c.tipo==="unico"){
-      html += eppBloqueSolo(c.item, etiqueta, eppEstadoSoloEntrega(c.item), c.tipo, c.requiereTalla);
+      html += eppBloqueSolo(c.item, etiqueta, eppEstadoSoloEntrega(c.item), c.tipo, c.requiereTalla, bloquearEntrega);
     } else if(c.tipo==="acumulable"){
       var ac = eppEstadoAcumulable(c.item);
       html += "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
         "<div style='font-weight:bold;font-size:13px'>"+etiqueta+" — Total entregado: "+ac.total+"</div>"+
         (ac.entregas.length ? "<div style='font-size:11px;color:#888;margin:3px 0'>"+ac.entregas.map(function(m){return m.fechaStr+": "+m.cantidad+(m.talla?" (talla "+m.talla+")":"");}).join(" · ")+"</div>" : "")+
-        "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"acumulable\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega de "+c.item.toLowerCase()+"</button>"+
+        (bloquearEntrega ? "" : "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"acumulable\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega de "+c.item.toLowerCase()+"</button>")+
       "</div>";
     } else if(c.tipo==="reincidente"){
       var rc = eppEstadoReincidente(c.item);
       html += "<div style='padding:8px 0;border-bottom:1px solid #f2f2f2'>"+
         "<div style='font-weight:bold;font-size:13px'>"+etiqueta+" — Cambios registrados: "+rc.total+"</div>"+
         (rc.ultimo ? "<div style='font-size:11px;color:#888;margin:3px 0'>Último: "+rc.ultimo.fechaStr+" — "+(rc.ultimo.motivo||"Entrega inicial")+"</div>" : "")+
-        "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"reincidente\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega/cambio de "+c.item.toLowerCase()+"</button>"+
+        (bloquearEntrega ? "" : "<button class='btn b-sec b-sm' onclick='eppAccionGenerica(\""+c.item+"\",\"reincidente\","+(c.requiereTalla?"true":"false")+")'>➕ Registrar entrega/cambio de "+c.item.toLowerCase()+"</button>")+
       "</div>";
     }
   });
@@ -3210,55 +3357,92 @@ function eppToggleHistorialCompleto(){
 // ── PDF de responsabilidad individual (con espacio de firma) ──
 function eppGenerarPDFPersona(){
   if(!EPP_TRAB_ACTUAL) return;
-  var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
-  doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Hoja de Responsabilidad de EPP", 14, 15);
-  doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
-  doc.text(CONFIG.nombreProyecto+" · "+CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, 14, 21);
-  doc.setFontSize(11); doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
-  doc.text("Trabajador: "+EPP_TRAB_ACTUAL.nombre, 14, 30);
-  doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 36);
-  doc.setFont(undefined,"normal");
-
   var filas = eppFiltrarVigentes(EPP_MOVS_TRAB).sort(function(a,b){return a.fecha-b.fecha;}).map(function(m){
     return [m.fechaStr, m.item, m.tipoMovimiento==="Entrega"?"Entrega":"Devolución", m.cantidad, m.talla||"—", m.motivo||"—"];
   });
   if(!filas.length){ alert("Este trabajador todavía no tiene ningún movimiento de EPP registrado."); return; }
 
-  doc.autoTable({
-    startY: 42,
-    head: [["Fecha","EPP","Movimiento","Cant.","Talla","Motivo"]],
-    body: filas,
-    styles:{fontSize:8},
-    headStyles:{fillColor:[27,67,50], textColor:255}
-  });
-
-  var y = doc.lastAutoTable.finalY + 25;
-  if(y > 255){ doc.addPage(); y = 30; }
-  doc.setDrawColor(0,0,0); doc.setLineWidth(0.2);
-  doc.line(14, y, 90, y);
-  doc.line(120, y, 196, y);
-  doc.setFontSize(9);
-  doc.text("Firma del trabajador", 14, y+5);
-  doc.text("Firma de bodega/entrega", 120, y+5);
-  doc.setFontSize(8); doc.setTextColor(120,120,120);
-  doc.text("Fecha de firma: ______________________", 14, y+14);
-
-  var fg=new Date();
-  var nombreArchivo="EPP_"+EPP_TRAB_ACTUAL.codigo.replace(/[\/\\]/g,"-")+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
   var avisoDiv = document.createElement("div");
   avisoDiv.className="card";
+  avisoDiv.innerHTML = "<div class='loading'>🔄 Generando PDF...</div>";
   document.getElementById("eppFormContainer").appendChild(avisoDiv);
-  mostrarVistaPreviaPDF(doc, nombreArchivo, avisoDiv, filas.length, "movimientos de EPP");
+  avisoDiv.scrollIntoView({behavior:"smooth"});
+
+  // Si el trabajador tiene foto cargada, se trae en base64 ANTES de armar
+  // el PDF — jsPDF necesita los bytes de la imagen, no solo la URL.
+  var fotoPromise = EPP_TRAB_ACTUAL.fotoId
+    ? gasPost("obtenerFotoBase64",{fileId:EPP_TRAB_ACTUAL.fotoId}).catch(function(){ return null; })
+    : Promise.resolve(null);
+
+  fotoPromise.then(function(fotoRes){
+    var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
+    doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+    doc.text("Hoja de Responsabilidad de EPP", 14, 15);
+    doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
+    doc.text(CONFIG.nombreProyecto+" · "+CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, 14, 21);
+
+    // Foto circular del trabajador, arriba a la derecha
+    if(fotoRes && fotoRes.ok){
+      try{
+        var fs=20, fcx=196-fs/2, fcy=6+fs/2;
+        doc.saveGraphicsState();
+        doc.circle(fcx, fcy, fs/2, null);
+        doc.clip();
+        doc.discardPath();
+        doc.addImage("data:"+fotoRes.mimeType+";base64,"+fotoRes.base64, "JPEG", fcx-fs/2, fcy-fs/2, fs, fs);
+        doc.restoreGraphicsState();
+        doc.setDrawColor(45,106,79); doc.setLineWidth(0.3);
+        doc.circle(fcx, fcy, fs/2);
+      }catch(e){ /* si la imagen no es compatible, se omite y sigue el resto del PDF */ }
+    }
+
+    doc.setFontSize(11); doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
+    doc.text("Trabajador: "+EPP_TRAB_ACTUAL.nombre, 14, 30);
+    doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 36);
+    doc.setFont(undefined,"normal");
+
+    doc.autoTable({
+      startY: 42,
+      head: [["Fecha","EPP","Movimiento","Cant.","Talla","Motivo"]],
+      body: filas,
+      styles:{fontSize:8},
+      headStyles:{fillColor:[27,67,50], textColor:255}
+    });
+
+    var y = doc.lastAutoTable.finalY + 25;
+    if(y > 255){ doc.addPage(); y = 30; }
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.2);
+    doc.line(14, y, 90, y);
+    doc.line(120, y, 196, y);
+    doc.setFontSize(9);
+    doc.text("Firma del trabajador", 14, y+5);
+    doc.text("Firma de bodega/entrega", 120, y+5);
+    doc.setFontSize(8); doc.setTextColor(120,120,120);
+    doc.text("Fecha de firma: ______________________", 14, y+14);
+
+    var fg=new Date();
+    var nombreArchivo="EPP_"+EPP_TRAB_ACTUAL.codigo.replace(/[\/\\]/g,"-")+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
+    mostrarVistaPreviaPDF(doc, nombreArchivo, avisoDiv, filas.length, "movimientos de EPP");
+  });
   avisoDiv.scrollIntoView({behavior:"smooth"});
 }
 
 // ── Reporte general (todos los trabajadores, con filtros) ──
+var EPP_FOTOS_MAP = null;
 function eppCargarTodos(){
   document.getElementById("eppRepLista").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet("EPP_Movimientos!A2:L").then(function(resp){
-    var rows = resp.values || [];
+  Promise.all([
+    sheetsGet("EPP_Movimientos!A2:L"),
+    sheetsGet(SHEET("Personal")+"!A2:J").catch(function(){ return {values:[]}; })
+  ]).then(function(results){
+    var rows = results[0].values || [];
     EPP_MOVS_TODOS = rows.map(eppFilaAObjeto).filter(function(m){ return m.fecha; });
+    EPP_FOTOS_MAP = {};
+    (results[1].values||[]).forEach(function(r){
+      var cod=(r[0]||"").toString().trim().toLowerCase();
+      var foto=(r[9]||"").toString().trim();
+      if(cod && foto) EPP_FOTOS_MAP[cod]=foto;
+    });
     eppPoblarFiltroTrab();
     eppCalcularReporte();
   }).catch(function(){
@@ -3274,18 +3458,44 @@ function eppPoblarFiltroTrab(){
     Object.keys(nombres).sort().map(function(n){ return "<option value=\""+esc(n)+"\">"+n+"</option>"; }).join("");
   if(nombres[actual]) sel.value = actual;
 }
+
+// eppActualizarFiltroTalla — el filtro de talla solo tiene sentido para
+// Camisa y Zapato (los únicos EPP con talla variable), así que se
+// muestra/oculta según el ítem elegido, y se llena con las tallas que
+// REALMENTE existen en los datos (no una lista fija) — si alguien
+// registró "38" y "40" para zapato, son esas las que aparecen acá.
+function eppActualizarFiltroTalla(){
+  var itemSel = document.getElementById("eppRepItem").value;
+  var selTalla = document.getElementById("eppRepTalla");
+  if(itemSel!=="Camisa" && itemSel!=="Zapato"){
+    selTalla.style.display="none";
+    selTalla.value="";
+    return;
+  }
+  var actual = selTalla.value;
+  var tallas = {};
+  (EPP_MOVS_TODOS||[]).forEach(function(m){
+    if(m.item===itemSel) tallas[m.talla||"Sin talla"]=true;
+  });
+  selTalla.innerHTML = "<option value=''>Todas las tallas</option>" +
+    Object.keys(tallas).sort().map(function(t){ return "<option value=\""+esc(t)+"\">"+t+"</option>"; }).join("");
+  if(tallas[actual]) selTalla.value = actual;
+  selTalla.style.display="block";
+}
 function eppFiltrarTodos(){
   var desdeVal = document.getElementById("eppRepDesde").value;
   var hastaVal = document.getElementById("eppRepHasta").value;
   var desde = desdeVal ? new Date(desdeVal+"T00:00:00") : null;
   var hasta = hastaVal ? new Date(hastaVal+"T23:59:59") : null;
   var itemSel = document.getElementById("eppRepItem").value;
+  var tallaSel = (document.getElementById("eppRepTalla")||{value:""}).value;
   var trabSel = document.getElementById("eppRepTrab").value;
   var movSel = (document.getElementById("eppRepMovimiento")||{value:""}).value;
   return eppFiltrarVigentes(EPP_MOVS_TODOS||[]).filter(function(m){
     if(desde && m.fecha < desde) return false;
     if(hasta && m.fecha > hasta) return false;
     if(itemSel && m.item !== itemSel) return false;
+    if(tallaSel && (m.talla||"Sin talla") !== tallaSel) return false;
     if(trabSel && m.nombreTrabajador !== trabSel) return false;
     if(movSel && m.tipoMovimiento !== movSel) return false;
     return true;
@@ -3296,10 +3506,14 @@ function eppCalcularReporte(){
   var filtrados = eppFiltrarTodos().sort(function(a,b){ return b.fecha-a.fecha; });
 
   document.getElementById("eppRepLista").innerHTML = filtrados.length ? filtrados.map(function(m){
-    return "<div style='padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+
-      "<b>"+m.fechaStr+"</b> — "+m.nombreTrabajador+" — "+m.item+" ("+m.tipoMovimiento+")"+
+    var foto=(EPP_FOTOS_MAP||{})[(m.codigoTrabajador||"").toLowerCase()];
+    var mini=foto
+      ?"<img src='"+urlFotoDrive(foto,50)+"' style='width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+      :"<div style='width:24px;height:24px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0'>👤</div>";
+    return "<div style='display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+mini+
+      "<span><b>"+m.fechaStr+"</b> — "+m.nombreTrabajador+" — "+m.item+" ("+m.tipoMovimiento+")"+
       (m.cantidad>1?" x"+m.cantidad:"")+(m.talla?" · talla "+m.talla:"")+(m.motivo?" · "+m.motivo:"")+
-      "</div>";
+      "</span></div>";
   }).join("") : "<div style='font-size:12px;color:#888'>Sin registros con ese filtro</div>";
 
   var itemsReinc = (EPP_CATALOGO||[]).filter(function(c){return c.tipo==="reincidente";}).map(function(c){return c.item;});
@@ -3315,55 +3529,97 @@ function eppExportarReportePDF(){
   var aviso = document.getElementById("eppRepAviso");
   var filtrados = eppFiltrarTodos().sort(function(a,b){ return a.fecha-b.fecha; });
   if(!filtrados.length){ aviso.innerHTML="<div class='msg-err'>No hay registros con ese filtro.</div>"; return; }
+  aviso.innerHTML = "<div class='msg-ok'>🔄 Generando PDF...</div>";
 
-  var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
-  doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Historial de EPP — "+CONFIG.nombreCorto, 14, 15);
-  doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
-  doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" movimientos", 14, 21);
+  // Trae en base64 la foto de cada trabajador único que aparece en el
+  // reporte, ANTES de armar el PDF — jsPDF necesita los bytes de la
+  // imagen, no solo la URL de Drive. Se piden en paralelo y solo una
+  // vez por trabajador (no una vez por movimiento).
+  var fotosAPedir = {};
+  filtrados.forEach(function(m){
+    var cod=(m.codigoTrabajador||"").toLowerCase();
+    var fid=(EPP_FOTOS_MAP||{})[cod];
+    if(cod && fid) fotosAPedir[cod]=fid;
+  });
+  var fotoCache = {};
+  var pendientes = Object.keys(fotosAPedir).map(function(cod){
+    return gasPost("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
+      if(r && r.ok) fotoCache[cod]=r;
+    }).catch(function(){});
+  });
 
-  var siguienteY = 26;
+  Promise.all(pendientes).then(function(){
+    var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
+    doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+    doc.text("Historial de EPP — "+CONFIG.nombreProyecto, 14, 15);
+    doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
+    doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" movimientos", 14, 21);
 
-  // Consolidado por talla — SOLO tiene sentido para Camisa y Zapato,
-  // que son los únicos EPP con talla variable. Se muestra primero,
-  // antes del detalle línea por línea, para dar el panorama rápido.
-  var conTalla = filtrados.filter(function(m){ return (m.item==="Camisa"||m.item==="Zapato") && m.tipoMovimiento==="Entrega"; });
-  if(conTalla.length){
-    var porTalla = {};
-    conTalla.forEach(function(m){
-      var clave = m.item+" — talla "+(m.talla||"Sin talla");
-      porTalla[clave] = (porTalla[clave]||0) + m.cantidad;
+    var siguienteY = 26;
+
+    // Consolidado por talla — SOLO tiene sentido para Camisa y Zapato,
+    // que son los únicos EPP con talla variable. Se muestra primero,
+    // antes del detalle línea por línea, para dar el panorama rápido.
+    var conTalla = filtrados.filter(function(m){ return (m.item==="Camisa"||m.item==="Zapato") && m.tipoMovimiento==="Entrega"; });
+    if(conTalla.length){
+      var porTalla = {};
+      conTalla.forEach(function(m){
+        var clave = m.item+" — talla "+(m.talla||"Sin talla");
+        porTalla[clave] = (porTalla[clave]||0) + m.cantidad;
+      });
+      var filasTalla = Object.keys(porTalla).sort().map(function(k){ return [k, porTalla[k]]; });
+      doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+      doc.text("Consolidado por talla (camisa/zapato)", 14, siguienteY);
+      doc.autoTable({
+        startY: siguienteY+3,
+        head: [["Ítem y talla","Cantidad total"]],
+        body: filasTalla,
+        styles:{fontSize:8},
+        headStyles:{fillColor:[45,106,79], textColor:255},
+        margin:{left:14, right:120}
+      });
+      siguienteY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Columna "Foto" al inicio de la tabla — texto vacío, la imagen se
+    // dibuja aparte con didDrawCell porque autoTable no soporta
+    // imágenes en celdas de forma nativa.
+    var codigosPorFila = filtrados.map(function(m){ return (m.codigoTrabajador||"").toLowerCase(); });
+    var filas = filtrados.map(function(m){
+      return ["", m.fechaStr, m.nombreTrabajador, m.item, m.tipoMovimiento, m.cantidad, m.talla||"—", m.motivo||"—"];
     });
-    var filasTalla = Object.keys(porTalla).sort().map(function(k){ return [k, porTalla[k]]; });
     doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-    doc.text("Consolidado por talla (camisa/zapato)", 14, siguienteY);
+    doc.text("Detalle de movimientos", 14, siguienteY);
     doc.autoTable({
       startY: siguienteY+3,
-      head: [["Ítem y talla","Cantidad total"]],
-      body: filasTalla,
-      styles:{fontSize:8},
-      headStyles:{fillColor:[45,106,79], textColor:255},
-      margin:{left:14, right:120}
+      head: [["Foto","Fecha","Trabajador","EPP","Movimiento","Cant.","Talla","Motivo"]],
+      body: filas,
+      styles:{fontSize:7.5, minCellHeight:8},
+      headStyles:{fillColor:[27,67,50], textColor:255},
+      columnStyles:{0:{cellWidth:9}},
+      didDrawCell: function(data){
+        if(data.section!=="body" || data.column.index!==0) return;
+        var cod = codigosPorFila[data.row.index];
+        var foto = cod ? fotoCache[cod] : null;
+        if(!foto) return;
+        try{
+          var d = Math.min(data.cell.height-1.5, 6.5);
+          var cx = data.cell.x + data.cell.width/2;
+          var cy = data.cell.y + data.cell.height/2;
+          doc.saveGraphicsState();
+          doc.circle(cx, cy, d/2, null);
+          doc.clip();
+          doc.discardPath();
+          doc.addImage("data:"+foto.mimeType+";base64,"+foto.base64, "JPEG", cx-d/2, cy-d/2, d, d);
+          doc.restoreGraphicsState();
+        }catch(e){ /* si la imagen no es compatible, se omite y sigue el resto del PDF */ }
+      }
     });
-    siguienteY = doc.lastAutoTable.finalY + 10;
-  }
 
-  var filas = filtrados.map(function(m){
-    return [m.fechaStr, m.nombreTrabajador, m.item, m.tipoMovimiento, m.cantidad, m.talla||"—", m.motivo||"—"];
+    var fg=new Date();
+    var nombreArchivo="Historial_EPP_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
+    mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "movimientos");
   });
-  doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-  doc.text("Detalle de movimientos", 14, siguienteY);
-  doc.autoTable({
-    startY: siguienteY+3,
-    head: [["Fecha","Trabajador","EPP","Movimiento","Cant.","Talla","Motivo"]],
-    body: filas,
-    styles:{fontSize:7.5},
-    headStyles:{fillColor:[27,67,50], textColor:255}
-  });
-
-  var fg=new Date();
-  var nombreArchivo="Historial_EPP_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
-  mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "movimientos");
 }
 
 // ── Stock disponible por ítem y talla ──
@@ -3579,16 +3835,21 @@ function saludBuscarTrabajadores(){
       for(var i=0;i<rows.length && res.length<8;i++){
         var cod=(rows[i][0]||"").toString().trim();
         var nom=(rows[i][1]||"").toString().trim();
+        var est=(rows[i][6]||"Activo").toString().trim();
         if(!cod) continue;
         if(cod.toLowerCase().indexOf(q)>=0 || nom.toLowerCase().indexOf(q)>=0){
-          res.push({codigo:cod, nombre:nom||cod, alergias:(rows[i][13]||"").toString()});
+          res.push({codigo:cod, nombre:nom||cod, alergias:(rows[i][13]||"").toString(), estado:est, fotoId:(rows[i][9]||"").toString().trim()});
         }
       }
       if(!res.length){ d.style.display="none"; return; }
       res.forEach(function(t){ SALUD_CANDIDATOS[t.codigo]=t; });
       d.innerHTML = res.map(function(t){
-        return "<div class='sug-item' onclick='saludSelTrab(\""+escJS(t.codigo)+"\")'>"+
-          "<div class='sug-nom'>"+t.nombre+"</div><div class='sug-cod'>"+t.codigo+"</div></div>";
+        var mini=t.fotoId
+          ?"<img src='"+urlFotoDrive(t.fotoId,60)+"' style='width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+          :"<div style='width:30px;height:30px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0'>👤</div>";
+        var badgeInactivo = (t.estado||"Activo").toLowerCase()==="inactivo" ? " <span style='font-size:9px;color:#C00000;font-weight:bold'>· INACTIVO</span>" : "";
+        return "<div class='sug-item' style='display:flex;align-items:center;gap:8px' onclick='saludSelTrab(\""+escJS(t.codigo)+"\")'>"+
+          mini+"<div><div class='sug-nom'>"+t.nombre+badgeInactivo+"</div><div class='sug-cod'>"+t.codigo+"</div></div></div>";
       }).join("");
       d.style.display="block";
     }).catch(function(){ d.style.display="none"; });
@@ -3607,7 +3868,7 @@ function saludFilaEntregaAObjeto(r){
 
 function saludSelTrab(codigo){
   var cand = SALUD_CANDIDATOS[codigo];
-  SALUD_TRAB_ACTUAL = {codigo:codigo, nombre:(cand&&cand.nombre)||codigo, alergias:(cand&&cand.alergias)||""};
+  SALUD_TRAB_ACTUAL = {codigo:codigo, nombre:(cand&&cand.nombre)||codigo, alergias:(cand&&cand.alergias)||"", estado:(cand&&cand.estado)||"Activo", fotoId:(cand&&cand.fotoId)||""};
   document.getElementById("saludSugTrab").style.display="none";
   document.getElementById("saludBuscar").value = SALUD_TRAB_ACTUAL.nombre;
   var cont = document.getElementById("saludFormContainer");
@@ -3628,24 +3889,33 @@ function saludSelTrab(codigo){
 function saludRenderEstado(){
   var cont = document.getElementById("saludFormContainer");
   var t = SALUD_TRAB_ACTUAL;
+  var bloquearEntrega = (t.estado||"Activo").toLowerCase()==="inactivo";
   var opts = saludCatalogoActivos().map(function(c){ return "<option value=\""+esc(c.nombre)+"\">"+esc(c.nombre)+"</option>"; }).join("");
+  var fotoHdr = t.fotoId
+    ? "<img src='"+urlFotoDrive(t.fotoId,100)+"' style='width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+    : "<div style='width:42px;height:42px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0'>👤</div>";
 
-  var html = "<div class='card'><div class='ctit'>"+esc(t.nombre)+" · "+esc(t.codigo)+"</div>"+
-    "<label style='display:block;font-size:11px;color:#888;margin-bottom:3px'>⚠️ Alergias / notas de salud</label>"+
+  var html = "<div class='card'><div style='display:flex;align-items:center;gap:8px'>"+fotoHdr+"<div class='ctit' style='margin:0'>"+esc(t.nombre)+" · "+esc(t.codigo)+"</div></div>";
+  if(bloquearEntrega){
+    html += "<div class='msg-err' style='margin:8px 0'>⚠️ Trabajador INACTIVO — no se le pueden registrar entregas nuevas de medicamento.</div>";
+  }
+  html += "<label style='display:block;font-size:11px;color:#888;margin:8px 0 3px'>⚠️ Alergias / notas de salud</label>"+
     "<textarea id='saludAlergias' placeholder='Ej: alérgico a acetaminofén' style='min-height:50px'>"+escTexto(t.alergias)+"</textarea>"+
     "<button class='btn b-sec b-sm' onclick='saludGuardarAlergias()'>💾 Guardar alergias/notas</button>"+
     "<div id='saludAlergiasMsg'></div>"+
   "</div>";
 
-  html += "<div class='card'><div class='ctit'>💊 Entregar medicamento</div>"+
-    "<select id='saludEntregaMed'>"+opts+"</select>"+
-    "<div style='display:flex;gap:8px'>"+
-      "<input type='number' id='saludEntregaCantidad' placeholder='Cantidad' value='1' min='1' style='flex:1'>"+
-      "<input type='text' id='saludEntregaObs' placeholder='Observaciones (opcional)' style='flex:2'>"+
-    "</div>"+
-    "<div id='saludEntregaMsg'></div>"+
-    "<button class='btn b-ok' style='width:100%' onclick='saludRegistrarEntrega()'>✅ Registrar entrega</button>"+
-  "</div>";
+  if(!bloquearEntrega){
+    html += "<div class='card'><div class='ctit'>💊 Entregar medicamento</div>"+
+      "<select id='saludEntregaMed'>"+opts+"</select>"+
+      "<div style='display:flex;gap:8px'>"+
+        "<input type='number' id='saludEntregaCantidad' placeholder='Cantidad' value='1' min='1' style='flex:1'>"+
+        "<input type='text' id='saludEntregaObs' placeholder='Observaciones (opcional)' style='flex:2'>"+
+      "</div>"+
+      "<div id='saludEntregaMsg'></div>"+
+      "<button class='btn b-ok' style='width:100%' onclick='saludRegistrarEntrega()'>✅ Registrar entrega</button>"+
+    "</div>";
+  }
 
   html += "<div class='card'><div class='ctit'>📜 Historial de este trabajador ("+SALUD_ENTREGAS_TRAB.length+")</div>"+
     (SALUD_ENTREGAS_TRAB.length ? SALUD_ENTREGAS_TRAB.map(function(m){
@@ -3676,6 +3946,10 @@ function saludGuardarAlergias(){
 
 function saludRegistrarEntrega(){
   var btn = _botonDelEvento();
+  if((SALUD_TRAB_ACTUAL.estado||"Activo").toLowerCase()==="inactivo"){
+    alert("Este trabajador está Inactivo — no se le pueden registrar entregas nuevas de medicamento.");
+    return;
+  }
   var medicamento = (document.getElementById("saludEntregaMed")||{value:""}).value;
   var cantidad = (document.getElementById("saludEntregaCantidad")||{value:"1"}).value;
   var obs = (document.getElementById("saludEntregaObs")||{value:""}).value.trim();
@@ -3713,11 +3987,21 @@ function saludAnularEntrega(idMovimiento, descripcion){
 }
 
 // ── Reporte general ──
+var SALUD_FOTOS_MAP = null;
 function saludCargarTodos(){
   document.getElementById("saludRepLista").innerHTML = "<div class='loading'>🔄 Cargando...</div>";
-  sheetsGet("Medicamentos_Entregas!A2:I").then(function(resp){
-    var rows = resp.values || [];
+  Promise.all([
+    sheetsGet("Medicamentos_Entregas!A2:I"),
+    sheetsGet(SHEET("Personal")+"!A2:J").catch(function(){ return {values:[]}; })
+  ]).then(function(results){
+    var rows = results[0].values || [];
     SALUD_ENTREGAS_TODOS = rows.map(saludFilaEntregaAObjeto).filter(function(m){ return m.fecha && m.cantidad>0; });
+    SALUD_FOTOS_MAP = {};
+    (results[1].values||[]).forEach(function(r){
+      var cod=(r[0]||"").toString().trim().toLowerCase();
+      var foto=(r[9]||"").toString().trim();
+      if(cod && foto) SALUD_FOTOS_MAP[cod]=foto;
+    });
     saludPoblarFiltroTrab();
     saludCalcularReporte();
   }).catch(function(){
@@ -3752,11 +4036,81 @@ function saludCalcularReporte(){
   if(!SALUD_ENTREGAS_TODOS) return;
   var filtrados = saludFiltrarTodos().sort(function(a,b){ return b.fecha-a.fecha; });
   document.getElementById("saludRepLista").innerHTML = filtrados.length ? filtrados.map(function(m){
-    return "<div style='padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+
-      "<b>"+m.fechaStr+"</b> — "+esc(m.nombreTrabajador)+" — "+esc(m.medicamento)+" x"+m.cantidad+
+    var foto=(SALUD_FOTOS_MAP||{})[(m.codigoTrabajador||"").toLowerCase()];
+    var mini=foto
+      ?"<img src='"+urlFotoDrive(foto,50)+"' style='width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0' onerror=\"this.style.display='none'\">"
+      :"<div style='width:24px;height:24px;border-radius:50%;background:#D8F3DC;color:#2D6A4F;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0'>👤</div>";
+    return "<div style='display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #f2f2f2;font-size:12px'>"+mini+
+      "<span><b>"+m.fechaStr+"</b> — "+esc(m.nombreTrabajador)+" — "+esc(m.medicamento)+" x"+m.cantidad+
       (m.observaciones?" · "+esc(m.observaciones):"")+
-    "</div>";
+    "</span></div>";
   }).join("") : "<div style='font-size:12px;color:#888'>Sin registros con ese filtro</div>";
+}
+
+// saludExportarReportePDF — mismo criterio que eppExportarReportePDF:
+// trae en base64 la foto de cada trabajador único ANTES de armar el
+// PDF (jsPDF necesita los bytes, no la URL de Drive), y la dibuja con
+// didDrawCell porque autoTable no soporta imágenes en celdas.
+function saludExportarReportePDF(){
+  var aviso = document.getElementById("saludRepAviso");
+  var filtrados = saludFiltrarTodos().sort(function(a,b){ return a.fecha-b.fecha; });
+  if(!filtrados.length){ aviso.innerHTML="<div class='msg-err'>No hay registros con ese filtro.</div>"; return; }
+  aviso.innerHTML = "<div class='msg-ok'>🔄 Generando PDF...</div>";
+
+  var fotosAPedir = {};
+  filtrados.forEach(function(m){
+    var cod=(m.codigoTrabajador||"").toLowerCase();
+    var fid=(SALUD_FOTOS_MAP||{})[cod];
+    if(cod && fid) fotosAPedir[cod]=fid;
+  });
+  var fotoCache = {};
+  var pendientes = Object.keys(fotosAPedir).map(function(cod){
+    return gasPost("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
+      if(r && r.ok) fotoCache[cod]=r;
+    }).catch(function(){});
+  });
+
+  Promise.all(pendientes).then(function(){
+    var doc = new window.jspdf.jsPDF({unit:"mm", format:"letter"});
+    doc.setFontSize(14); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
+    doc.text("Historial de Salud — "+CONFIG.nombreProyecto, 14, 15);
+    doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
+    doc.text(CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal+" · "+filtrados.length+" entregas", 14, 21);
+
+    var codigosPorFila = filtrados.map(function(m){ return (m.codigoTrabajador||"").toLowerCase(); });
+    var filas = filtrados.map(function(m){
+      return ["", m.fechaStr, m.nombreTrabajador, m.medicamento, m.cantidad, m.observaciones||"—"];
+    });
+    doc.autoTable({
+      startY: 26,
+      head: [["Foto","Fecha","Trabajador","Medicamento","Cant.","Observaciones"]],
+      body: filas,
+      styles:{fontSize:8, minCellHeight:8},
+      headStyles:{fillColor:[27,67,50], textColor:255},
+      columnStyles:{0:{cellWidth:9}},
+      didDrawCell: function(data){
+        if(data.section!=="body" || data.column.index!==0) return;
+        var cod = codigosPorFila[data.row.index];
+        var foto = cod ? fotoCache[cod] : null;
+        if(!foto) return;
+        try{
+          var d = Math.min(data.cell.height-1.5, 6.5);
+          var cx = data.cell.x + data.cell.width/2;
+          var cy = data.cell.y + data.cell.height/2;
+          doc.saveGraphicsState();
+          doc.circle(cx, cy, d/2, null);
+          doc.clip();
+          doc.discardPath();
+          doc.addImage("data:"+foto.mimeType+";base64,"+foto.base64, "JPEG", cx-d/2, cy-d/2, d, d);
+          doc.restoreGraphicsState();
+        }catch(e){ /* si la imagen no es compatible, se omite y sigue el resto del PDF */ }
+      }
+    });
+
+    var fg=new Date();
+    var nombreArchivo="Historial_Salud_"+CONFIG.codigoProyecto+"_"+fg.getFullYear()+"-"+String(fg.getMonth()+1).padStart(2,"0")+"-"+String(fg.getDate()).padStart(2,"0")+".pdf";
+    mostrarVistaPreviaPDF(doc, nombreArchivo, aviso, filtrados.length, "entregas");
+  });
 }
 
 // ── Stock disponible ──
@@ -4430,6 +4784,7 @@ function escJS(s){
 // ══════════════════════════════════════════════
 function abrirGestionUsuarios() {
   toggleMenuMas();
+  if((SESION.rol||"").toLowerCase()!=="admin"){ alert("Solo un Admin puede gestionar usuarios."); return; }
   // Ocultar pestañas y mostrar pantalla de gestión
   document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
   var div = document.getElementById("gestionUsuariosScr");
@@ -4455,7 +4810,8 @@ function cargarUsuarios() {
       var usuario=row[0]; var nombre=row[1]||row[0];
       html2 += "<div class='card' style='margin-bottom:8px;padding:10px'>";
       html2 += "<div style='display:flex;justify-content:space-between;align-items:center'>";
-      html2 += "<div><b>"+nombre+"</b> <span class='badge "+(rol==="Admin"?"bh":"bi")+"'>"+rol+"</span></div>";
+      var badgeRol = rol==="Admin" ? "bh" : (rol==="Supervisor" ? "bm" : "bi");
+      html2 += "<div><b>"+nombre+"</b> <span class='badge "+badgeRol+"'>"+rol+"</span></div>";
       html2 += "<span style='font-size:11px;color:"+(activo?"#375623":"#C00000")+"'>"+(activo?"Activo":"Inactivo")+"</span>";
       html2 += "</div>";
       html2 += "<div style='font-size:11px;color:#888;margin-top:2px'>@"+usuario+"</div>";
@@ -4483,7 +4839,7 @@ function editarUsuarioForm(btn_or_usuario, nombre, rol, activo) {
   formDiv.innerHTML =
     "<div class='card'><div class='ctit'>✏️ Editar usuario: @"+usuario+"</div>" +
     "<input type='text' id='euNombre' placeholder='Nombre completo' value='"+nombre+"'>" +
-    "<select id='euRol'><option value='Operador'"+(rol!=="Admin"?" selected":"")+" >Operador</option><option value='Admin'"+(rol==="Admin"?" selected":"")+">Admin</option></select>" +
+    "<select id='euRol'><option value='Operador'"+(rol==="Operador"?" selected":"")+">Operador</option><option value='Supervisor'"+(rol==="Supervisor"?" selected":"")+">Supervisor</option><option value='Admin'"+(rol==="Admin"?" selected":"")+">Admin</option></select>" +
     "<div id='euMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
     "<button class='btn b-ok' onclick='guardarEdicionUsuario(\""+usuario+"\")'>💾 Guardar</button>" +
@@ -4561,7 +4917,7 @@ function nuevoUsuarioForm() {
     "<input type='text' id='nuUser' placeholder='Nombre de usuario (ej: juan)'>" +
     "<input type='text' id='nuNombre' placeholder='Nombre completo'>" +
     "<input type='password' id='nuPin' placeholder='PIN (solo números)' inputmode='numeric'>" +
-    "<select id='nuRol'><option value='Operador'>Operador</option><option value='Admin'>Admin</option></select>" +
+    "<select id='nuRol'><option value='Operador'>Operador</option><option value='Supervisor'>Supervisor</option><option value='Admin'>Admin</option></select>" +
     "<div id='nuMsg'></div>" +
     "<div style='display:flex;gap:8px'>" +
     "<button class='btn b-ok' onclick='guardarNuevoUsuario()'>💾 Crear usuario</button>" +
@@ -4920,6 +5276,7 @@ function cancelarFormTrab() {
 // ══════════════════════════════════════════════
 function abrirGestionMaquinas() {
   toggleMenuMas();
+  if((SESION.rol||"").toLowerCase()!=="admin"){ alert("Solo un Admin puede gestionar máquinas."); return; }
   document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
   var div = document.getElementById("gestionMaquinasScr");
   if(!div) return;
@@ -5034,6 +5391,7 @@ function cargarCatalogoEPPAdmin() {
         "<div style='font-size:11px;color:#888;margin-top:3px'>"+(EP_TIPO_ETIQUETAS[c.tipo]||c.tipo)+(c.requiereTalla?" · pide talla":"")+"</div>" +
       "</div>" +
       "<div style='display:flex;flex-direction:column;gap:4px'>" +
+        "<button class='btn b-blue b-sm' onclick='editarItemEPPForm(\""+escJS(c.item)+"\")'>✏️ Editar</button>" +
         "<button class='btn b-sec b-sm' onclick='toggleActivoItemEPP(\""+escJS(c.item)+"\","+(c.activo?"false":"true")+")'>"+(c.activo?"Desactivar":"Activar")+"</button>" +
       "</div>" +
     "</div>";
@@ -5061,6 +5419,59 @@ function nuevoItemEPPForm() {
     "<button class='btn b-ok' onclick='guardarNuevoItemEPP()'>💾 Agregar</button>" +
     "<button class='btn b-sec' onclick='cancelarFormEPP()'>Cancelar</button>" +
     "</div></div>";
+}
+
+// editarItemEPPForm — permite cambiar el comportamiento (tipo) o si pide
+// talla de un ítem YA existente. El nombre no se puede tocar acá porque
+// es la clave que usa guardarItemEPPCatalogo para saber qué fila
+// actualizar — cambiarlo crearía un ítem nuevo en vez de editar el actual.
+function editarItemEPPForm(item) {
+  var c = (EPP_CATALOGO||[]).find(function(x){return x.item===item;});
+  if(!c) return;
+  var formDiv = document.getElementById("epFormCat");
+  if(!formDiv) return;
+  formDiv.innerHTML =
+    "<div class='card'><div class='ctit'>✏️ Editar: "+esc(c.icono)+" "+esc(c.item)+"</div>" +
+    "<input type='text' value='"+esc(c.item)+"' disabled style='background:#f2f2f2;color:#888'>" +
+    "<div style='font-size:10px;color:#888;margin:-4px 0 6px'>El nombre no se puede cambiar aquí — si necesitas renombrarlo, crea un ítem nuevo y desactiva este.</div>" +
+    "<input type='text' id='epIconoEd' placeholder='Ícono/emoji' maxlength='4' value='"+esc(c.icono)+"'>" +
+    "<select id='epTipoEd'>" +
+    "<option value='unico'"+(c.tipo==="unico"?" selected":"")+">"+EP_TIPO_ETIQUETAS.unico+"</option>" +
+    "<option value='devuelve'"+(c.tipo==="devuelve"?" selected":"")+">"+EP_TIPO_ETIQUETAS.devuelve+"</option>" +
+    "<option value='acumulable'"+(c.tipo==="acumulable"?" selected":"")+">"+EP_TIPO_ETIQUETAS.acumulable+"</option>" +
+    "<option value='reincidente'"+(c.tipo==="reincidente"?" selected":"")+">"+EP_TIPO_ETIQUETAS.reincidente+"</option>" +
+    "</select>" +
+    "<label style='display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0'>" +
+    "<input type='checkbox' id='epRequiereTallaEd' style='width:auto'"+(c.requiereTalla?" checked":"")+"> Este ítem pide talla al entregarlo" +
+    "</label>" +
+    "<div style='font-size:10px;color:#888;margin-bottom:6px'>El cambio aplica hacia adelante — el historial de entregas ya registradas no se altera.</div>" +
+    "<div id='epMsgEd'></div>" +
+    "<div style='display:flex;gap:8px'>" +
+    "<button class='btn b-ok' onclick='guardarEdicionItemEPP(\""+escJS(c.item)+"\")'>💾 Guardar cambios</button>" +
+    "<button class='btn b-sec' onclick='cancelarFormEPP()'>Cancelar</button>" +
+    "</div></div>";
+  formDiv.scrollIntoView({behavior:"smooth"});
+}
+
+function guardarEdicionItemEPP(item) {
+  var btn = _botonDelEvento();
+  var c = (EPP_CATALOGO||[]).find(function(x){return x.item===item;});
+  if(!c) return;
+  var icono = (document.getElementById("epIconoEd")||{value:""}).value.trim() || "🦺";
+  var tipo  = (document.getElementById("epTipoEd")||{value:"unico"}).value;
+  var talla = (document.getElementById("epRequiereTallaEd")||{checked:false}).checked;
+  var msg   = document.getElementById("epMsgEd");
+  if(!_bloquearBoton(btn, "guardarEdicionItemEPP")) return;
+  gasPost("guardarItemEPPCatalogo",{item:item, icono:icono, tipo:tipo, requiereTalla:talla, activo:c.activo, orden:c.orden}).then(function(r){
+    _liberarBoton(btn, "guardarEdicionItemEPP");
+    if(r&&r.ok){
+      cancelarFormEPP();
+      EPP_CATALOGO = null;
+      eppCargarCatalogo().then(cargarCatalogoEPPAdmin);
+    } else if(msg){
+      msg.innerHTML="<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){ _liberarBoton(btn, "guardarEdicionItemEPP"); if(msg)msg.innerHTML="<div class='msg-err'>"+e.message+"</div>"; });
 }
 
 function guardarNuevoItemEPP() {
@@ -5671,17 +6082,30 @@ function aplicarPaleta(idx) {
   var p = PALETA[idx];
   if(!p) return;
   aplicarColores(p.primario, p.secundario, p.claro, p.xclaro, p.borde, p.pastel);
-  localStorage.setItem("gt02_paleta", JSON.stringify(p));
-  alert("✅ Apariencia cambiada: " + p.nombre);
+  guardarColoresRemoto(p.primario, p.secundario, p.claro, p.xclaro, p.borde, p.pastel, p.nombre);
 }
 
 function aplicarColorPersonalizado() {
   var prim = (document.getElementById("cpPrimario")||{value:"#1B4332"}).value;
   var secu = (document.getElementById("cpSecundario")||{value:"#2D6A4F"}).value;
   // Generar variantes claras automáticamente
-  aplicarColores(prim, secu, secu+"33", secu+"15", secu+"55", secu+"88");
-  localStorage.setItem("gt02_paleta", JSON.stringify({primario:prim,secundario:secu,claro:secu+"33",xclaro:secu+"15",borde:secu+"55",pastel:secu+"88"}));
-  alert("✅ Colores personalizados aplicados");
+  var claro=secu+"33", xclaro=secu+"15", borde=secu+"55", pastel=secu+"88";
+  aplicarColores(prim, secu, claro, xclaro, borde, pastel);
+  guardarColoresRemoto(prim, secu, claro, xclaro, borde, pastel, "Personalizado");
+}
+
+// guardarColoresRemoto — antes el color elegido se guardaba en
+// localStorage: cada quien veía un color distinto según su propio
+// celular. Ahora se guarda en Config_GT02 (Admin → Ajustes), así el
+// cambio se ve igual para todos los usuarios del sistema.
+function guardarColoresRemoto(primario, secundario, claro, xclaro, borde, pastel, etiqueta){
+  gasPost("guardarConfig", {
+    colorPrimario:primario, colorSecundario:secundario, colorClaro:claro,
+    colorXclaro:xclaro, colorBorde:borde, colorPastel:pastel
+  }).then(function(r){
+    if(r && r.ok) alert("✅ Apariencia actualizada para todos los usuarios"+(etiqueta?": "+etiqueta:""));
+    else alert("❌ No se pudo guardar: "+(r&&r.error||"error desconocido"));
+  }).catch(function(e){ alert("❌ Error: "+e.message); });
 }
 
 function aplicarColores(prim, secu, claro, xclaro, borde, pastel) {
@@ -5694,14 +6118,55 @@ function aplicarColores(prim, secu, claro, xclaro, borde, pastel) {
   root.style.setProperty("--c-pastel", pastel);
 }
 
-function cargarPaletaGuardada() {
-  try {
-    var p = JSON.parse(localStorage.getItem("gt02_paleta")||"null");
-    if(p && p.primario) aplicarColores(p.primario,p.secundario,p.claro,p.xclaro,p.borde,p.pastel);
-  } catch(e){}
+function abrirAjustes() {
+  toggleMenuMas();
+  document.querySelectorAll(".scr").forEach(function(s){ s.classList.remove("on"); });
+  var div = document.getElementById("ajustesScr");
+  if(!div) return;
+  div.classList.add("on");
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("on"); });
+  document.getElementById("ajNombreProyecto").value = CONFIG.nombreProyecto;
+  document.getElementById("ajUbicacion").value      = CONFIG.ubicacion;
+  document.getElementById("ajEmpresa").value        = CONFIG.empresa;
+  document.getElementById("ajPaisLegal").value      = CONFIG.paisLegal;
+  document.getElementById("ajLeyendaCarnet").value  = CONFIG.leyendaCarnet;
 }
 
-cargarPaletaGuardada();
+function guardarAjustesIdentidad() {
+  var btn = _botonDelEvento();
+  var msg = document.getElementById("ajMsg");
+  msg.innerHTML = "";
+  var datos = {
+    nombreProyecto: (document.getElementById("ajNombreProyecto")||{value:""}).value.trim(),
+    ubicacion:      (document.getElementById("ajUbicacion")||{value:""}).value.trim(),
+    empresa:        (document.getElementById("ajEmpresa")||{value:""}).value.trim(),
+    paisLegal:      (document.getElementById("ajPaisLegal")||{value:""}).value.trim(),
+    leyendaCarnet:  (document.getElementById("ajLeyendaCarnet")||{value:""}).value.trim()
+  };
+  if(!datos.nombreProyecto || !datos.ubicacion || !datos.empresa){
+    msg.innerHTML = "<div class='msg-err'>Nombre, ubicación y empresa son obligatorios.</div>";
+    return;
+  }
+  if(!_bloquearBoton(btn, "guardarAjustesIdentidad")) return;
+  gasPost("guardarConfig", datos).then(function(r){
+    _liberarBoton(btn, "guardarAjustesIdentidad");
+    if(r && r.ok){
+      CONFIG.nombreProyecto = datos.nombreProyecto;
+      CONFIG.ubicacion      = datos.ubicacion;
+      CONFIG.empresa        = datos.empresa;
+      CONFIG.paisLegal      = datos.paisLegal;
+      CONFIG.leyendaCarnet  = datos.leyendaCarnet;
+      aplicarConfigProyecto();
+      msg.innerHTML = "<div class='msg-ok'>✅ Guardado — visible para todos los usuarios.</div>";
+      setTimeout(function(){ msg.innerHTML=""; },2500);
+    } else {
+      msg.innerHTML = "<div class='msg-err'>"+(r&&r.error||"Error al guardar")+"</div>";
+    }
+  }).catch(function(e){
+    _liberarBoton(btn, "guardarAjustesIdentidad");
+    msg.innerHTML = "<div class='msg-err'>"+e.message+"</div>";
+  });
+}
 
 </script>
 </div><!-- /appContent -->
