@@ -811,22 +811,18 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.18.0  (16/09/2026) — Lentes ahora se comporta
-// como Guantes (se puede registrar un cambio por daño/pérdida, con
-// motivo) — y desde Admin → Catálogo de EPP ya se puede EDITAR el
-// comportamiento de un ítem existente (antes solo se podía activar/
-// desactivar). No se permite registrar préstamos nuevos, entregas de
-// EPP ni de medicamento a un trabajador marcado como Inactivo — se
-// bloquea en pantalla y también en el backend (por si alguien tiene
-// una versión vieja de la app cacheada). Las devoluciones de lo que
-// ya tenía asignado siguen permitidas siempre.
+// VERSIÓN ACTUAL: 2.20.0  (16/09/2026) — Lentes ahora sí se comporta
+// como Guantes en el sistema real: se agregó una migración que
+// actualiza la hoja EPP_Catalogo existente (en 2.18 solo se había
+// cambiado la lista de respaldo del código, que nunca se usa cuando
+// la hoja ya existe — por eso el cambio no se veía).
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.18.0-GT02";
+var APP_VERSION = "2.20.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -2948,9 +2944,22 @@ function abrirEPP(){
 // de EPP) no requiere tocar código. Si la hoja todavía no existe (recién
 // instalado, o un GT03 que copió el código pero no los datos), se crea
 // sola con los 6 ítems de siempre antes de reintentar la lectura.
+var EPP_MIGRACION_HECHA = false;
 function eppCargarCatalogo(){
   if(EPP_CATALOGO) return Promise.resolve(EPP_CATALOGO);
-  return sheetsGet("EPP_Catalogo!A2:F").then(function(resp){
+  // Una sola vez por sesión se llama a asegurarCatalogoEPP ANTES de
+  // leer la hoja. En el backend eso dispara la migración que aplica
+  // los cambios de comportamiento que trae una versión nueva sobre
+  // catálogos que ya existían (ej. Lentes pasando a "reincidente").
+  // Sin este paso, cambiar el tipo por defecto en el código no tendría
+  // ningún efecto: el catálogo real vive en la hoja, no en el código.
+  var preparar = EPP_MIGRACION_HECHA
+    ? Promise.resolve()
+    : gasPost("asegurarCatalogoEPP",{}).then(function(){ EPP_MIGRACION_HECHA = true; }).catch(function(){});
+
+  return preparar.then(function(){
+    return sheetsGet("EPP_Catalogo!A2:F");
+  }).then(function(resp){
     var rows = resp.values || [];
     if(!rows.length) throw new Error("vacio");
     EPP_CATALOGO = rows.filter(function(r){return r[0];}).map(eppFilaCatalogoAObjeto);
@@ -3371,7 +3380,7 @@ function eppGenerarPDFPersona(){
   // Si el trabajador tiene foto cargada, se trae en base64 ANTES de armar
   // el PDF — jsPDF necesita los bytes de la imagen, no solo la URL.
   var fotoPromise = EPP_TRAB_ACTUAL.fotoId
-    ? gasPost("obtenerFotoBase64",{fileId:EPP_TRAB_ACTUAL.fotoId}).catch(function(){ return null; })
+    ? gasPostBody("obtenerFotoBase64",{fileId:EPP_TRAB_ACTUAL.fotoId}).catch(function(){ return null; })
     : Promise.resolve(null);
 
   fotoPromise.then(function(fotoRes){
@@ -3381,28 +3390,40 @@ function eppGenerarPDFPersona(){
     doc.setFontSize(9); doc.setFont(undefined,"normal"); doc.setTextColor(100,100,100);
     doc.text(CONFIG.nombreProyecto+" · "+CONFIG.empresa+" · "+CONFIG.ubicacion+", "+CONFIG.paisLegal, 14, 21);
 
-    // Foto circular del trabajador, arriba a la derecha
+    // Foto del trabajador, arriba a la derecha, con doble anillo
+    // (verde institucional + dorado) para que combine con el carnet.
+    // Si no tiene foto cargada, se dibuja un marcador discreto en su
+    // lugar en vez de dejar el espacio vacío.
+    var fs=24, fcx=190-fs/2, fcy=12+fs/2;
     if(fotoRes && fotoRes.ok){
       try{
-        var fs=20, fcx=196-fs/2, fcy=6+fs/2;
         doc.saveGraphicsState();
         doc.circle(fcx, fcy, fs/2, null);
         doc.clip();
         doc.discardPath();
         doc.addImage("data:"+fotoRes.mimeType+";base64,"+fotoRes.base64, "JPEG", fcx-fs/2, fcy-fs/2, fs, fs);
         doc.restoreGraphicsState();
-        doc.setDrawColor(45,106,79); doc.setLineWidth(0.3);
+        doc.setDrawColor(27,67,50); doc.setLineWidth(0.7);
         doc.circle(fcx, fcy, fs/2);
+        doc.setDrawColor(244,185,66); doc.setLineWidth(0.3);
+        doc.circle(fcx, fcy, fs/2+0.9);
       }catch(e){ /* si la imagen no es compatible, se omite y sigue el resto del PDF */ }
+    } else {
+      doc.setFillColor(240,244,248);
+      doc.circle(fcx, fcy, fs/2, "F");
+      doc.setDrawColor(183,228,199); doc.setLineWidth(0.4);
+      doc.circle(fcx, fcy, fs/2);
+      doc.setFontSize(7); doc.setTextColor(150,150,150);
+      doc.text("SIN FOTO", fcx, fcy+1, {align:"center"});
     }
 
     doc.setFontSize(11); doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
-    doc.text("Trabajador: "+EPP_TRAB_ACTUAL.nombre, 14, 30);
-    doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 36);
+    doc.text("Trabajador: "+EPP_TRAB_ACTUAL.nombre, 14, 32);
+    doc.text("Código: "+EPP_TRAB_ACTUAL.codigo, 14, 38);
     doc.setFont(undefined,"normal");
 
     doc.autoTable({
-      startY: 42,
+      startY: 44,
       head: [["Fecha","EPP","Movimiento","Cant.","Talla","Motivo"]],
       body: filas,
       styles:{fontSize:8},
@@ -3543,7 +3564,7 @@ function eppExportarReportePDF(){
   });
   var fotoCache = {};
   var pendientes = Object.keys(fotosAPedir).map(function(cod){
-    return gasPost("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
+    return gasPostBody("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
       if(r && r.ok) fotoCache[cod]=r;
     }).catch(function(){});
   });
@@ -3560,25 +3581,65 @@ function eppExportarReportePDF(){
     // Consolidado por talla — SOLO tiene sentido para Camisa y Zapato,
     // que son los únicos EPP con talla variable. Se muestra primero,
     // antes del detalle línea por línea, para dar el panorama rápido.
+    //
+    // Se arma en DOS tablas lado a lado (camisa a la izquierda, zapato
+    // a la derecha) en vez de una sola lista vertical: antes, con una
+    // sola tabla angosta, quedaba media hoja en blanco a la derecha y
+    // el consolidado se comía casi una página entera. Así ocupa
+    // aproximadamente la mitad del alto y aprovecha todo el ancho.
     var conTalla = filtrados.filter(function(m){ return (m.item==="Camisa"||m.item==="Zapato") && m.tipoMovimiento==="Entrega"; });
     if(conTalla.length){
-      var porTalla = {};
+      var porItem = {Camisa:{}, Zapato:{}};
       conTalla.forEach(function(m){
-        var clave = m.item+" — talla "+(m.talla||"Sin talla");
-        porTalla[clave] = (porTalla[clave]||0) + m.cantidad;
+        var talla = m.talla||"Sin talla";
+        porItem[m.item][talla] = (porItem[m.item][talla]||0) + m.cantidad;
       });
-      var filasTalla = Object.keys(porTalla).sort().map(function(k){ return [k, porTalla[k]]; });
+
+      // Ordena las tallas de zapato numéricamente (36, 37... 43) y las
+      // de camisa por talla lógica (S, M, L, XL), no alfabéticamente —
+      // así "XL" no queda antes de "S", como pasaría con sort() normal.
+      var ORDEN_CAMISA = ["XS","S","M","L","XL","XXL","XXXL"];
+      function ordenarTallas(item, tallas){
+        return Object.keys(tallas).sort(function(a,b){
+          if(item==="Camisa"){
+            var ia=ORDEN_CAMISA.indexOf(a.toUpperCase()), ib=ORDEN_CAMISA.indexOf(b.toUpperCase());
+            if(ia>=0 && ib>=0) return ia-ib;
+            if(ia>=0) return -1;
+            if(ib>=0) return 1;
+          }
+          var na=parseFloat(a), nb=parseFloat(b);
+          if(!isNaN(na) && !isNaN(nb)) return na-nb;
+          return a.localeCompare(b);
+        });
+      }
+
       doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(27,67,50);
-      doc.text("Consolidado por talla (camisa/zapato)", 14, siguienteY);
-      doc.autoTable({
-        startY: siguienteY+3,
-        head: [["Ítem y talla","Cantidad total"]],
-        body: filasTalla,
-        styles:{fontSize:8},
-        headStyles:{fillColor:[45,106,79], textColor:255},
-        margin:{left:14, right:120}
+      doc.text("Consolidado por talla", 14, siguienteY);
+      doc.setFont(undefined,"normal");
+
+      var finalYs = [];
+      [
+        {item:"Camisa", titulo:"👕 Camisas", margen:{left:14, right:112}},
+        {item:"Zapato", titulo:"👞 Zapatos", margen:{left:110, right:16}}
+      ].forEach(function(cfg){
+        var tallas = porItem[cfg.item];
+        var claves = ordenarTallas(cfg.item, tallas);
+        if(!claves.length) return;
+        var total = claves.reduce(function(s,k){ return s+tallas[k]; }, 0);
+        doc.autoTable({
+          startY: siguienteY+3,
+          head: [[cfg.titulo.replace(/^[^ ]+ /,""), "Cant."]],
+          body: claves.map(function(k){ return ["Talla "+k, String(tallas[k])]; }),
+          foot: [["TOTAL", String(total)]],
+          styles:{fontSize:8, cellPadding:1.4},
+          headStyles:{fillColor:[45,106,79], textColor:255},
+          footStyles:{fillColor:[216,243,220], textColor:[27,67,50], fontStyle:"bold"},
+          columnStyles:{1:{halign:"right", cellWidth:16}},
+          margin: cfg.margen
+        });
+        finalYs.push(doc.lastAutoTable.finalY);
       });
-      siguienteY = doc.lastAutoTable.finalY + 10;
+      siguienteY = (finalYs.length ? Math.max.apply(null, finalYs) : siguienteY) + 9;
     }
 
     // Columna "Foto" al inicio de la tabla — texto vacío, la imagen se
@@ -4065,7 +4126,7 @@ function saludExportarReportePDF(){
   });
   var fotoCache = {};
   var pendientes = Object.keys(fotosAPedir).map(function(cod){
-    return gasPost("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
+    return gasPostBody("obtenerFotoBase64",{fileId:fotosAPedir[cod]}).then(function(r){
       if(r && r.ok) fotoCache[cod]=r;
     }).catch(function(){});
   });
