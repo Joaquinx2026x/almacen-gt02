@@ -811,18 +811,23 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.20.0  (16/09/2026) — Lentes ahora sí se comporta
-// como Guantes en el sistema real: se agregó una migración que
-// actualiza la hoja EPP_Catalogo existente (en 2.18 solo se había
-// cambiado la lista de respaldo del código, que nunca se usa cuando
-// la hoja ya existe — por eso el cambio no se veía).
+// VERSIÓN ACTUAL: 2.21.0  (16/09/2026) — Tres correcciones al Corte
+// semanal del horómetro:
+// 1) El lunes de la semana se excluía del corte por un desajuste de
+//    hora (el rango arrancaba a la hora exacta en que se abrió la
+//    pantalla, en vez de medianoche) — corregido.
+// 2) Vista previa en pantalla del mínimo a pagar corregida: siempre
+//    decía "mínimo de 5" sin mirar el tipo de máquina — ahora
+//    consulta el tipo real (Retroexcavadora = 6h) igual que Code.gs.
+// 3) Agregado "Total trabajadas" junto a "Total a pagar", ambos en
+//    recuadros grandes y resaltados — en pantalla y en el PDF.
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.20.0-GT02";
+var APP_VERSION = "2.21.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -4347,7 +4352,7 @@ function horCargarCatalogos(){
     var maq=resp.values||[];
 
     HOR_MAQUINAS = maq.filter(function(r){return r[0];}).map(function(r){
-      return { codigo:(r[0]||"").toString(), nombre:(r[1]||"").toString(), estado:(r[4]||"Activo").toString() };
+      return { codigo:(r[0]||"").toString(), nombre:(r[1]||"").toString(), tipo:(r[2]||"").toString().trim(), estado:(r[4]||"Activo").toString() };
     });
 
     var optsMaquina = "<option value=''>Selecciona la máquina...</option>" +
@@ -4421,6 +4426,7 @@ var HOR_EDITANDO_ID = null;
 function horMaquinaOFechaCambio(){
   horAutocompletarOperador();
   horVerificarExistente();
+  horActualizarPreview("hor"); // el mínimo a pagar depende de la máquina elegida
 }
 
 function horVerificarExistente(){
@@ -4463,12 +4469,26 @@ function horVerificarExistente(){
   }).catch(function(){});
 }
 
-// Vista previa en vivo: se recalcula cada vez que cambian los horómetros,
-// para que Joaquín vea "horas trabajadas" vs. "horas a pagar" ANTES de guardar
-// (la misma regla del mínimo de 5 horas que aplica Code.gs al guardar).
+// Vista previa en vivo: se recalcula cada vez que cambian los horómetros
+// o la máquina elegida, para que Joaquín vea "horas trabajadas" vs.
+// "horas a pagar" ANTES de guardar — con el MISMO mínimo que aplica
+// Code.gs al guardar (varía según el tipo de máquina: Retroexcavadora
+// = 6h, el resto = 5h). Antes esta vista previa tenía el 5 fijo a mano,
+// sin mirar el tipo de máquina — por eso mostraba "mínimo de 5" incluso
+// para una Retroexcavadora.
 // Sirve para los dos formularios que tienen horómetro inicio/fin:
-// "Registrar" (ids horInicio/horFin/horPreview) y "Mantenimiento"
-// (ids horMantInicio/horMantFin/horMantPreview).
+// "Registrar" (ids horInicio/horFin/horPreview, con selector propio de
+// máquina) y "Mantenimiento" (ids horMantInicio/horMantFin/
+// horMantPreview, que usa la máquina del registro que se está viendo).
+var MINIMOS_POR_TIPO_JS = { "Retroexcavadora": 6 }; // debe coincidir siempre con Code.gs
+var MINIMO_POR_DEFECTO_JS = 5;
+
+function horMinimoDeMaquina(codigoMaquina){
+  var m = HOR_MAQUINAS.find(function(x){ return x.codigo===codigoMaquina; });
+  var tipo = m ? m.tipo : "";
+  return MINIMOS_POR_TIPO_JS[tipo] !== undefined ? MINIMOS_POR_TIPO_JS[tipo] : MINIMO_POR_DEFECTO_JS;
+}
+
 function horActualizarPreview(prefijo){
   prefijo = prefijo || "hor";
   var ini=parseFloat(document.getElementById(prefijo+"Inicio").value);
@@ -4477,8 +4497,14 @@ function horActualizarPreview(prefijo){
   if(isNaN(ini)||isNaN(fin)){ box.textContent=""; return; }
   if(fin<ini){ box.innerHTML="<span style='color:#c0392b'>⚠️ El horómetro de fin no puede ser menor al de inicio</span>"; return; }
   var trabajadas=Math.round((fin-ini)*100)/100;
-  var aPagar = trabajadas<5 ? 5 : trabajadas;
-  var nota = trabajadas<5 ? " (se ajusta al mínimo de 5)" : "";
+
+  var codigoMaquina = prefijo==="hor"
+    ? (document.getElementById("horMaquina")||{value:""}).value
+    : ((HOR_MANT_LISTA[HOR_MANT_INDICE]||{}).codigoMaquina||"");
+  var minimo = horMinimoDeMaquina(codigoMaquina);
+
+  var aPagar = trabajadas<minimo ? minimo : trabajadas;
+  var nota = trabajadas<minimo ? " (se ajusta al mínimo de "+minimo+"h para esta máquina)" : "";
   box.innerHTML="Horas trabajadas: <b>"+trabajadas+"</b> — Horas a pagar: <b>"+aPagar+"</b>"+nota;
 }
 document.addEventListener("input", function(e){
@@ -4549,10 +4575,17 @@ function horRangoRapido(tipo){
     document.getElementById("horFechaHasta").value = fechaAInput(hoy);
     return;
   }
-  var diaSemana=hoy.getDay(); // 0=domingo, 1=lunes...
+  // Se quita la hora del día ANTES de calcular el lunes — "hoy" trae la
+  // hora exacta en que se abrió la pantalla (ej. 14:32), y los registros
+  // se comparan siempre a medianoche (00:00:00). Sin este ajuste, el
+  // lunes de esta semana quedaba con esa misma hora (21/09 14:32) y el
+  // registro del lunes (21/09 00:00) parecía "anterior" al rango y se
+  // excluía del corte — aunque sí estuviera dentro de la semana.
+  var hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  var diaSemana=hoySinHora.getDay(); // 0=domingo, 1=lunes...
   // Retrocede hasta el lunes de la semana actual
   var diasDesdeLunes = (diaSemana===0) ? 6 : diaSemana-1;
-  var lunes=new Date(hoy); lunes.setDate(hoy.getDate()-diasDesdeLunes);
+  var lunes=new Date(hoySinHora); lunes.setDate(hoySinHora.getDate()-diasDesdeLunes);
   var sabado=new Date(lunes); sabado.setDate(lunes.getDate()+5);
   if(tipo==="pasada"){
     lunes.setDate(lunes.getDate()-7);
@@ -4600,7 +4633,8 @@ function horGenerarCorte(){
         return { fecha:(r[1]||"").toString(), inicio:r[4], fin:r[5], trabajadas:r[6], aPagar:r[7], operador:(r[8]||"").toString() };
       });
       var totalPagar = registros.reduce(function(s,r){return s+(Number(r.aPagar)||0);},0);
-      return { maquina:m.nombre, registros:registros, totalPagar:totalPagar };
+      var totalTrabajadas = registros.reduce(function(s,r){return s+(Number(r.trabajadas)||0);},0);
+      return { maquina:m.nombre, registros:registros, totalPagar:totalPagar, totalTrabajadas:totalTrabajadas };
     });
 
     var rangoTxt = fechaLegible(HOR_RANGO_DESDE)+" al "+fechaLegible(HOR_RANGO_HASTA);
@@ -4615,8 +4649,17 @@ function horGenerarCorte(){
           g.registros.map(function(r){
             return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td><td>"+r.operador+"</td></tr>";
           }).join("")+
-          "<tr style='font-weight:bold;background:#EBF7ED'><td colspan='4'>Total a pagar</td><td>"+g.totalPagar+"</td><td></td></tr>"+
-          "</table>";
+          "</table>"+
+          "<div style='display:flex;gap:8px;margin-top:8px'>"+
+            "<div style='flex:1;background:#EBF7ED;border:2px solid #2D6A4F;border-radius:8px;padding:9px;text-align:center'>"+
+              "<div style='font-size:10px;color:#2D6A4F;font-weight:bold;letter-spacing:.3px'>TOTAL TRABAJADAS</div>"+
+              "<div style='font-size:20px;font-weight:bold;color:#1B4332'>"+g.totalTrabajadas+" h</div>"+
+            "</div>"+
+            "<div style='flex:1;background:#FFF9E6;border:2px solid #F4B942;border-radius:8px;padding:9px;text-align:center'>"+
+              "<div style='font-size:10px;color:#7B5800;font-weight:bold;letter-spacing:.3px'>TOTAL A PAGAR</div>"+
+              "<div style='font-size:20px;font-weight:bold;color:#412402'>"+g.totalPagar+" h</div>"+
+            "</div>"+
+          "</div>";
       }
       html+="</div>";
     });
@@ -4642,11 +4685,13 @@ function horDescargarPDF(){
   doc.setTextColor(100);
   doc.text("Periodo: "+c.rangoTxt+"   ·   Generado: "+new Date().toLocaleString("es-GT"),14,21);
 
-  // Un PDF combinado: una tabla por máquina, una debajo de la otra.
-  // Si no cabe en la página, jsPDF-autotable salta de página automáticamente.
+  // Un PDF combinado: una tabla por máquina, una debajo de la otra, cada
+  // una con sus dos totales destacados en recuadros de color (igual
+  // criterio visual que la vista en pantalla) — así resaltan mucho más
+  // que una fila de pie de tabla en texto plano.
   var y=28;
   c.grupos.forEach(function(g,i){
-    if(i>0 && y>250){ doc.addPage(); y=20; }
+    if(i>0 && y>235){ doc.addPage(); y=20; }
     doc.setFontSize(11);
     doc.setTextColor(20,20,20);
     doc.text(g.maquina,14,y);
@@ -4656,10 +4701,31 @@ function horDescargarPDF(){
       body:g.registros.length? g.registros.map(function(r){
         return[r.fecha,String(r.inicio),String(r.fin),String(r.trabajadas),String(r.aPagar),r.operador];
       }):[["Sin registros en este periodo","","","","",""]],
-      foot:[["","","","Total a pagar",String(g.totalPagar),""]],
-      styles:{fontSize:9},headStyles:{fillColor:[31,56,100]},footStyles:{fillColor:[235,243,251],textColor:[20,20,20]},margin:{left:14,right:14}
+      styles:{fontSize:9},headStyles:{fillColor:[31,56,100]},margin:{left:14,right:14}
     });
-    y=doc.lastAutoTable.finalY+10;
+    y=doc.lastAutoTable.finalY+5;
+
+    if(y>250){ doc.addPage(); y=20; }
+    var boxW=88, boxH=16, gap=6, boxX1=14, boxX2=14+boxW+gap;
+    doc.setFillColor(216,243,220); doc.setDrawColor(45,106,79); doc.setLineWidth(0.5);
+    doc.roundedRect(boxX1, y, boxW, boxH, 2, 2, "FD");
+    doc.setFillColor(255,249,230); doc.setDrawColor(244,185,66);
+    doc.roundedRect(boxX2, y, boxW, boxH, 2, 2, "FD");
+
+    doc.setFont(undefined,"bold"); doc.setFontSize(8);
+    doc.setTextColor(45,106,79);
+    doc.text("TOTAL TRABAJADAS", boxX1+boxW/2, y+5, {align:"center"});
+    doc.setTextColor(123,88,0);
+    doc.text("TOTAL A PAGAR", boxX2+boxW/2, y+5, {align:"center"});
+
+    doc.setFontSize(15);
+    doc.setTextColor(27,67,50);
+    doc.text(String(g.totalTrabajadas)+" h", boxX1+boxW/2, y+13, {align:"center"});
+    doc.setTextColor(65,36,2);
+    doc.text(String(g.totalPagar)+" h", boxX2+boxW/2, y+13, {align:"center"});
+    doc.setFont(undefined,"normal");
+
+    y += boxH + 10;
   });
 
   var ahora=new Date();
