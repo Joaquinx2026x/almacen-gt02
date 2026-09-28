@@ -811,23 +811,28 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.21.0  (16/09/2026) — Tres correcciones al Corte
-// semanal del horómetro:
-// 1) El lunes de la semana se excluía del corte por un desajuste de
-//    hora (el rango arrancaba a la hora exacta en que se abrió la
-//    pantalla, en vez de medianoche) — corregido.
-// 2) Vista previa en pantalla del mínimo a pagar corregida: siempre
-//    decía "mínimo de 5" sin mirar el tipo de máquina — ahora
-//    consulta el tipo real (Retroexcavadora = 6h) igual que Code.gs.
-// 3) Agregado "Total trabajadas" junto a "Total a pagar", ambos en
-//    recuadros grandes y resaltados — en pantalla y en el PDF.
+// VERSIÓN ACTUAL: 2.22.0  (24/09/2026) — Mejora de presentación del
+// Corte semanal de horómetro, en pantalla y en PDF:
+// 1) Total trabajadas y Total a pagar ahora se muestran SIEMPRE con
+//    2 decimales exactos (usando toFixed(2), ej. "74.20 h" y
+//    "83.00 h") — antes, aunque el cálculo ya estaba redondeado
+//    internamente, la pantalla podía mostrar el número sin ese
+//    formato fijo.
+// 2) Si toda la máquina la operó la misma persona en el periodo (el
+//    caso normal), su nombre aparece una sola vez arriba de la tabla
+//    en vez de repetirse en cada fila — la tabla queda más angosta y
+//    fácil de leer en el celular. Si hubo más de un operador, se
+//    mantiene la columna de siempre.
+// 3) Los recuadros de "Total trabajadas"/"Total a pagar" quedan bien
+//    alineados incluso si el número fuera largo (min-width:0 +
+//    white-space:nowrap), para que no se desalineen entre sí.
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.21.0-GT02";
+var APP_VERSION = "2.22.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -4632,9 +4637,19 @@ function horGenerarCorte(){
       }).map(function(r){
         return { fecha:(r[1]||"").toString(), inicio:r[4], fin:r[5], trabajadas:r[6], aPagar:r[7], operador:(r[8]||"").toString() };
       });
-      var totalPagar = registros.reduce(function(s,r){return s+(Number(r.aPagar)||0);},0);
-      var totalTrabajadas = registros.reduce(function(s,r){return s+(Number(r.trabajadas)||0);},0);
-      return { maquina:m.nombre, registros:registros, totalPagar:totalPagar, totalTrabajadas:totalTrabajadas };
+      var totalPagar = Math.round(registros.reduce(function(s,r){return s+(Number(r.aPagar)||0);},0)*100)/100;
+      var totalTrabajadas = Math.round(registros.reduce(function(s,r){return s+(Number(r.trabajadas)||0);},0)*100)/100;
+      // Si TODO el periodo lo trabajó la misma persona (el caso normal),
+      // el nombre se muestra una sola vez arriba de la tabla en vez de
+      // repetirse en cada fila — así la tabla queda más limpia y con
+      // menos texto que envolver en pantallas angostas. Si hubo más de
+      // un operador distinto, se mantiene la columna para no perder
+      // esa información.
+      var nombresDistintos = {};
+      registros.forEach(function(r){ if(r.operador) nombresDistintos[r.operador]=true; });
+      var listaNombres = Object.keys(nombresDistintos);
+      var operadorUnico = listaNombres.length===1 ? listaNombres[0] : null;
+      return { maquina:m.nombre, registros:registros, totalPagar:totalPagar, totalTrabajadas:totalTrabajadas, operadorUnico:operadorUnico };
     });
 
     var rangoTxt = fechaLegible(HOR_RANGO_DESDE)+" al "+fechaLegible(HOR_RANGO_HASTA);
@@ -4645,19 +4660,27 @@ function horGenerarCorte(){
       if(!g.registros.length){
         html+="<div class='empty'><div class='ei'>📭</div><p>Sin registros en este rango</p></div>";
       } else {
-        html+="<table class='rep-tabla'><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Trabajadas</th><th>A pagar</th><th>Operador</th></tr>"+
-          g.registros.map(function(r){
-            return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td><td>"+r.operador+"</td></tr>";
-          }).join("")+
-          "</table>"+
+        if(g.operadorUnico){
+          html+="<div style='font-size:12px;color:#555;margin-bottom:6px'>👤 Operador: <b>"+g.operadorUnico+"</b></div>";
+          html+="<table class='rep-tabla'><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Trabajadas</th><th>A pagar</th></tr>"+
+            g.registros.map(function(r){
+              return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td></tr>";
+            }).join("")+"</table>";
+        } else {
+          html+="<table class='rep-tabla'><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Trabajadas</th><th>A pagar</th><th>Operador</th></tr>"+
+            g.registros.map(function(r){
+              return "<tr><td>"+r.fecha+"</td><td>"+r.inicio+"</td><td>"+r.fin+"</td><td>"+r.trabajadas+"</td><td><b>"+r.aPagar+"</b></td><td>"+r.operador+"</td></tr>";
+            }).join("")+"</table>";
+        }
+        html+=
           "<div style='display:flex;gap:8px;margin-top:8px'>"+
-            "<div style='flex:1;background:#EBF7ED;border:2px solid #2D6A4F;border-radius:8px;padding:9px;text-align:center'>"+
+            "<div style='flex:1;min-width:0;background:#EBF7ED;border:2px solid #2D6A4F;border-radius:8px;padding:9px 4px;text-align:center;box-sizing:border-box'>"+
               "<div style='font-size:10px;color:#2D6A4F;font-weight:bold;letter-spacing:.3px'>TOTAL TRABAJADAS</div>"+
-              "<div style='font-size:20px;font-weight:bold;color:#1B4332'>"+g.totalTrabajadas+" h</div>"+
+              "<div style='font-size:19px;font-weight:bold;color:#1B4332;white-space:nowrap'>"+g.totalTrabajadas.toFixed(2)+" h</div>"+
             "</div>"+
-            "<div style='flex:1;background:#FFF9E6;border:2px solid #F4B942;border-radius:8px;padding:9px;text-align:center'>"+
+            "<div style='flex:1;min-width:0;background:#FFF9E6;border:2px solid #F4B942;border-radius:8px;padding:9px 4px;text-align:center;box-sizing:border-box'>"+
               "<div style='font-size:10px;color:#7B5800;font-weight:bold;letter-spacing:.3px'>TOTAL A PAGAR</div>"+
-              "<div style='font-size:20px;font-weight:bold;color:#412402'>"+g.totalPagar+" h</div>"+
+              "<div style='font-size:19px;font-weight:bold;color:#412402;white-space:nowrap'>"+g.totalPagar.toFixed(2)+" h</div>"+
             "</div>"+
           "</div>";
       }
@@ -4688,19 +4711,30 @@ function horDescargarPDF(){
   // Un PDF combinado: una tabla por máquina, una debajo de la otra, cada
   // una con sus dos totales destacados en recuadros de color (igual
   // criterio visual que la vista en pantalla) — así resaltan mucho más
-  // que una fila de pie de tabla en texto plano.
+  // que una fila de pie de tabla en texto plano. Si toda la máquina la
+  // operó la misma persona en el periodo, su nombre va una sola vez
+  // arriba de la tabla (en vez de una columna repetida en cada fila).
   var y=28;
   c.grupos.forEach(function(g,i){
     if(i>0 && y>235){ doc.addPage(); y=20; }
-    doc.setFontSize(11);
+    doc.setFontSize(11); doc.setFont(undefined,"bold");
     doc.setTextColor(20,20,20);
     doc.text(g.maquina,14,y);
+    doc.setFont(undefined,"normal");
+    var yTabla=y+3;
+    if(g.operadorUnico){
+      doc.setFontSize(9); doc.setTextColor(90,90,90);
+      doc.text("Operador: "+g.operadorUnico,14,y+7);
+      yTabla=y+10;
+    }
     doc.autoTable({
-      startY:y+3,
-      head:[["Fecha","Inicio","Fin","Trabajadas","A pagar","Operador"]],
+      startY:yTabla,
+      head: g.operadorUnico ? [["Fecha","Inicio","Fin","Trabajadas","A pagar"]] : [["Fecha","Inicio","Fin","Trabajadas","A pagar","Operador"]],
       body:g.registros.length? g.registros.map(function(r){
-        return[r.fecha,String(r.inicio),String(r.fin),String(r.trabajadas),String(r.aPagar),r.operador];
-      }):[["Sin registros en este periodo","","","","",""]],
+        return g.operadorUnico
+          ? [r.fecha,String(r.inicio),String(r.fin),String(r.trabajadas),String(r.aPagar)]
+          : [r.fecha,String(r.inicio),String(r.fin),String(r.trabajadas),String(r.aPagar),r.operador];
+      }):[ g.operadorUnico ? ["Sin registros en este periodo","","","",""] : ["Sin registros en este periodo","","","","",""] ],
       styles:{fontSize:9},headStyles:{fillColor:[31,56,100]},margin:{left:14,right:14}
     });
     y=doc.lastAutoTable.finalY+5;
@@ -4720,9 +4754,9 @@ function horDescargarPDF(){
 
     doc.setFontSize(15);
     doc.setTextColor(27,67,50);
-    doc.text(String(g.totalTrabajadas)+" h", boxX1+boxW/2, y+13, {align:"center"});
+    doc.text(g.totalTrabajadas.toFixed(2)+" h", boxX1+boxW/2, y+13, {align:"center"});
     doc.setTextColor(65,36,2);
-    doc.text(String(g.totalPagar)+" h", boxX2+boxW/2, y+13, {align:"center"});
+    doc.text(g.totalPagar.toFixed(2)+" h", boxX2+boxW/2, y+13, {align:"center"});
     doc.setFont(undefined,"normal");
 
     y += boxH + 10;
