@@ -811,28 +811,28 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--c-borde
 // ═══════════════════════════════════════════════════════════
 // ALMACÉN GT02 — Frontend (index.html)
 //
-// VERSIÓN ACTUAL: 2.22.0  (24/09/2026) — Mejora de presentación del
-// Corte semanal de horómetro, en pantalla y en PDF:
-// 1) Total trabajadas y Total a pagar ahora se muestran SIEMPRE con
-//    2 decimales exactos (usando toFixed(2), ej. "74.20 h" y
-//    "83.00 h") — antes, aunque el cálculo ya estaba redondeado
-//    internamente, la pantalla podía mostrar el número sin ese
-//    formato fijo.
-// 2) Si toda la máquina la operó la misma persona en el periodo (el
-//    caso normal), su nombre aparece una sola vez arriba de la tabla
-//    en vez de repetirse en cada fila — la tabla queda más angosta y
-//    fácil de leer en el celular. Si hubo más de un operador, se
-//    mantiene la columna de siempre.
-// 3) Los recuadros de "Total trabajadas"/"Total a pagar" quedan bien
-//    alineados incluso si el número fuera largo (min-width:0 +
-//    white-space:nowrap), para que no se desalineen entre sí.
+// VERSIÓN ACTUAL: 2.23.0  (02/10/2026) — Corregido: un ítem guardado
+// como Insumo podía mostrarse como Material (o viceversa) en
+// Inventario y en Préstamo. Causa real: el Tipo elegido al crear el
+// ítem nunca se guardaba en ningún lado — la pantalla "adivinaba" si
+// era Insumo o Material buscando la palabra "insumo"/"consumib"
+// dentro del texto libre de Categoría. Ahora el Tipo se guarda
+// explícito (columna J de Catalogo_Insumos) y se lee de ahí; los
+// ítems viejos sin esa columna llena siguen usando la adivinanza
+// como respaldo, y se corrigen solos la próxima vez que se guarden.
+// También se corrigió que, en Préstamo, las pestañas "Insumo" y
+// "Material" no filtraban nada — mostraban todo mezclado y le
+// pegaban la etiqueta de la pestaña activa sin importar el tipo real
+// del ítem. Edición: ya se puede cambiar Insumo ↔ Material desde
+// Admin → Inventario → Editar (antes quedaba bloqueado siempre que
+// se editaba cualquier ítem, no solo Herramientas).
 // Debe coincidir siempre con la versión de Code.gs — son un solo
 // sistema, aunque vivan en dos archivos distintos.
 //
 // Ver el historial completo de versiones en el comentario de
 // encabezado de Code.gs (para no repetirlo dos veces).
 // ═══════════════════════════════════════════════════════════
-var APP_VERSION = "2.22.0-GT02";
+var APP_VERSION = "2.23.0-GT02";
 
 // ══════════════════════════════════════════════
 //  CONFIG DE PROYECTO — datos propios de ESTE proyecto (GT02),
@@ -1451,19 +1451,26 @@ function buscaItem(v){
       );
     }
 
-    // Insumos y Materiales — misma hoja, tipo según botón seleccionado
+    // Insumos y Materiales — misma hoja, pero ahora SÍ se filtra por la
+    // pestaña activa usando el tipo real guardado (antes buscaba en
+    // toda la hoja sin distinguir, y le pegaba la etiqueta "Insumo" o
+    // "Material" según qué botón tuvieras apretado — así que un
+    // material podía aparecer listado como insumo, o viceversa, según
+    // en qué pestaña estuvieras parado al buscar).
     if(TIPO==="Insumo"||TIPO==="Material"){
       promises.push(
-        sheetsGet("Catalogo_Insumos!A2:I").then(function(resp){
+        sheetsGet("Catalogo_Insumos!A2:J").then(function(resp){
           var rows=resp.values||[];
           for(var i=0;i<rows.length&&res.length<14;i++){
             var cod=(rows[i][0]||"").toString().toLowerCase();
             var desc=(rows[i][1]||"").toString().toLowerCase();
             if(cod.indexOf(q)<0&&desc.indexOf(q)<0) continue;
+            var tipoReal = tipoRealInsumo(rows[i][2], rows[i][9]);
+            if(tipoReal!==TIPO) continue;
             res.push({
               codigo:rows[i][0],
               descripcion:rows[i][1],
-              tipo:TIPO,
+              tipo:tipoReal,
               unidad:(rows[i][3]||"und").toString(),
               fotoId:(rows[i][8]||"").toString()
             });
@@ -2179,10 +2186,17 @@ function descargarPDF(){
 //    J Accesorios         K Contenedor    L Ubicacion
 //    M Estado             N Observaciones
 //
-//  Catalogo_Insumos (8 columnas, A→H):
+//  Catalogo_Insumos (originalmente 8 columnas, A→H — ahora con dos
+//  columnas agregadas después, I y J):
 //    A CodigoInsumo   B DescripcionInsumo   C Categoria
 //    D Unidad         E StockActual         F StockMinimo
-//    G Ubicacion      H Observaciones
+//    G Ubicacion      H Observaciones       I FotoId
+//    J Tipo (Insumo/Material) — agregado en esta versión. Antes el
+//      Tipo NO se guardaba en ningún lado: la pantalla "adivinaba" si
+//      un ítem era Insumo o Material buscando la palabra "insumo" o
+//      "consumib" dentro del texto libre de Categoría, así que un
+//      ítem guardado como Insumo pero sin esa palabra en Categoría
+//      terminaba mostrándose como Material. Ver tipoRealInsumo().
 //
 //  H e I de Herramientas (CantidadDisponible/CantidadPrestada) NO
 //  se leen ni se escriben desde aquí a propósito — quedaron con
@@ -2195,11 +2209,26 @@ var INV_ITEMS=[]; // lista combinada de ambos catálogos, cargada en memoria
 var INV_ESTADOS=["Bueno","Nuevo","Regular","Dañado","Pendiente de revisar","De baja","Otro"];
 
 // Carga ambos catálogos completos desde Sheets y arma una sola lista en memoria
+// tipoRealInsumo — determina si un ítem de Catalogo_Insumos es Insumo o
+// Material. Primero confía en la columna J (Tipo), que es donde se
+// guarda explícito desde que se creó o editó el ítem por última vez.
+// Si esa columna todavía está vacía (ítems antiguos, de antes de este
+// cambio), cae al respaldo de siempre: buscar "insumo"/"consumib"
+// dentro del texto libre de Categoría. Una sola función para que
+// invCargar() y buscaItem() nunca puedan decidir cosas distintas
+// sobre el mismo ítem.
+function tipoRealInsumo(categoria, tipoGuardado){
+  tipoGuardado = (tipoGuardado||"").toString().trim();
+  if(tipoGuardado==="Insumo"||tipoGuardado==="Material") return tipoGuardado;
+  var cat = (categoria||"").toString().toLowerCase();
+  return (cat.indexOf("insumo")>=0 || cat.indexOf("consumib")>=0) ? "Insumo" : "Material";
+}
+
 function invCargar(){
   document.getElementById("invLista").innerHTML="<div class='loading'>🔄 Cargando inventario...</div>";
   Promise.all([
     sheetsGet("Catalogo_Herramientas!A2:O"),
-    sheetsGet("Catalogo_Insumos!A2:I"),
+    sheetsGet("Catalogo_Insumos!A2:J"),
     sheetsGet("Movimientos_Insumos!A2:M")
   ]).then(function(results){
     var h=results[0].values||[];
@@ -2237,15 +2266,23 @@ function invCargar(){
       });
     });
 
-    // Insumos/Materiales — misma hoja para ambos; se usa Categoria solo para
-    // mostrar el badge visual correcto, no cambia cómo se guarda el dato.
+    // Insumos/Materiales — misma hoja para ambos. El Tipo (Insumo o
+    // Material) que elegiste al crear el ítem se guarda explícito en
+    // la columna J. Antes NO se guardaba en ningún lado — la pantalla
+    // "adivinaba" el tipo buscando la palabra "insumo" o "consumib"
+    // dentro del texto libre de Categoría, así que si esa palabra no
+    // aparecía ahí (o el campo quedaba vacío), el ítem se mostraba
+    // como Material aunque hubieras elegido Insumo. Para ítems viejos
+    // que todavía no tengan la columna J llena, se mantiene esa misma
+    // adivinanza como respaldo — y se corrige sola la próxima vez que
+    // se guarde el ítem (crear o editar).
     ins.forEach(function(r){
       if(!r[0]) return;
       var cod=(r[0]||"").toString();
       var cat=(r[2]||"").toString();
-      var esConsumible = cat.toLowerCase().indexOf("insumo")>=0 || cat.toLowerCase().indexOf("consumib")>=0;
+      var tipoFinal = tipoRealInsumo(cat, r[9]);
       INV_ITEMS.push({
-        tipo: esConsumible ? "Insumo" : "Material",
+        tipo: tipoFinal,
         codigo:cod, descripcion:(r[1]||"").toString(),
         categoria:cat, unidad:(r[3]||"und").toString(),
         stockActual:(r[4]!==undefined&&r[4]!==""?r[4]:""),
@@ -2454,11 +2491,12 @@ function invMostrarForm(it, esEdicion){
     "<div class='card'>"+
     "<div class='ctit'>"+(esEdicion?"✏️ Editar ítem":"➕ Nuevo ítem")+"</div>"+
     fotoHTML+
-    "<select id='ivTipo' onchange='invToggleTipoCampos()' "+(esEdicion?"disabled":"")+">"+
+    "<select id='ivTipo' onchange='invToggleTipoCampos()' "+(esEdicion&&it.tipo==="Herramienta"?"disabled":"")+">"+
       "<option value='Herramienta'"+(it.tipo==="Herramienta"?" selected":"")+">Herramienta</option>"+
       "<option value='Insumo'"+(it.tipo==="Insumo"?" selected":"")+">Insumo</option>"+
       "<option value='Material'"+(it.tipo==="Material"?" selected":"")+">Material</option>"+
     "</select>"+
+    (esEdicion&&it.tipo==="Herramienta"?"<div style='font-size:10px;color:#888;margin:-4px 0 6px'>Una herramienta no se puede cambiar a Insumo/Material desde aquí — viven en hojas distintas del Excel. Si fue un error, crea el ítem correcto y desactiva este.</div>":"")+
     "<input type='text' id='ivCodigo' placeholder='Código' value=\""+esc(it.codigo)+"\">"+
     "<input type='text' id='ivDescripcion' placeholder='Descripción' value=\""+esc(it.descripcion)+"\">"+
     "<div id='ivCamposHerramienta' style='display:"+(it.tipo==="Herramienta"?"block":"none")+"'>"+camposHerramienta+"</div>"+
